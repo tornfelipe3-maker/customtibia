@@ -206,6 +206,13 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
 
+  // ** AoE BUFF ** 
+  // Increase AoE spell damage by 20% to compensate for being effective only on multiple targets
+  // and having higher mana cost / cooldowns
+  if (spell.isAoe) {
+      damage = Math.floor(damage * 1.20);
+  }
+
   return damage;
 };
 
@@ -237,6 +244,11 @@ export const calculateRuneDamage = (player: Player, item: Item): number => {
   if (isPremium(player)) damage = Math.floor(damage * 1.1);
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
+
+  // ** Rune AoE BUFF **
+  if (item.runeType === 'area') {
+      damage = Math.floor(damage * 1.20);
+  }
 
   return damage;
 };

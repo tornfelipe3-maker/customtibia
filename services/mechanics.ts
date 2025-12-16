@@ -363,9 +363,66 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   const xpPerCycle = monster.exp * huntCount * stageMult * xpMult * staminaMult;
 
+  // WASTE CALCULATION (Approximation)
+  // Ammo cost
+  let ammoCostPerHour = 0;
+  if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
+      const ammo = player.equipment[EquipmentSlot.AMMO];
+      if (ammo && ammo.price) {
+          const shotsPerHour = cyclesPerHour * turnsToKill;
+          ammoCostPerHour = shotsPerHour * ammo.price;
+      }
+  }
+
+  // Rune cost
+  let runeCostPerHour = 0;
+  if (player.settings.autoAttackRune && player.settings.selectedRuneId) {
+      const rune = SHOP_ITEMS.find(i => i.id === player.settings.selectedRuneId);
+      if (rune && rune.price) {
+          // Assume 1 rune every 2 turns max (cooldown)
+          const runesUsed = cyclesPerHour * (turnsToKill / 2); 
+          runeCostPerHour = runesUsed * rune.price;
+      }
+  }
+
+  // Potion Waste (Heuristic based on Monster difficulty vs Player)
+  let potionCostPerHour = 0;
+  const monsterDPS = ((monster.damageMin + monster.damageMax) / 2) * huntCount / (monster.attackSpeedMs / 1000);
+  
+  // Rough player mitigation
+  let mitigation = 0;
+  Object.values(player.equipment).forEach(i => { if (i && i.armor) mitigation += i.armor; });
+  // Mitigation factor
+  const netIncomingDPS = Math.max(0, monsterDPS - (mitigation * 0.8));
+  
+  // Simple check: If monster is hard, we use pots
+  if (netIncomingDPS > (player.level / 5)) {
+      // Estimate gold cost for healing per hour
+      // 1 Gold ~ 2 HP healing efficiency on average
+      const hpNeedPerHour = netIncomingDPS * 3600;
+      // Subtract natural regen approx (1 HP per sec * 3600)
+      const netHpNeed = Math.max(0, hpNeedPerHour - 3600); 
+      potionCostPerHour = netHpNeed * 0.5; // Cost 0.5gp per HP healed
+  }
+
+  // Mana Waste (Spells)
+  let manaWastePerHour = 0;
+  if (player.settings.autoAttackSpell) {
+      // Assume casting spell every 2s (cooldown avg)
+      const castsPerHour = 1800;
+      const avgManaCost = 40; // Approx
+      const manaNeed = castsPerHour * avgManaCost;
+      const naturalMana = 3600; // 1 per sec
+      const netManaNeed = Math.max(0, manaNeed - naturalMana);
+      manaWastePerHour = netManaNeed * 0.5; // 0.5gp per MP
+  }
+
+  const totalWastePerHour = Math.floor(ammoCostPerHour + runeCostPerHour + potionCostPerHour + manaWastePerHour);
+
   return {
     xpPerHour: Math.floor(cyclesPerHour * xpPerCycle),
     rawGoldPerHour: Math.floor(cyclesPerHour * rawGoldPerCycle),
-    cyclesPerHour: cyclesPerHour // Kills per hour
+    cyclesPerHour: cyclesPerHour, // Kills per hour
+    wastePerHour: totalWastePerHour // Estimated Supply Cost
   };
 };

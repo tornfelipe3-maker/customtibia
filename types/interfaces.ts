@@ -196,6 +196,7 @@ export interface OfflineReport {
     leveledUp: number; // How many levels
     skillTrained?: SkillType;
     skillGain?: number; // Percent or levels
+    waste: number; // NEW: Total gold value of supplies used
 }
 
 export interface Player {
@@ -321,4 +322,5 @@ export interface Spell {
   vocations: Vocation[];
   damageType?: DamageType;
   cooldown: number;
+  isAoe?: boolean; // NEW: Determines if spell hits all lured mobs or single target
 }

@@ -2,7 +2,7 @@
 import React from 'react';
 import { OfflineReport } from '../types';
 import { SHOP_ITEMS } from '../constants';
-import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle } from 'lucide-react';
+import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle, AlertOctagon } from 'lucide-react';
 
 interface OfflineModalProps {
   report: OfflineReport;
@@ -18,6 +18,7 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
   };
 
   const hasLoot = Object.keys(report.lootObtained).length > 0;
+  const netProfit = report.goldGained - (report.waste || 0);
 
   return (
     <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in zoom-in duration-300">
@@ -77,6 +78,21 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                                 </div>
                             </div>
                         </div>
+
+                        {report.waste > 0 && (
+                            <div className="mb-4 bg-black/40 p-2 rounded border border-[#333] flex justify-between items-center">
+                                <div>
+                                    <div className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1"><AlertOctagon size={10}/> Supplies Used</div>
+                                    <div className="text-red-400 font-mono font-bold">-{report.waste.toLocaleString()} gp</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-[10px] text-gray-500 uppercase font-bold">Net Profit</div>
+                                    <div className={`font-mono font-bold ${netProfit >= 0 ? 'text-green-400' : 'text-red-500'}`}>
+                                        {netProfit > 0 ? '+' : ''}{netProfit.toLocaleString()} gp
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {report.leveledUp > 0 && (
                             <div className="bg-yellow-900/20 border border-yellow-700/50 p-2 rounded text-center mb-4 animate-pulse">

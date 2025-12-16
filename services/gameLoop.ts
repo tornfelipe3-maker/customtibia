@@ -96,7 +96,7 @@ export const processGameTick = (
     }
 
     const hazard = isBossTarget ? 0 : (p.activeHazardLevel || 0);
-    // ... (Rest of the file remains unchanged)
+    
     const hazardDmgMult = 1 + (hazard * 0.01);
     const hazardCritChance = Math.min(0.5, hazard * 0.005); 
     const hazardCritDmg = 1.5 + (hazard * 0.01);
@@ -421,14 +421,21 @@ export const processGameTick = (
                         
                         const spellName = spell.name.match(/\((.*?)\)/)?.[1] || spell.name;
                         const spellDmg = calculateSpellDamage(p, spell);
-                        const finalSpellDmg = spellDmg * huntCount; 
+                        
+                        // --- AOE vs SINGLE TARGET LOGIC ---
+                        // AoE spells hit ALL monsters (dmg * huntCount)
+                        // Single target spells hit ONLY ONE (dmg * 1)
+                        const finalSpellDmg = spell.isAoe ? spellDmg * huntCount : spellDmg; 
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
                              hit('DODGED', 'speech', 'monster');
                         } else {
                             totalDamage += finalSpellDmg;
                             hit(spellName, 'speech', 'player');
-                            log(`You hit ${monster.name} for ${finalSpellDmg} hitpoints. (Spell: ${spellName})`, 'combat');
+                            // Only log details occasionally to avoid spam
+                            if (Math.random() > 0.7) {
+                                log(`You hit ${monster.name} for ${finalSpellDmg} hitpoints. (Spell: ${spellName})`, 'combat');
+                            }
                         }
 
                         p.mana -= spell.manaCost;
@@ -450,14 +457,20 @@ export const processGameTick = (
                 if (runeItem && (p.inventory[runeItem.id] || 0) > 0) {
                     if (p.level >= (runeItem.requiredLevel || 0) && getEffectiveSkill(p, SkillType.MAGIC) >= (runeItem.reqMagicLevel || 0)) {
                         const runeDmg = calculateRuneDamage(p, runeItem);
+                        
+                        // --- RUNE AOE LOGIC ---
                         let finalRuneDmg = runeDmg;
-                        if (runeItem.runeType === 'area') finalRuneDmg = runeDmg * huntCount;
+                        if (runeItem.runeType === 'area') {
+                            finalRuneDmg = runeDmg * huntCount;
+                        }
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
                              hit('DODGED', 'speech', 'monster');
                         } else {
                             totalDamage += finalRuneDmg;
-                            log(`You hit ${monster.name} for ${finalRuneDmg} hitpoints. (Rune: ${runeItem.name})`, 'combat');
+                            if (Math.random() > 0.7) {
+                                log(`You hit ${monster.name} for ${finalRuneDmg} hitpoints. (Rune: ${runeItem.name})`, 'combat');
+                            }
                         }
 
                         p.inventory[runeItem.id]--;
@@ -549,6 +562,9 @@ export const processGameTick = (
                     
                     // Process Unique Items
                     drop.unique.forEach(uniqueItem => {
+                        // CHECK SKIPPED LOOT FOR UNIQUE ITEMS
+                        if (p.skippedLoot.includes(uniqueItem.id)) return;
+
                         // Check Slot Limit
                         if (currentSlots < MAX_BACKPACK_SLOTS) {
                             if (!p.uniqueInventory) p.uniqueInventory = [];

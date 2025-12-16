@@ -35,6 +35,7 @@ export const calculateOfflineProgress = (
             killedMonsters: [],
             lootObtained: {},
             leveledUp: 0,
+            waste: 0, // Init waste
         };
 
         // --- HUNTING OFFLINE ---
@@ -74,7 +75,40 @@ export const calculateOfflineProgress = (
                 modifiedPlayer.gold += safeTotalGold;
                 report.goldGained = safeTotalGold;
 
-                // 3. Grant Loot
+                // 3. Apply Waste (Supplies)
+                // Assuming player buys supplies automatically with bank/gold
+                const estimatedWaste = Math.floor(stats.wastePerHour * hoursPassed);
+                
+                if (modifiedPlayer.gold + modifiedPlayer.bankGold < estimatedWaste) {
+                    // Ran out of gold for supplies - reduce effective time
+                    const affordableRatio = (modifiedPlayer.gold + modifiedPlayer.bankGold) / estimatedWaste;
+                    // Apply reduced gains? For simplicity, we just deduct what they have and stop hunting
+                    // But to be fair, we just deduct cost. If negative, they enter "debt" or stop?
+                    // Let's assume they stop if they can't afford.
+                    
+                    // Actually, let's just deduct from gold. If gold < 0, set to 0 and maybe stop future hunt?
+                    // Simpler: Deduct waste. 
+                    let remainingWaste = estimatedWaste;
+                    if (modifiedPlayer.gold >= remainingWaste) {
+                        modifiedPlayer.gold -= remainingWaste;
+                    } else {
+                        remainingWaste -= modifiedPlayer.gold;
+                        modifiedPlayer.gold = 0;
+                        modifiedPlayer.bankGold = Math.max(0, modifiedPlayer.bankGold - remainingWaste);
+                    }
+                } else {
+                    // Normal deduction
+                    if (modifiedPlayer.gold >= estimatedWaste) {
+                        modifiedPlayer.gold -= estimatedWaste;
+                    } else {
+                        const remainder = estimatedWaste - modifiedPlayer.gold;
+                        modifiedPlayer.gold = 0;
+                        modifiedPlayer.bankGold -= remainder;
+                    }
+                }
+                report.waste = estimatedWaste;
+
+                // 4. Grant Loot
                 const lootSummary: {[key:string]: number} = {};
                 
                 if (totalKills > 0) {
@@ -96,6 +130,9 @@ export const calculateOfflineProgress = (
 
                     if (monster.lootTable) {
                         monster.lootTable.forEach(drop => {
+                            // SKIP IF MARKED AS IGNORED
+                            if (modifiedPlayer.skippedLoot && modifiedPlayer.skippedLoot.includes(drop.itemId)) return;
+
                             // Expected drops = Kills * Chance * Multipliers * AvgAmount
                             const chance = drop.chance * lootMult * GLOBAL_DROP_RATE;
                             const avgAmount = (1 + drop.maxAmount) / 2;
@@ -106,10 +143,6 @@ export const calculateOfflineProgress = (
                                 if (item) {
                                     lootSummary[drop.itemId] = totalDrops;
                                     modifiedPlayer.inventory[drop.itemId] = (modifiedPlayer.inventory[drop.itemId] || 0) + totalDrops;
-                                    
-                                    // Also add loot value to gold report for clarity (optional, but requested "how much gold gained")
-                                    // Usually "Gold Gained" implies raw gold, loot is separate.
-                                    // We keep them separate in report.
                                 }
                             }
                         });
@@ -117,7 +150,7 @@ export const calculateOfflineProgress = (
                 }
                 report.lootObtained = lootSummary;
 
-                // 4. Check Level Ups
+                // 5. Check Level Ups
                 const startLevel = modifiedPlayer.level;
                 const lvlResult = checkForLevelUp(modifiedPlayer);
                 modifiedPlayer = lvlResult.player;

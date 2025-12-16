@@ -47,11 +47,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   // New Ref to track simulation time for background catch-up
   const lastTickRef = useRef<number>(Date.now());
   
-  // --- REMOVED: SYNC EFFECT ---
-  // The playerRef is now the SOURCE of truth. 
-  // setPlayer is only for rendering.
-  // Actions update ref directly.
-
   // Helper for Log
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
       setLogs(prev => [...prev, { id: Math.random().toString(), message, type, timestamp: Date.now(), rarity }]);
@@ -85,6 +80,11 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
           if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
           
+          // MIGRATION: Skipped Loot
+          if (!migratedPlayer.skippedLoot) {
+              migratedPlayer.skippedLoot = [];
+          }
+
           // MIGRATION: Prey Rerolls (If updated from old version)
           if (migratedPlayer.prey && migratedPlayer.prey.rerollsAvailable === undefined) {
               migratedPlayer.prey.rerollsAvailable = 3;
@@ -187,10 +187,11 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
       const worker = new Worker(URL.createObjectURL(blob));
 
-      worker.onmessage = () => {
+      // Shared Game Loop Processing Logic
+      const runGameLoop = () => {
           if (!playerRef.current) return;
           if (isPaused) {
-              // If paused, just keep resetting the clock so we don't accumulate "catch up" while looking at a modal
+              // If paused, keep bumping the timer so we don't accumulate hours of "work" while user is reading a modal
               lastTickRef.current = Date.now();
               return; 
           }
@@ -201,10 +202,10 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           // Calculate elapsed time since last processed tick
           let delta = now - lastTickRef.current;
           
-          // CATCH-UP LOGIC:
-          // If delta is huge (e.g. user minimized tab for 10 mins), we have many ticks to process.
-          // Cap it to avoid infinite freeze (e.g., max 15 minutes of instant processing).
-          const MAX_CATCHUP_MS = 15 * 60 * 1000;
+          // CATCH-UP LOGIC UPDATED:
+          // Browsers completely suspend tabs (Efficiency Mode). When you return, delta is huge.
+          // Process up to 24 hours of background time instantly.
+          const MAX_CATCHUP_MS = 24 * 60 * 60 * 1000;
           if (delta > MAX_CATCHUP_MS) {
               delta = MAX_CATCHUP_MS;
               lastTickRef.current = now - MAX_CATCHUP_MS;
@@ -335,6 +336,17 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
       };
 
+      // Listener for Worker Messages
+      worker.onmessage = () => runGameLoop();
+
+      // Listener for Tab Visibility (Force Catch-up when user returns to tab)
+      const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+              runGameLoop();
+          }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
       // Start the worker timer
       const interval = 1000 / gameSpeed;
       worker.postMessage({ type: 'START', interval });
@@ -342,6 +354,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       return () => {
           worker.postMessage({ type: 'STOP' });
           worker.terminate();
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
   }, [!!player, isPaused, gameSpeed]); // Restart loop if speed changes
 

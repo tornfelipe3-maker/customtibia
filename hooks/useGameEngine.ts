@@ -47,13 +47,10 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   // New Ref to track simulation time for background catch-up
   const lastTickRef = useRef<number>(Date.now());
   
-  // Sync refs normally
-  useEffect(() => { 
-      // Only sync if the player state is actually newer/different to avoid reverting the ref during race conditions
-      if (player) {
-          playerRef.current = player; 
-      }
-  }, [player]);
+  // --- REMOVED: SYNC EFFECT ---
+  // The playerRef is now the SOURCE of truth. 
+  // setPlayer is only for rendering.
+  // Actions update ref directly.
 
   // Helper for Log
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
@@ -61,8 +58,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   };
 
   // --- ACTIONS FACADE ---
-  // All business logic is now delegated to this hook to clean up the Engine
   const actions = useGameActions(
+      playerRef, // Pass ref
       setPlayer,
       setGameSpeed,
       setAnalyzerHistory,
@@ -151,7 +148,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (stopHunt) updatedPlayer.activeHuntId = null;
           if (stopTrain) updatedPlayer.activeTrainingSkill = null;
           
+          // IMPORTANT: Sync both State and Ref on Init
           setPlayer(updatedPlayer);
+          playerRef.current = updatedPlayer;
       }
   }, [initialPlayer]);
 
@@ -261,9 +260,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
               if (result.stopHunt) {
                   stopBatchHunt = true;
-                  // Stop future ticks in this batch from processing combat if hunt stopped
-                  // But keep processing regen?
-                  // For simplicity in catch-up, we break if a stop event occurs to update UI immediately
                   break; 
               }
               if (result.stopTrain) {

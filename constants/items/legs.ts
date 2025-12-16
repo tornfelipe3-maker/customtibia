@@ -7,10 +7,10 @@ export const LEGS_LIST: Item[] = [
   { id: 'leather_legs', name: 'Leather Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 1, price: 80, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Calças de couro.', image: `${IMG_BASE}Leather_Legs.gif`, requiredLevel: 1 },
 
   // TIER 1 (Lvl 1-8) -> Item Lvl 2
-  { id: 'brass_legs', name: 'Brass Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 2, price: 1500, sellPrice: 49, soldTo: [NpcType.TRADER], description: 'Brass Legs (Tier 1).', image: `${IMG_BASE}Brass_Legs.gif`, requiredLevel: 2 },
+  { id: 'brass_legs', name: 'Brass Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 2, price: 1500, sellPrice: 15, soldTo: [NpcType.TRADER], description: 'Brass Legs (Tier 1).', image: `${IMG_BASE}Brass_Legs.gif`, requiredLevel: 2 },
   
   // TIER 2 (Lvl 9-20) -> Item Lvl 8
-  { id: 'plate_legs', name: 'Plate Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 3, price: 4000, sellPrice: 115, soldTo: [NpcType.TRADER], description: 'Calças de placas (Tier 2).', image: `${IMG_BASE}Plate_Legs.gif`, requiredLevel: 8 },
+  { id: 'plate_legs', name: 'Plate Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 3, price: 4000, sellPrice: 40, soldTo: [NpcType.TRADER], description: 'Calças de placas (Tier 2).', image: `${IMG_BASE}Plate_Legs.gif`, requiredLevel: 8 },
   
   // TIER 3 (Lvl 20-40) -> Item Lvl 20
   { id: 'crown_legs', name: 'Crown Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 4, price: 0, sellPrice: 12000, soldTo: [NpcType.BLUE_DJINN], description: 'Calças reais (Tier 3).', image: `${IMG_BASE}Crown_Legs.gif`, requiredLevel: 20 },

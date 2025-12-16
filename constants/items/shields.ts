@@ -4,13 +4,13 @@ import { IMG_BASE } from '../config';
 
 export const SHIELDS_LIST: Item[] = [
   // STARTER
-  { id: 'wooden_shield', name: 'Wooden Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 14, price: 150, sellPrice: 3, soldTo: [NpcType.TRADER], description: 'Escudo de madeira.', image: `${IMG_BASE}Wooden_Shield.gif`, requiredLevel: 1 },
+  { id: 'wooden_shield', name: 'Wooden Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 14, price: 150, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Escudo de madeira.', image: `${IMG_BASE}Wooden_Shield.gif`, requiredLevel: 1 },
 
   // TIER 1 (Lvl 1-8) -> Item Lvl 2
-  { id: 'brass_shield', name: 'Brass Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 16, price: 400, sellPrice: 25, soldTo: [NpcType.TRADER], description: 'Escudo de latão (Tier 1).', image: `${IMG_BASE}Brass_Shield.gif`, requiredLevel: 2 },
+  { id: 'brass_shield', name: 'Brass Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 16, price: 400, sellPrice: 10, soldTo: [NpcType.TRADER], description: 'Escudo de latão (Tier 1).', image: `${IMG_BASE}Brass_Shield.gif`, requiredLevel: 2 },
 
   // TIER 2 (Lvl 9-20) -> Item Lvl 8
-  { id: 'plate_shield', name: 'Plate Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 17, price: 800, sellPrice: 45, soldTo: [NpcType.TRADER], description: 'Escudo de placas (Tier 2).', image: `${IMG_BASE}Plate_Shield.gif`, requiredLevel: 8 },
+  { id: 'plate_shield', name: 'Plate Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 17, price: 800, sellPrice: 25, soldTo: [NpcType.TRADER], description: 'Escudo de placas (Tier 2).', image: `${IMG_BASE}Plate_Shield.gif`, requiredLevel: 8 },
 
   // TIER 3 (Lvl 20-40) -> Item Lvl 20
   { id: 'crown_shield', name: 'Crown Shield', type: 'equipment', slot: EquipmentSlot.HAND_LEFT, defense: 32, price: 0, sellPrice: 8000, soldTo: [NpcType.BLUE_DJINN], description: 'Escudo real (Tier 3).', image: `${IMG_BASE}Crown_Shield.gif`, requiredLevel: 20 },

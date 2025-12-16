@@ -4,10 +4,10 @@ import { IMG_BASE } from '../config';
 
 export const AXE_LIST: Item[] = [
   // TIER 1
-  { id: 'hand_axe', name: 'Hand Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 6, defense: 1, price: 350, sellPrice: 4, soldTo: [NpcType.TRADER], description: 'Tier 1 Axe.', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Hand_Axe.gif`, requiredLevel: 2 },
+  { id: 'hand_axe', name: 'Hand Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 6, defense: 1, price: 350, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Tier 1 Axe.', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Hand_Axe.gif`, requiredLevel: 2 },
   
   // TIER 2
-  { id: 'axe', name: 'Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 150, sellPrice: 7, soldTo: [NpcType.TRADER], description: 'Machado simples (Tier 2).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Axe.gif`, requiredLevel: 8 },
+  { id: 'axe', name: 'Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 150, sellPrice: 4, soldTo: [NpcType.TRADER], description: 'Machado simples (Tier 2).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Axe.gif`, requiredLevel: 8 },
   
   // TIER 3
   { id: 'orcish_axe', name: 'Orcish Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 20, defense: 3, price: 5000, sellPrice: 350, soldTo: [NpcType.GREEN_DJINN], description: 'Machado orc (Tier 3).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Orcish_Axe.gif`, requiredLevel: 20 },

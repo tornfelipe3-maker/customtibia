@@ -7,7 +7,7 @@ export const CLUB_LIST: Item[] = [
   { id: 'club', name: 'Club', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 6, defense: 1, price: 50, sellPrice: 1, soldTo: [NpcType.TRADER], description: 'Tier 1 Club.', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Club.gif`, requiredLevel: 2 },
   
   // TIER 2
-  { id: 'bone_club', name: 'Bone Club', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 200, sellPrice: 20, soldTo: [NpcType.TRADER], description: 'Clava de osso (Tier 2).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Bone_Club.gif`, requiredLevel: 8 },
+  { id: 'bone_club', name: 'Bone Club', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 200, sellPrice: 5, soldTo: [NpcType.TRADER], description: 'Clava de osso (Tier 2).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Bone_Club.gif`, requiredLevel: 8 },
   
   // TIER 3
   { id: 'clerical_mace', name: 'Clerical Mace', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 20, defense: 3, price: 5500, sellPrice: 170, soldTo: [NpcType.BLUE_DJINN], description: 'Maça clerical (Tier 3).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Clerical_Mace.gif`, requiredLevel: 20 },

@@ -4,13 +4,13 @@ import { IMG_BASE } from '../config';
 
 export const ARMORS_LIST: Item[] = [
   // STARTER
-  { id: 'coat', name: 'Coat', type: 'equipment', slot: EquipmentSlot.BODY, armor: 1, price: 80, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'A simple coat.', image: `${IMG_BASE}Coat.gif`, requiredLevel: 1 },
+  { id: 'coat', name: 'Coat', type: 'equipment', slot: EquipmentSlot.BODY, armor: 1, price: 80, sellPrice: 1, soldTo: [NpcType.TRADER], description: 'A simple coat.', image: `${IMG_BASE}Coat.gif`, requiredLevel: 1 },
 
   // TIER 1
-  { id: 'brass_armor', name: 'Brass Armor', type: 'equipment', slot: EquipmentSlot.BODY, armor: 3, price: 3500, sellPrice: 150, soldTo: [NpcType.TRADER], description: 'Armadura de latão (Tier 1).', image: `${IMG_BASE}Brass_Armor.gif`, requiredLevel: 2 },
+  { id: 'brass_armor', name: 'Brass Armor', type: 'equipment', slot: EquipmentSlot.BODY, armor: 3, price: 3500, sellPrice: 30, soldTo: [NpcType.TRADER], description: 'Armadura de latão (Tier 1).', image: `${IMG_BASE}Brass_Armor.gif`, requiredLevel: 2 },
   
   // TIER 2
-  { id: 'plate_armor', name: 'Plate Armor', type: 'equipment', slot: EquipmentSlot.BODY, armor: 5, price: 6000, sellPrice: 400, soldTo: [NpcType.TRADER], description: 'Armadura de placas (Tier 2).', image: `${IMG_BASE}Plate_Armor.gif`, requiredLevel: 8 },
+  { id: 'plate_armor', name: 'Plate Armor', type: 'equipment', slot: EquipmentSlot.BODY, armor: 5, price: 6000, sellPrice: 110, soldTo: [NpcType.TRADER], description: 'Armadura de placas (Tier 2).', image: `${IMG_BASE}Plate_Armor.gif`, requiredLevel: 8 },
 
   // TIER 3
   { id: 'crown_armor', name: 'Crown Armor', type: 'equipment', slot: EquipmentSlot.BODY, armor: 7, price: 0, sellPrice: 12000, soldTo: [NpcType.BLUE_DJINN], description: 'Armadura real (Tier 3).', image: `${IMG_BASE}Crown_Armor.gif`, requiredLevel: 20 },

@@ -7,11 +7,11 @@ export const SWORD_LIST: Item[] = [
   { id: 'dagger', name: 'Dagger', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 6, defense: 1, price: 80, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Tier 1 Sword.', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Dagger.gif`, requiredLevel: 2 },
   
   // TIER 2
-  { id: 'short_sword', name: 'Short Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 200, sellPrice: 10, soldTo: [NpcType.TRADER], description: 'Espada curta (Tier 2).', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Short_Sword.gif`, requiredLevel: 8 },
+  { id: 'short_sword', name: 'Short Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 12, defense: 2, price: 200, sellPrice: 5, soldTo: [NpcType.TRADER], description: 'Espada curta (Tier 2).', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Short_Sword.gif`, requiredLevel: 8 },
   
   // TIER 3
   { id: 'crimson_sword', name: 'Crimson Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 20, defense: 3, price: 0, sellPrice: 600, soldTo: [NpcType.GREEN_DJINN], description: 'Espada escarlate (Tier 3).', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Crimson_Sword.gif`, requiredLevel: 20 },
-  { id: 'two_handed_sword', name: 'Two Handed Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 30, defense: 2, price: 0, sellPrice: 450, soldTo: [NpcType.TRADER], description: 'Espada de duas mãos.', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Two_Handed_Sword.gif`, requiredLevel: 20 },
+  { id: 'two_handed_sword', name: 'Two Handed Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 30, defense: 2, price: 0, sellPrice: 50, soldTo: [NpcType.TRADER], description: 'Espada de duas mãos.', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Two_Handed_Sword.gif`, requiredLevel: 20 },
 
   // TIER 4
   { id: 'fire_sword', name: 'Fire Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 30, defense: 4, price: 25000, sellPrice: 1000, soldTo: [NpcType.GREEN_DJINN, NpcType.RASHID], description: 'Lâmina flamejante (Tier 4).', scalingStat: SkillType.SWORD, damageType: DamageType.FIRE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Fire_Sword.gif`, requiredLevel: 40 },

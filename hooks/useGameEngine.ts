@@ -47,8 +47,13 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   // New Ref to track simulation time for background catch-up
   const lastTickRef = useRef<number>(Date.now());
   
-  // Sync refs
-  useEffect(() => { playerRef.current = player; }, [player]);
+  // Sync refs normally
+  useEffect(() => { 
+      // Only sync if the player state is actually newer/different to avoid reverting the ref during race conditions
+      if (player) {
+          playerRef.current = player; 
+      }
+  }, [player]);
 
   // Helper for Log
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
@@ -78,7 +83,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           // Migration: Ensure new fields exist on old saves
           const migratedPlayer = { ...initialPlayer };
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
-          if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; // MIGRATION: CRITICAL FIX
+          if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.relics) migratedPlayer.relics = [];
           if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
           if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
@@ -128,16 +133,13 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
 
           // MIGRATION: TASK SYSTEM OVERHAUL
-          // Ensure taskOptions has 8 slots. If old system (array < 8 or undefined), generate new board.
-          // Legacy activeTask is ignored/cleared.
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
-          // Ensure all tasks have 'status'
           migratedPlayer.taskOptions = migratedPlayer.taskOptions.map(t => ({
               ...t,
               status: t.status || 'available',
-              category: t.category || t.type // ensure category exists
+              category: t.category || t.type 
           }));
           
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime);
@@ -203,7 +205,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           // CATCH-UP LOGIC:
           // If delta is huge (e.g. user minimized tab for 10 mins), we have many ticks to process.
           // Cap it to avoid infinite freeze (e.g., max 15 minutes of instant processing).
-          // If > 15 mins, the offline estimator on reload is better, but here we cap to be safe.
           const MAX_CATCHUP_MS = 15 * 60 * 1000;
           if (delta > MAX_CATCHUP_MS) {
               delta = MAX_CATCHUP_MS;
@@ -261,11 +262,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               if (result.stopHunt) {
                   stopBatchHunt = true;
                   // Stop future ticks in this batch from processing combat if hunt stopped
-                  if (!result.stopTrain) { // Unless we are training? (Mutually exclusive usually)
-                       // Keep processing regeneration if stopped hunting? 
-                       // For simplicity, if stop triggered, we break loop to update UI immediately
-                       break; 
-                  }
+                  // But keep processing regen?
+                  // For simplicity in catch-up, we break if a stop event occurs to update UI immediately
+                  break; 
               }
               if (result.stopTrain) {
                   stopBatchTrain = true;
@@ -308,7 +307,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               if (triggerUpdate.tutorial) {
                   setIsPaused(true);
                   setActiveTutorial(triggerUpdate.tutorial);
-                  // Update player tutorial flags immediately
+                  // Update player tutorial flags immediately in tempPlayer
                   if (triggerUpdate.tutorial === 'mob') tempPlayer.tutorials.seenRareMob = true;
                   if (triggerUpdate.tutorial === 'item') tempPlayer.tutorials.seenRareItem = true;
                   if (triggerUpdate.tutorial === 'ascension') tempPlayer.tutorials.seenAscension = true;
@@ -319,6 +318,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
 
           // 5. Final Player & Monster State
+          // CRITICAL FIX: Manually update Ref to ensure next tick has latest state even if React render is throttled
+          playerRef.current = tempPlayer; 
           setPlayer(tempPlayer);
           
           monsterHpRef.current = tempMonsterHp;
@@ -326,16 +327,19 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           setCurrentMonsterHp(tempMonsterHp);
 
           if (stopBatchHunt) {
-              setPlayer(prev => prev ? ({ ...prev, activeHuntId: null, activeHuntStartTime: 0 }) : null);
+              const resetPlayer = { ...tempPlayer, activeHuntId: null, activeHuntStartTime: 0 };
+              playerRef.current = resetPlayer;
+              setPlayer(resetPlayer);
               monsterHpRef.current = 0;
           }
           if (stopBatchTrain) {
-              setPlayer(prev => prev ? ({ ...prev, activeTrainingSkill: null, activeTrainingStartTime: 0 }) : null);
+              const resetPlayer = { ...tempPlayer, activeTrainingSkill: null, activeTrainingStartTime: 0 };
+              playerRef.current = resetPlayer;
+              setPlayer(resetPlayer);
           }
       };
 
-      // Start the worker timer to wake us up frequently
-      // Even if main thread throttles to 1s, the loop above catches up the missing ticks
+      // Start the worker timer
       const interval = 1000 / gameSpeed;
       worker.postMessage({ type: 'START', interval });
 

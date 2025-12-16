@@ -44,6 +44,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   
+  // New Ref to track simulation time for background catch-up
+  const lastTickRef = useRef<number>(Date.now());
+  
   // Sync refs
   useEffect(() => { playerRef.current = player; }, [player]);
 
@@ -171,10 +174,13 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       return () => clearInterval(timer);
   }, [accountName]);
 
-  // Game Loop using Web Worker to prevent throttling
+  // Game Loop using Web Worker to prevent throttling AND Catch-up Logic
   useEffect(() => {
       if (!player) return;
       if (isPaused) return;
+
+      // Reset the time reference when the game resumes or starts
+      lastTickRef.current = Date.now();
 
       // Create Worker
       const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
@@ -182,70 +188,154 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
       worker.onmessage = () => {
           if (!playerRef.current) return;
-          if (isPaused) return; 
+          if (isPaused) {
+              // If paused, just keep resetting the clock so we don't accumulate "catch up" while looking at a modal
+              lastTickRef.current = Date.now();
+              return; 
+          }
           
           const now = Date.now();
-          // Use Ref for monsterHp to avoid stale closure (0 hp bug)
-          const result = processGameTick(playerRef.current, playerRef.current.activeHuntId, playerRef.current.activeTrainingSkill, monsterHpRef.current, now);
+          const tickDuration = 1000 / gameSpeed;
           
-          // Update Analyzer History (Rolling 15 min window)
-          setAnalyzerHistory(prev => {
-              const newEntry = { timestamp: now, xp: result.stats.xpGained, profit: result.stats.profitGained, waste: result.stats.waste };
-              const newHistory = [...prev, newEntry];
-              if (newHistory.length > 3600) return newHistory.slice(-3600);
-              return newHistory;
-          });
+          // Calculate elapsed time since last processed tick
+          let delta = now - lastTickRef.current;
+          
+          // CATCH-UP LOGIC:
+          // If delta is huge (e.g. user minimized tab for 10 mins), we have many ticks to process.
+          // Cap it to avoid infinite freeze (e.g., max 15 minutes of instant processing).
+          // If > 15 mins, the offline estimator on reload is better, but here we cap to be safe.
+          const MAX_CATCHUP_MS = 15 * 60 * 1000;
+          if (delta > MAX_CATCHUP_MS) {
+              delta = MAX_CATCHUP_MS;
+              lastTickRef.current = now - MAX_CATCHUP_MS;
+          }
 
-          // UPDATE KILL COUNTS RELIABLY
-          if (result.killedMonsters && result.killedMonsters.length > 0) {
+          let ticksToProcess = Math.floor(delta / tickDuration);
+          
+          // If no full tick has passed yet, wait.
+          if (ticksToProcess <= 0) return;
+
+          // Prepare Batch Variables
+          let tempPlayer = playerRef.current;
+          let tempMonsterHp = monsterHpRef.current;
+          let tempActiveMonster = activeMonster; 
+          
+          let batchLogs: LogEntry[] = [];
+          let batchHits: HitSplat[] = [];
+          let batchKills: { [name: string]: number } = {};
+          let batchStats = { xp: 0, profit: 0, waste: 0 };
+          
+          let stopBatchHunt = false;
+          let stopBatchTrain = false;
+          let triggerUpdate = null;
+
+          // --- EXECUTE TICKS ---
+          for (let i = 0; i < ticksToProcess; i++) {
+              // Calculate specific timestamp for this tick to ensure accurate cooldowns
+              const simTime = lastTickRef.current + ((i + 1) * tickDuration);
+              
+              const result = processGameTick(tempPlayer, tempPlayer.activeHuntId, tempPlayer.activeTrainingSkill, tempMonsterHp, simTime);
+              
+              tempPlayer = result.player;
+              tempMonsterHp = result.monsterHp;
+              tempActiveMonster = result.activeMonster;
+
+              // Accumulate Outputs
+              if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
+              if (result.newHits.length > 0) batchHits.push(...result.newHits);
+              
+              if (result.killedMonsters.length > 0) {
+                  result.killedMonsters.forEach(kill => {
+                      batchKills[kill.name] = (batchKills[kill.name] || 0) + kill.count;
+                  });
+              }
+
+              batchStats.xp += result.stats.xpGained;
+              batchStats.profit += result.stats.profitGained;
+              batchStats.waste += result.stats.waste;
+
+              if (result.triggers.tutorial || result.triggers.oracle) {
+                  triggerUpdate = result.triggers;
+              }
+
+              if (result.stopHunt) {
+                  stopBatchHunt = true;
+                  // Stop future ticks in this batch from processing combat if hunt stopped
+                  if (!result.stopTrain) { // Unless we are training? (Mutually exclusive usually)
+                       // Keep processing regeneration if stopped hunting? 
+                       // For simplicity, if stop triggered, we break loop to update UI immediately
+                       break; 
+                  }
+              }
+              if (result.stopTrain) {
+                  stopBatchTrain = true;
+                  break;
+              }
+          }
+
+          // Advance the time reference by the amount we successfully processed
+          lastTickRef.current += (ticksToProcess * tickDuration);
+
+          // --- UPDATE STATE BATCH ---
+          
+          // 1. Logs & Hits (Slice to prevent memory overflow)
+          if (batchLogs.length > 0) setLogs(prev => [...prev, ...batchLogs].slice(-100));
+          if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50)); // Only show recent hits visually
+
+          // 2. Kills for Analyzer
+          if (Object.keys(batchKills).length > 0) {
               setSessionKills(prev => {
                   const newState = { ...prev };
-                  result.killedMonsters.forEach(kill => {
-                      newState[kill.name] = (newState[kill.name] || 0) + kill.count;
+                  Object.entries(batchKills).forEach(([name, count]) => {
+                      newState[name] = (newState[name] || 0) + count;
                   });
                   return newState;
               });
           }
 
-          // CHECK FOR TRIGGERS
-          if (result.triggers.tutorial) {
-              setIsPaused(true);
-              setActiveTutorial(result.triggers.tutorial);
-              
-              // Immediately update player tutorial state to prevent re-trigger
-              const updatedPlayer = { ...result.player };
-              if (result.triggers.tutorial === 'mob') updatedPlayer.tutorials.seenRareMob = true;
-              if (result.triggers.tutorial === 'item') updatedPlayer.tutorials.seenRareItem = true;
-              if (result.triggers.tutorial === 'ascension') updatedPlayer.tutorials.seenAscension = true;
-              if (result.triggers.tutorial === 'level12') updatedPlayer.tutorials.seenLevel12 = true;
-              
-              setPlayer(updatedPlayer);
-          } else if (result.triggers.oracle) {
-              // Pause game for Oracle decision (Level 2 Name / Level 8 Vocation)
-              setIsPaused(true);
-              setPlayer(result.player);
-          } else {
-              setPlayer(result.player);
+          // 3. Analyzer History (One entry per batch to save memory)
+          if (batchStats.xp > 0 || batchStats.profit > 0 || batchStats.waste > 0) {
+              setAnalyzerHistory(prev => {
+                  const newEntry = { timestamp: now, xp: batchStats.xp, profit: batchStats.profit, waste: batchStats.waste };
+                  const newHistory = [...prev, newEntry];
+                  if (newHistory.length > 3600) return newHistory.slice(-3600);
+                  return newHistory;
+              });
           }
 
-          if (result.newLogs.length > 0) setLogs(prev => [...prev, ...result.newLogs].slice(-100)); // Keep last 100
-          if (result.newHits.length > 0) setHits(prev => [...prev, ...result.newHits].filter(h => h.id > now - 2000)); // cleanup old hits
+          // 4. Triggers
+          if (triggerUpdate) {
+              if (triggerUpdate.tutorial) {
+                  setIsPaused(true);
+                  setActiveTutorial(triggerUpdate.tutorial);
+                  // Update player tutorial flags immediately
+                  if (triggerUpdate.tutorial === 'mob') tempPlayer.tutorials.seenRareMob = true;
+                  if (triggerUpdate.tutorial === 'item') tempPlayer.tutorials.seenRareItem = true;
+                  if (triggerUpdate.tutorial === 'ascension') tempPlayer.tutorials.seenAscension = true;
+                  if (triggerUpdate.tutorial === 'level12') tempPlayer.tutorials.seenLevel12 = true;
+              } else if (triggerUpdate.oracle) {
+                  setIsPaused(true);
+              }
+          }
+
+          // 5. Final Player & Monster State
+          setPlayer(tempPlayer);
           
-          // Monster State - Sync Ref and State
-          monsterHpRef.current = result.monsterHp;
-          setActiveMonster(result.activeMonster);
-          setCurrentMonsterHp(result.monsterHp);
+          monsterHpRef.current = tempMonsterHp;
+          setActiveMonster(tempActiveMonster);
+          setCurrentMonsterHp(tempMonsterHp);
 
-          if (result.stopHunt) {
+          if (stopBatchHunt) {
               setPlayer(prev => prev ? ({ ...prev, activeHuntId: null, activeHuntStartTime: 0 }) : null);
-              monsterHpRef.current = 0; // Reset internal HP ref on stop
+              monsterHpRef.current = 0;
           }
-          if (result.stopTrain) {
+          if (stopBatchTrain) {
               setPlayer(prev => prev ? ({ ...prev, activeTrainingSkill: null, activeTrainingStartTime: 0 }) : null);
           }
       };
 
-      // Start the worker timer
+      // Start the worker timer to wake us up frequently
+      // Even if main thread throttles to 1s, the loop above catches up the missing ticks
       const interval = 1000 / gameSpeed;
       worker.postMessage({ type: 'START', interval });
 

@@ -9,7 +9,7 @@ export const getXpStageMultiplier = (level: number): number => {
   // Early game is fast to hook the player.
   // Mid game (50-100) slows down to enforce gear progression.
   // Late game (150+) plummets to enforce Ascension.
-  if (level <= 8) return 50;   
+  if (level <= 8) return 250; // Boosted 5x (was 50)
   if (level <= 20) return 30;  
   if (level <= 50) return 20;  
   if (level <= 80) return 10;  

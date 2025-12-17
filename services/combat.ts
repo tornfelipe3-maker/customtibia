@@ -134,7 +134,7 @@ export const calculatePlayerDamage = (player: Player): number => {
 
   // --- GLOBAL MODIFIERS ---
   if (player.promoted) damage = Math.floor(damage * 1.10); // +10% Promotion
-  if (isPremium(player)) damage = Math.floor(damage * 1.10); // +10% Premium
+  if (isPremium(player)) damage = Math.floor(damage * 1.50); // +50% Premium
 
   // Prey Bonus
   if (player.activeHuntId) {
@@ -209,7 +209,7 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
 
   // Modifiers
   if (player.promoted) damage = Math.floor(damage * 1.1);
-  if (isPremium(player)) damage = Math.floor(damage * 1.1);
+  if (isPremium(player)) damage = Math.floor(damage * 1.50); // +50%
 
   if (player.activeHuntId) {
       const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
@@ -256,7 +256,7 @@ export const calculateRuneDamage = (player: Player, item: Item): number => {
 
   // Modifiers
   if (player.promoted) damage = Math.floor(damage * 1.1);
-  if (isPremium(player)) damage = Math.floor(damage * 1.1);
+  if (isPremium(player)) damage = Math.floor(damage * 1.50); // +50%
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
 

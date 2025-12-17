@@ -1,3 +1,4 @@
+
 import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss, Vocation } from "../types";
 import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES } from "../constants";
 import { getEffectiveSkill } from "./progression";
@@ -315,7 +316,7 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   }
   const ascDmgBonus = getAscensionBonusValue(player, 'damage_boost');
   avgDmg *= (1 + (ascDmgBonus / 100));
-  if (player.premiumUntil > Date.now()) avgDmg *= 1.1;
+  if (player.premiumUntil > Date.now()) avgDmg *= 1.5; // +50%
 
   avgDmg = Math.max(5, avgDmg);
 
@@ -343,8 +344,8 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   if (activePrey && activePrey.bonusType === 'xp') xpMult = 1 + (activePrey.bonusValue / 100);
   const ascXpBonus = getAscensionBonusValue(player, 'xp_boost');
   xpMult += (ascXpBonus / 100);
-  if (player.premiumUntil > Date.now()) xpMult += 0.1;
-  if (player.xpBoostUntil > Date.now()) xpMult += 0.5;
+  if (player.premiumUntil > Date.now()) xpMult += 1.0; // +100%
+  if (player.xpBoostUntil > Date.now()) xpMult += 2.0; // +200%
 
   const isBoss = !!(monster as Boss).cooldownSeconds;
   const hazardXp = isBoss ? 1 : (1 + ((player.activeHazardLevel || 0) * 0.02));

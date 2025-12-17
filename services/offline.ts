@@ -162,7 +162,7 @@ export const calculateOfflineProgress = (
                     if (activePrey && activePrey.bonusType === 'loot') lootMult += (activePrey.bonusValue / 100);
                     
                     lootMult += (getAscensionBonusValue(modifiedPlayer, 'loot_boost') / 100);
-                    if (modifiedPlayer.premiumUntil > now) lootMult += 0.05;
+                    if (modifiedPlayer.premiumUntil > now) lootMult += 0.20; // +20%
                     const isBoss = !!(monster as any).cooldownSeconds;
                     const hazardLoot = isBoss ? 0 : (modifiedPlayer.activeHazardLevel || 0);
                     lootMult += (hazardLoot / 100);

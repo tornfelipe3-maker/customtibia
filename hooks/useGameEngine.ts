@@ -5,14 +5,16 @@ import { processGameTick, calculateOfflineProgress, StorageService, generateTask
 import { BOSSES } from '../constants';
 import { useGameActions } from './useGameActions';
 
-// Web Worker code remains to help with short interruptions
+// Web Worker code using specific self typing workaround
 const WORKER_CODE = `
 self.onmessage = function(e) {
     if (e.data.type === 'START') {
         if (self.timer) clearInterval(self.timer);
+        // We set a faster interval than needed to compensate for browser throttling
+        // The main thread logic handles the actual delta time, so over-ticking is fine.
         self.timer = setInterval(() => {
             self.postMessage('TICK');
-        }, e.data.interval);
+        }, Math.max(10, e.data.interval)); 
     } else if (e.data.type === 'STOP') {
         if (self.timer) clearInterval(self.timer);
     }
@@ -165,10 +167,13 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          // --- SMART CATCH-UP SYSTEM ---
-          // If the gap is larger than 5 seconds, the browser throttled the tab.
-          // Instead of freezing the UI running 1000 loops, we use the Math Formula (Offline Calc).
-          if (delta > 5000) { 
+          // --- PRECISE SIMULATION LIMIT ---
+          // Changed from 5000 (5s) to 900000 (15 Minutes)
+          // This allows "Alt-Tab" behavior to simulate exact combat ticks rather than averaging.
+          const MAX_SIMULATION_MS = 15 * 60 * 1000; 
+
+          // If the gap is HUGE (e.g. PC sleep for hours), use Offline Math
+          if (delta > MAX_SIMULATION_MS) { 
               const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current);
               
               if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
@@ -188,7 +193,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                   // Add Log
                   const timeAway = Math.floor(report.secondsOffline);
                   if (timeAway > 60) {
-                      addLog(`Background Hunt (${Math.floor(timeAway/60)}m): +${xp.toLocaleString()} XP, +${gold.toLocaleString()} Gold.`, 'info');
+                      addLog(`Deep Sleep (${Math.floor(timeAway/60)}m): +${xp.toLocaleString()} XP, +${gold.toLocaleString()} Gold.`, 'info');
                   }
                   
                   // Handle Stop Conditions
@@ -212,11 +217,14 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               return; // Skip standard loop
           }
 
-          // --- STANDARD LOOP (Active Tab) ---
-          // If delta is small (e.g. 1-4 seconds), run standard ticks for accurate combat simulation
+          // --- STANDARD LOOP (Fast-Forward Simulation) ---
+          // Calculates how many ticks we missed and runs them all instantly.
           let ticksToProcess = Math.floor(delta / tickDuration);
           if (ticksToProcess <= 0) return;
 
+          // Safety cap: Don't freeze browser if calculations are too heavy per tick
+          // 15 mins * 60 secs = 900 ticks. Modern JS can handle this easily in a for loop.
+          
           let tempPlayer = playerRef.current;
           let tempMonsterHp = monsterHpRef.current;
           let tempActiveMonster = activeMonster; 
@@ -261,6 +269,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
           // Update State Batch
           if (batchLogs.length > 0) setLogs(prev => [...prev, ...batchLogs].slice(-100));
+          // Only show recent hits to avoid UI spam lag
           if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50));
 
           if (Object.keys(batchKills).length > 0) {

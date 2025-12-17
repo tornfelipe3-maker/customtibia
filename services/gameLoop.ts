@@ -554,8 +554,8 @@ export const processGameTick = (
                 const equipXpBonus = getMod(p, 'xpBoost');
                 preyXpMult += (equipXpBonus / 100);
 
-                if (p.premiumUntil > now) preyXpMult += 0.1;
-                if (p.xpBoostUntil > now) preyXpMult += 0.5;
+                if (p.premiumUntil > now) preyXpMult += 1.0; // +100% Premium
+                if (p.xpBoostUntil > now) preyXpMult += 2.0; // +200% Boost
                 
                 const ascXpBonus = getAscensionBonusValue(p, 'xp_boost');
                 preyXpMult += (ascXpBonus / 100);
@@ -585,7 +585,7 @@ export const processGameTick = (
                 if (activePrey && activePrey.bonusType === 'loot') lootBonus += activePrey.bonusValue;
                 lootBonus += getAscensionBonusValue(p, 'loot_boost');
                 lootBonus += getMod(p, 'lootBoost');
-                if (p.premiumUntil > now) lootBonus += 5;
+                if (p.premiumUntil > now) lootBonus += 20; // +20% Loot
                 
                 lootBonus += hazardLootBonus;
 

@@ -77,9 +77,9 @@ export const StorePanel: React.FC<StorePanelProps> = ({ player, onBuyCoins, onBu
                             <p className="text-xs text-yellow-500/80 font-bold uppercase mb-4">7 Days Access</p>
                             
                             <ul className="text-xs text-gray-400 space-y-2 mb-6 flex-1">
-                                <li className="flex items-center gap-2"><Zap size={12} className="text-yellow-500"/> +10% Experience Gain</li>
-                                <li className="flex items-center gap-2"><Swords size={12} className="text-red-500"/> +10% Damage Dealt</li>
-                                <li className="flex items-center gap-2"><Gift size={12} className="text-blue-400"/> +5% Loot Chance</li>
+                                <li className="flex items-center gap-2"><Zap size={12} className="text-yellow-500"/> +100% Experience Gain</li>
+                                <li className="flex items-center gap-2"><Swords size={12} className="text-red-500"/> +50% Damage Dealt</li>
+                                <li className="flex items-center gap-2"><Gift size={12} className="text-blue-400"/> +20% Loot Chance</li>
                             </ul>
 
                             <button 
@@ -107,7 +107,7 @@ export const StorePanel: React.FC<StorePanelProps> = ({ player, onBuyCoins, onBu
                             <p className="text-xs text-green-500/80 font-bold uppercase mb-4">1 Hour Duration</p>
                             
                             <ul className="text-xs text-gray-400 space-y-2 mb-6 flex-1">
-                                <li className="flex items-center gap-2"><Zap size={12} className="text-green-500"/> +50% Experience Gain</li>
+                                <li className="flex items-center gap-2"><Zap size={12} className="text-green-500"/> +200% Experience Gain</li>
                                 <li className="flex items-center gap-2"><Clock size={12} className="text-blue-400"/> Stacks with Premium</li>
                                 <li className="flex items-center gap-2"><Gift size={12} className="text-purple-400"/> Stacks with Prey XP</li>
                             </ul>

@@ -1,8 +1,12 @@
 
 import { Player, EquipmentSlot, SkillType, Vocation } from '../types';
 
+// URLs mais estáveis e diretas
 export const IMG_BASE = 'https://tibia.fandom.com/wiki/Special:FilePath/';
 export const OUT_BASE = 'https://www.tibiawiki.com.br/wiki/Special:FilePath/';
+
+// Placeholder em Base64 (um quadradinho cinza pixelado de 32x32) para quando a imagem falhar
+export const ITEM_PLACEHOLDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAM0lEQVRYR2N89+7dfwY0wPj69WvGkSNHMo6Ojr6vAAbG0YAm0NAEGppAQxNoaAINTeBBAwAs0ycSsv66mAAAAABJRU5ErkJggg==';
 
 export const MAX_STAMINA = 10800; // 3 hours in seconds
 export const MAX_BACKPACK_SLOTS = 40;
@@ -115,13 +119,12 @@ export const INITIAL_PLAYER_STATS: Player = {
     quests: {},
     bossCooldowns: {},
     spellCooldowns: {},
-    healthPotionCooldown: 0, // NEW
-    manaPotionCooldown: 0,   // NEW
+    healthPotionCooldown: 0,
+    manaPotionCooldown: 0,
     magicShieldUntil: 0,
     runeCooldown: 0,
     purchasedSpells: [],
     globalCooldown: 0,
-    // Fix: Removed non-existent 'activeTask' property from INITIAL_PLAYER_STATS to match Player interface.
     taskOptions: [],
     taskNextFreeReroll: 0,
     skippedLoot: [],

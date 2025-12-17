@@ -7,9 +7,8 @@ export const PRODUCTS_LIST: Item[] = [
   { id: 'forge_token', name: 'Forge Token', type: 'loot', price: 0, sellPrice: 500, soldTo: [NpcType.TRADER], description: 'Used to reforge rare equipment attributes.', image: `${IMG_BASE}Gold_Nugget.gif` },
 
   // Creature Products - TIER 1 & 2 (Starters)
-  // FIX: Using OUT_BASE (TibiaWiki BR) for these sprites as Fandom often breaks for small creature products
-  { id: 'rat_tail', name: 'Rat Tail', type: 'loot', price: 0, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Tail of a rat.', image: `${OUT_BASE}Rat_Tail.gif` },
-  { id: 'troll_hair', name: 'Troll Hair', type: 'loot', price: 0, sellPrice: 10, soldTo: [NpcType.TRADER], description: 'Greasy hair.', image: `${OUT_BASE}Troll_Hair.gif` },
+  { id: 'rat_tail', name: 'Rat Tail', type: 'loot', price: 0, sellPrice: 2, soldTo: [NpcType.TRADER], description: 'Tail of a rat.', image: `${IMG_BASE}Rat_Tail.gif` },
+  { id: 'troll_hair', name: 'Troll Hair', type: 'loot', price: 0, sellPrice: 10, soldTo: [NpcType.TRADER], description: 'Greasy hair.', image: `${IMG_BASE}Troll_Hair.gif` },
   
   { id: 'orc_tooth', name: 'Orc Tooth', type: 'loot', price: 0, sellPrice: 25, soldTo: [NpcType.TRADER], description: 'A tooth from an orc.', image: `${IMG_BASE}Orc_Tooth.gif` },
   { id: 'rotten_piece_of_cloth', name: 'Rotten Piece of Cloth', type: 'loot', price: 0, sellPrice: 30, soldTo: [NpcType.TRADER], description: 'From a ghoul.', image: `${IMG_BASE}Rotten_Piece_of_Cloth.gif` },

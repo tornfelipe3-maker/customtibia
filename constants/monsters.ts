@@ -134,7 +134,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'dragon_legs', chance: 0.002, maxAmount: 1 }, 
             { itemId: 'boh', chance: 0.01, maxAmount: 1 },         
             { itemId: 'wand_inferno', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'mana_potion', chance: 0.30, maxAmount: 2 }
+            { itemId: 'mana_potion', chance: 0.30, maxAmount: 2 },
+            { itemId: 'strong_mana_potion', chance: 0.05, maxAmount: 1 }
         ] 
     },
     { 
@@ -143,7 +144,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'spider_silk', chance: 0.12, maxAmount: 1 }, 
             { itemId: 'knight_boots', chance: 0.03, maxAmount: 1 }, 
             { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 },
-            { itemId: 'strong_health_potion', chance: 0.15, maxAmount: 1 }
+            { itemId: 'strong_health_potion', chance: 0.15, maxAmount: 1 },
+            { itemId: 'strong_mana_potion', chance: 0.10, maxAmount: 1 }
         ] 
     },
     { 
@@ -155,7 +157,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'dragon_shield', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'fire_axe', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'fire_sword', chance: 0.02, maxAmount: 1 },
-            { itemId: 'strong_health_potion', chance: 0.20, maxAmount: 2 }
+            { itemId: 'strong_health_potion', chance: 0.20, maxAmount: 2 },
+            { itemId: 'strong_mana_potion', chance: 0.10, maxAmount: 2 }
         ] 
     },
 

@@ -135,7 +135,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
 
   // 1. Standard Items (Stackable)
   const displayedStandardItems = useMemo(() => {
-      return SHOP_ITEMS.filter(item => {
+      const items = SHOP_ITEMS.filter(item => {
         const soldTo = item.soldTo.includes(activeNpc);
         let modePass = false;
         
@@ -156,6 +156,12 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
 
         return modePass && catPass && searchPass;
       });
+
+      // YASIR BONUS: 2x Sell Price
+      if (activeNpc === NpcType.YASIR) {
+          return items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
+      }
+      return items;
   }, [activeNpc, mode, category, searchTerm, isGm, playerInventory]);
 
   // 2. Unique Items (Non-Stackable) - Only for Sell Mode
@@ -164,7 +170,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
       
       const inventory = playerUniqueInventory || []; // Safe default
 
-      return inventory.filter(item => {
+      const items = inventory.filter(item => {
           // Check if NPC buys this base item type
           const soldTo = item.soldTo.includes(activeNpc);
           if (!soldTo) return false;
@@ -174,6 +180,12 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
           
           return catPass && searchPass;
       });
+
+      // YASIR BONUS: 2x Sell Price
+      if (activeNpc === NpcType.YASIR) {
+          return items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
+      }
+      return items;
   }, [mode, activeNpc, category, searchTerm, playerUniqueInventory]);
 
   return (

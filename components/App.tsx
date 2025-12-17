@@ -158,6 +158,7 @@ const App = () => {
                 {activeTab === 'shop' && (
                     <ShopPanel 
                         playerGold={player.gold} 
+                        playerBankGold={player.bankGold}
                         playerLevel={player.level} 
                         playerEquipment={player.equipment} 
                         playerInventory={player.inventory} 
@@ -193,7 +194,6 @@ const App = () => {
                 {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={handleChallengeBoss} />} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
                 
-                {/* FIX APPLIED HERE: Passing playerUniqueDepot */}
                 {activeTab === 'depot' && (
                     <DepotPanel 
                         playerDepot={player.depot} 

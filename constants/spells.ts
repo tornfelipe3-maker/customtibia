@@ -21,6 +21,10 @@ export const SPELLS: Spell[] = [
     { id: 'exura_gran_mas_res', name: 'Mass Healing (Mas Res)', manaCost: 200, minLevel: 36, reqMagicLevel: 19, price: 9000, type: 'heal', vocations: [Vocation.DRUID], cooldown: 2000, isAoe: true },
 
 
+    // --- SUPPORT SPELLS ---
+    { id: 'utamo_vita', name: 'Magic Shield (Utamo Vita)', manaCost: 50, minLevel: 14, reqMagicLevel: 0, price: 450, type: 'support', vocations: [Vocation.SORCERER, Vocation.DRUID], cooldown: 29000 },
+
+
     // --- ATTACK SPELLS ---
 
     // Knight Attack (Needs high base damage to penetrate defense)

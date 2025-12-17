@@ -158,6 +158,8 @@ export interface PlayerSettings {
   
   autoAttackRune: boolean;
   selectedRuneId: string;
+
+  autoMagicShield: boolean; // NEW: Toggle for Utamo Vita
 }
 
 export type PreyBonusType = 'xp' | 'damage' | 'defense' | 'loot';
@@ -251,7 +253,8 @@ export interface Player {
   spellCooldowns: {
     [spellId: string]: number;
   };
-  runeCooldown: number; // NEW: Independent cooldown for Runes
+  magicShieldUntil: number; // NEW: Timestamp for Utamo Vita Expiration
+  runeCooldown: number; 
   purchasedSpells: string[];
   globalCooldown: number;
   
@@ -318,9 +321,9 @@ export interface Spell {
   minLevel: number;
   reqMagicLevel?: number;
   price: number;
-  type: 'attack' | 'heal';
+  type: 'attack' | 'heal' | 'support'; // Added 'support'
   vocations: Vocation[];
   damageType?: DamageType;
   cooldown: number;
-  isAoe?: boolean; // NEW: Determines if spell hits all lured mobs or single target
+  isAoe?: boolean; 
 }

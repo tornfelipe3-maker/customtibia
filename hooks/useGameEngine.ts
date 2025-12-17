@@ -5,8 +5,7 @@ import { processGameTick, calculateOfflineProgress, StorageService, generateTask
 import { BOSSES } from '../constants';
 import { useGameActions } from './useGameActions';
 
-// Web Worker code to run the timer in a separate thread
-// This prevents the browser from throttling the game loop when the tab is inactive
+// Web Worker code remains to help with short interruptions
 const WORKER_CODE = `
 self.onmessage = function(e) {
     if (e.data.type === 'START') {
@@ -29,22 +28,22 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   const [reforgeResult, setReforgeResult] = useState<{ oldItem: Item, newItem: Item } | null>(null);
   const [gameSpeed, setGameSpeed] = useState<number>(1); // 1x, 2x, 4x
   
-  // Analyzer State (Ephemeral)
+  // Analyzer State
   const [analyzerHistory, setAnalyzerHistory] = useState<{ timestamp: number, xp: number, profit: number, waste: number }[]>([]);
-  const [sessionKills, setSessionKills] = useState<{[name: string]: number}>({}); // NEW: Track kills for analyzer
+  const [sessionKills, setSessionKills] = useState<{[name: string]: number}>({});
 
-  // Offline Report State
+  // Offline Report State (For initial load only)
   const [offlineReport, setOfflineReport] = useState<OfflineReport | null>(null);
 
   // Tutorial State
   const [isPaused, setIsPaused] = useState(false);
   const [activeTutorial, setActiveTutorial] = useState<'mob' | 'item' | 'ascension' | 'level12' | null>(null);
 
-  // Refs for loop access to prevent stale state closures
+  // Refs for loop access
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   
-  // New Ref to track simulation time for background catch-up
+  // Track simulation time
   const lastTickRef = useRef<number>(Date.now());
   
   // Helper for Log
@@ -54,7 +53,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
   // --- ACTIONS FACADE ---
   const actions = useGameActions(
-      playerRef, // Pass ref
+      playerRef, 
       setPlayer,
       setGameSpeed,
       setAnalyzerHistory,
@@ -72,51 +71,25 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   // Offline Progress & Migration (Run once on mount/login)
   useEffect(() => {
       if (initialPlayer) {
-          // Migration: Ensure new fields exist on old saves
+          // ... (Migration logic same as before) ...
           const migratedPlayer = { ...initialPlayer };
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.relics) migratedPlayer.relics = [];
           if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
           if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
+          if (!migratedPlayer.skippedLoot) migratedPlayer.skippedLoot = [];
+          if (migratedPlayer.prey && migratedPlayer.prey.rerollsAvailable === undefined) migratedPlayer.prey.rerollsAvailable = 3;
+          if (migratedPlayer.taskNextFreeReroll === undefined) migratedPlayer.taskNextFreeReroll = 0;
+          if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
+          if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;
           
-          // MIGRATION: Skipped Loot
-          if (!migratedPlayer.skippedLoot) {
-              migratedPlayer.skippedLoot = [];
-          }
-
-          // MIGRATION: Prey Rerolls (If updated from old version)
-          if (migratedPlayer.prey && migratedPlayer.prey.rerollsAvailable === undefined) {
-              migratedPlayer.prey.rerollsAvailable = 3;
-          }
-          
-          // MIGRATION: Task Free Reroll
-          if (migratedPlayer.taskNextFreeReroll === undefined) {
-              migratedPlayer.taskNextFreeReroll = 0;
-          }
-
-          // MIGRATION: Settings
-          if (!migratedPlayer.settings.attackSpellRotation) {
-              migratedPlayer.settings.attackSpellRotation = [];
-          }
-
-          // MIGRATION: Handle missing isNameChosen
-          if (migratedPlayer.isNameChosen === undefined) {
-              migratedPlayer.isNameChosen = migratedPlayer.level > 2;
-          }
-          
-          // MIGRATION: Tutorials
           if (!migratedPlayer.tutorials) {
               migratedPlayer.tutorials = { 
-                  introCompleted: false, 
-                  seenRareMob: false, 
-                  seenRareItem: false,
-                  seenAscension: false,
-                  seenLevel12: false,
-                  seenMenus: []
+                  introCompleted: false, seenRareMob: false, seenRareItem: false, 
+                  seenAscension: false, seenLevel12: false, seenMenus: []
               };
           } else {
-              // Ensure new tutorial fields exist on old saves
               const tuts = migratedPlayer.tutorials as any;
               if (tuts.introCompleted === undefined) tuts.introCompleted = false;
               if (tuts.seenMenus === undefined) tuts.seenMenus = [];
@@ -124,12 +97,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               if (tuts.seenLevel12 === undefined) tuts.seenLevel12 = false;
           }
 
-          // MIGRATION: Active Hazard Level
-          if (migratedPlayer.activeHazardLevel === undefined) {
-              migratedPlayer.activeHazardLevel = 0;
-          }
+          if (migratedPlayer.activeHazardLevel === undefined) migratedPlayer.activeHazardLevel = 0;
 
-          // MIGRATION: TASK SYSTEM OVERHAUL
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
@@ -139,84 +108,115 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               category: t.category || t.type 
           }));
           
+          // Initial Offline Check
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime);
           
           if (report) {
-              setOfflineReport(report); // Trigger Modal
-              setIsPaused(true); // PAUSE GAME until user closes modal
+              setOfflineReport(report); 
+              setIsPaused(true); 
           }
           if (stopHunt) updatedPlayer.activeHuntId = null;
           if (stopTrain) updatedPlayer.activeTrainingSkill = null;
           
-          // IMPORTANT: Sync both State and Ref on Init
           setPlayer(updatedPlayer);
           playerRef.current = updatedPlayer;
+          lastTickRef.current = Date.now(); // Reset time anchor
       }
   }, [initialPlayer]);
 
-  // Safety Sync: Ensure game is paused if there is a pending offline report
+  // Sync Pause
   useEffect(() => {
-      if (offlineReport !== null) {
-          setIsPaused(true);
-      }
+      if (offlineReport !== null) setIsPaused(true);
   }, [offlineReport]);
 
-  // Save Loop (every 30s)
+  // Auto-Save
   useEffect(() => {
       if (!accountName) return;
       const timer = setInterval(() => {
           if (playerRef.current) {
-              // Forced Consistency Check before save
               const toSave = { ...playerRef.current, lastSaveTime: Date.now() };
-              if (!toSave.uniqueDepot) toSave.uniqueDepot = []; // Safety check
+              if (!toSave.uniqueDepot) toSave.uniqueDepot = []; 
               StorageService.save(accountName, toSave);
           }
       }, 30000);
       return () => clearInterval(timer);
   }, [accountName]);
 
-  // Game Loop using Web Worker to prevent throttling AND Catch-up Logic
+  // --- SMART GAME LOOP ---
   useEffect(() => {
       if (!player) return;
-      if (isPaused) return;
+      if (isPaused) {
+          lastTickRef.current = Date.now(); // Keep anchor fresh while paused
+          return;
+      }
 
-      // Reset the time reference when the game resumes or starts
-      lastTickRef.current = Date.now();
-
-      // Create Worker
+      // Initialize Timer Worker
       const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
       const worker = new Worker(URL.createObjectURL(blob));
 
-      // Shared Game Loop Processing Logic
       const runGameLoop = () => {
           if (!playerRef.current) return;
           if (isPaused) {
-              // If paused, keep bumping the timer so we don't accumulate hours of "work" while user is reading a modal
               lastTickRef.current = Date.now();
               return; 
           }
           
           const now = Date.now();
           const tickDuration = 1000 / gameSpeed;
-          
-          // Calculate elapsed time since last processed tick
           let delta = now - lastTickRef.current;
           
-          // CATCH-UP LOGIC UPDATED:
-          // Browsers completely suspend tabs (Efficiency Mode). When you return, delta is huge.
-          // Process up to 24 hours of background time instantly.
-          const MAX_CATCHUP_MS = 24 * 60 * 60 * 1000;
-          if (delta > MAX_CATCHUP_MS) {
-              delta = MAX_CATCHUP_MS;
-              lastTickRef.current = now - MAX_CATCHUP_MS;
+          // --- SMART CATCH-UP SYSTEM ---
+          // If the gap is larger than 5 seconds, the browser throttled the tab.
+          // Instead of freezing the UI running 1000 loops, we use the Math Formula (Offline Calc).
+          if (delta > 5000) { 
+              const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current);
+              
+              if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
+                  // Apply results silently (no modal) to log and history
+                  const xp = report.xpGained;
+                  const gold = report.goldGained;
+                  const waste = report.waste || 0;
+                  
+                  // Update History
+                  setAnalyzerHistory(prev => {
+                      const newEntry = { timestamp: now, xp, profit: gold, waste };
+                      const newHistory = [...prev, newEntry];
+                      if (newHistory.length > 3600) return newHistory.slice(-3600);
+                      return newHistory;
+                  });
+
+                  // Add Log
+                  const timeAway = Math.floor(report.secondsOffline);
+                  if (timeAway > 60) {
+                      addLog(`Background Hunt (${Math.floor(timeAway/60)}m): +${xp.toLocaleString()} XP, +${gold.toLocaleString()} Gold.`, 'info');
+                  }
+                  
+                  // Handle Stop Conditions
+                  if (stopHunt) {
+                      fastForwardedPlayer.activeHuntId = null;
+                      addLog("Hunt stopped (Time Limit or Resource).", 'danger');
+                      setActiveMonster(undefined);
+                      setCurrentMonsterHp(0);
+                      monsterHpRef.current = 0;
+                  }
+                  if (stopTrain) {
+                      fastForwardedPlayer.activeTrainingSkill = null;
+                      addLog("Training stopped (Time Limit).", 'danger');
+                  }
+              }
+
+              // Update State
+              setPlayer(fastForwardedPlayer);
+              playerRef.current = fastForwardedPlayer;
+              lastTickRef.current = now; // Reset anchor
+              return; // Skip standard loop
           }
 
+          // --- STANDARD LOOP (Active Tab) ---
+          // If delta is small (e.g. 1-4 seconds), run standard ticks for accurate combat simulation
           let ticksToProcess = Math.floor(delta / tickDuration);
-          
-          // If no full tick has passed yet, wait.
           if (ticksToProcess <= 0) return;
 
-          // Prepare Batch Variables
           let tempPlayer = playerRef.current;
           let tempMonsterHp = monsterHpRef.current;
           let tempActiveMonster = activeMonster; 
@@ -230,9 +230,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           let stopBatchTrain = false;
           let triggerUpdate = null;
 
-          // --- EXECUTE TICKS ---
           for (let i = 0; i < ticksToProcess; i++) {
-              // Calculate specific timestamp for this tick to ensure accurate cooldowns
               const simTime = lastTickRef.current + ((i + 1) * tickDuration);
               
               const result = processGameTick(tempPlayer, tempPlayer.activeHuntId, tempPlayer.activeTrainingSkill, tempMonsterHp, simTime);
@@ -241,7 +239,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               tempMonsterHp = result.monsterHp;
               tempActiveMonster = result.activeMonster;
 
-              // Accumulate Outputs
               if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
               if (result.newHits.length > 0) batchHits.push(...result.newHits);
               
@@ -255,30 +252,17 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
-              if (result.triggers.tutorial || result.triggers.oracle) {
-                  triggerUpdate = result.triggers;
-              }
-
-              if (result.stopHunt) {
-                  stopBatchHunt = true;
-                  break; 
-              }
-              if (result.stopTrain) {
-                  stopBatchTrain = true;
-                  break;
-              }
+              if (result.triggers.tutorial || result.triggers.oracle) triggerUpdate = result.triggers;
+              if (result.stopHunt) { stopBatchHunt = true; break; }
+              if (result.stopTrain) { stopBatchTrain = true; break; }
           }
 
-          // Advance the time reference by the amount we successfully processed
           lastTickRef.current += (ticksToProcess * tickDuration);
 
-          // --- UPDATE STATE BATCH ---
-          
-          // 1. Logs & Hits (Slice to prevent memory overflow)
+          // Update State Batch
           if (batchLogs.length > 0) setLogs(prev => [...prev, ...batchLogs].slice(-100));
-          if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50)); // Only show recent hits visually
+          if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50));
 
-          // 2. Kills for Analyzer
           if (Object.keys(batchKills).length > 0) {
               setSessionKills(prev => {
                   const newState = { ...prev };
@@ -289,7 +273,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               });
           }
 
-          // 3. Analyzer History (One entry per batch to save memory)
           if (batchStats.xp > 0 || batchStats.profit > 0 || batchStats.waste > 0) {
               setAnalyzerHistory(prev => {
                   const newEntry = { timestamp: now, xp: batchStats.xp, profit: batchStats.profit, waste: batchStats.waste };
@@ -299,12 +282,10 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               });
           }
 
-          // 4. Triggers
           if (triggerUpdate) {
               if (triggerUpdate.tutorial) {
                   setIsPaused(true);
                   setActiveTutorial(triggerUpdate.tutorial);
-                  // Update player tutorial flags immediately in tempPlayer
                   if (triggerUpdate.tutorial === 'mob') tempPlayer.tutorials.seenRareMob = true;
                   if (triggerUpdate.tutorial === 'item') tempPlayer.tutorials.seenRareItem = true;
                   if (triggerUpdate.tutorial === 'ascension') tempPlayer.tutorials.seenAscension = true;
@@ -314,8 +295,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               }
           }
 
-          // 5. Final Player & Monster State
-          // CRITICAL FIX: Manually update Ref to ensure next tick has latest state even if React render is throttled
+          // Sync Ref & State
           playerRef.current = tempPlayer; 
           setPlayer(tempPlayer);
           
@@ -336,10 +316,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
       };
 
-      // Listener for Worker Messages
       worker.onmessage = () => runGameLoop();
 
-      // Listener for Tab Visibility (Force Catch-up when user returns to tab)
+      // FORCE Catch-up on Visibility Change (Crucial for background tabs)
       const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
               runGameLoop();
@@ -347,7 +326,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       };
       document.addEventListener('visibilitychange', handleVisibilityChange);
 
-      // Start the worker timer
       const interval = 1000 / gameSpeed;
       worker.postMessage({ type: 'START', interval });
 
@@ -356,7 +334,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           worker.terminate();
           document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
-  }, [!!player, isPaused, gameSpeed]); // Restart loop if speed changes
+  }, [!!player, isPaused, gameSpeed]);
 
   return { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, gameSpeed };
 };

@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { Player, PlayerSettings, Item, Spell } from '../types';
+import { Player, PlayerSettings, Item, Spell, Vocation } from '../types';
 import { SHOP_ITEMS, SPELLS } from '../constants';
-import { Bot, Heart, FlaskConical, Sparkles, Flame, Zap, Scroll, Plus, Trash2, ArrowRight } from 'lucide-react';
+import { Bot, Heart, FlaskConical, Sparkles, Flame, Zap, Scroll, Plus, Trash2, ArrowRight, Shield } from 'lucide-react';
 
 interface BotPanelProps {
   player: Player;
@@ -175,6 +175,8 @@ export const BotPanel: React.FC<BotPanelProps> = ({ player, onUpdateSettings }) 
   const healSpells = SPELLS.filter(s => s.type === 'heal' && player.purchasedSpells.includes(s.id));
   const attackSpells = SPELLS.filter(s => s.type === 'attack' && player.purchasedSpells.includes(s.id));
 
+  const isMage = player.vocation === Vocation.SORCERER || player.vocation === Vocation.DRUID;
+
   return (
     <div className="bg-[#222] h-full flex flex-col text-[#ccc]">
         {/* Header */}
@@ -244,6 +246,40 @@ export const BotPanel: React.FC<BotPanelProps> = ({ player, onUpdateSettings }) 
                     onSelectChange={(id) => handleSettingChange('selectedHealSpellId', id)}
                 />
             </section>
+
+            {/* SUPPORT SECTION (Mages) */}
+            {isMage && (
+                <section>
+                    <div className="flex items-center gap-2 mb-3 pb-1 border-b border-[#333]">
+                        <Shield size={16} className="text-purple-400" />
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Support & Utility</h3>
+                    </div>
+
+                    <div className={`bg-[#2d2d2d] border transition-colors p-4 rounded-md mb-3 ${player.settings.autoMagicShield ? 'border-purple-900/50 bg-purple-900/10' : 'border-[#444]'}`}>
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <div className={`p-1.5 rounded-full bg-[#111] border border-[#333] text-purple-500`}>
+                                    <Shield size={14}/>
+                                </div>
+                                <div>
+                                    <span className="text-sm font-bold text-gray-200 block">Auto Magic Shield</span>
+                                    <span className="text-[10px] text-gray-500">Casts Utamo Vita every 29s. (70% Dmg to Mana)</span>
+                                </div>
+                            </div>
+                            
+                            <button
+                                onClick={() => handleSettingChange('autoMagicShield', !player.settings.autoMagicShield)}
+                                className={`
+                                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors border border-transparent
+                                    ${player.settings.autoMagicShield ? 'bg-green-600' : 'bg-gray-700'}
+                                `}
+                            >
+                                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition shadow-sm ${player.settings.autoMagicShield ? 'translate-x-6' : 'translate-x-1'}`} />
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* ATTACK SECTION */}
             <section>

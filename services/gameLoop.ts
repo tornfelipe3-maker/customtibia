@@ -76,7 +76,7 @@ export const processGameTick = (
     let monsterHp = currentMonsterHp;
 
     const huntId = activeHuntId;
-    const huntCount = p.activeHuntCount || 1;
+    const settingsHuntCount = p.activeHuntCount || 1; // User configured count
     
     // --- CHECK LEVEL 12 WARNING TRIGGER ---
     if (p.level >= 12 && !p.tutorials.seenLevel12) {
@@ -156,7 +156,8 @@ export const processGameTick = (
             if (baseMonster) {
                 const forcedType = p.gmExtra?.forceRarity;
                 const baseSpawnChance = 0.03;
-                const countBonus = Math.min(0.04, (huntCount - 1) * 0.0057);
+                // Higher lure count increases rare spawn chance slightly
+                const countBonus = Math.min(0.04, (settingsHuntCount - 1) * 0.0057);
                 const getMod = (pl: Player, k: string) => {
                     let t = 0; Object.values(pl.equipment).forEach(i => { if(i?.modifiers?.[k]) t += i.modifiers[k]!; }); return t;
                 };
@@ -174,10 +175,14 @@ export const processGameTick = (
                     currentMonsterInstance.spawnTime = now;
                     if (!p.tutorials.seenRareMob) triggers.tutorial = 'mob';
                     if (!forcedType) log(`Warning! A ${currentMonsterInstance.name} appeared!`, 'danger');
+                    
+                    // RARE MOBS SPAWN ALONE (1x)
+                    monsterHp = currentMonsterInstance.maxHp * 1;
                 } else {
                     currentMonsterInstance = { ...baseMonster, guid: instanceId, spawnTime: now };
+                    // NORMAL MOBS SPAWN IN PACKS (Lure)
+                    monsterHp = currentMonsterInstance.maxHp * settingsHuntCount;
                 }
-                monsterHp = currentMonsterInstance.maxHp * huntCount;
             }
         }
 
@@ -187,6 +192,10 @@ export const processGameTick = (
         const isSpawning = monster && monster.spawnTime && (now - monster.spawnTime < SPAWN_DELAY_MS);
 
         if (monster && !isSpawning) {
+            // Determine effective hunt count for this specific fight
+            // Rare/Influenced monsters are always fought 1v1 to prevent impossible difficulty
+            const effectiveHuntCount = monster.isInfluenced ? 1 : settingsHuntCount;
+
             const getMod = (pl: Player, k: string) => {
                 let t = 0; Object.values(pl.equipment).forEach(i => { if(i?.modifiers?.[k]) t += i.modifiers[k]!; }); return t;
             };
@@ -197,9 +206,9 @@ export const processGameTick = (
 
                 const rawDmgBase = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
                 let difficultyMult = 1;
-                if (huntCount > 1) difficultyMult = 1 + ((huntCount - 1) * 0.08);
+                if (effectiveHuntCount > 1) difficultyMult = 1 + ((effectiveHuntCount - 1) * 0.08);
                 
-                let totalIncomingRaw = Math.floor((rawDmgBase * huntCount) * difficultyMult * hazardDmgMult);
+                let totalIncomingRaw = Math.floor((rawDmgBase * effectiveHuntCount) * difficultyMult * hazardDmgMult);
                 
                 if (hazardCritChance > 0 && Math.random() < hazardCritChance) {
                     totalIncomingRaw = Math.floor(totalIncomingRaw * hazardCritDmg);
@@ -220,7 +229,36 @@ export const processGameTick = (
                 if (shieldRes.leveledUp) log(`Shielding up: ${p.skills[SkillType.DEFENSE].level}!`, 'gain');
 
                 if (actualDmg > 0) {
-                    p.hp -= actualDmg;
+                    
+                    // --- UTAMO VITA (MAGIC SHIELD) LOGIC ---
+                    if (p.magicShieldUntil && p.magicShieldUntil > now) {
+                        // 70% Damage to Mana, 30% to HP
+                        const manaDmg = Math.floor(actualDmg * 0.70);
+                        let hpDmg = Math.floor(actualDmg * 0.30);
+                        
+                        // Handle Mana Spillover
+                        if (p.mana >= manaDmg) {
+                            p.mana -= manaDmg;
+                        } else {
+                            // Mana broke, remaining damage adds to HP damage
+                            const spillOver = manaDmg - p.mana;
+                            p.mana = 0;
+                            hpDmg += spillOver;
+                            // Shield technically breaks if mana is gone, but the buff timer remains for simplicity 
+                            // or until next automation tick recasts it.
+                        }
+                        
+                        // Apply HP Damage
+                        p.hp -= hpDmg;
+                        
+                        // Visual Feedback for Mana Shield usage
+                        if (Math.random() > 0.8) hit('MANA SHIELD', 'speech', 'player');
+
+                    } else {
+                        // Normal Damage
+                        p.hp -= actualDmg;
+                    }
+
                     if (Math.random() > 0.8) log(`You lost ${actualDmg} hitpoints due to an attack by ${monster.name}.`, 'combat');
                     hit(actualDmg, 'damage', 'player');
 
@@ -276,6 +314,7 @@ export const processGameTick = (
                         p.hp = p.maxHp;
                         p.mana = p.maxMana;
                         p.activeHuntId = null;
+                        p.magicShieldUntil = 0; // Clear Shield on Death
                         stopHunt = true;
                         
                         // Apply Gold Loss
@@ -356,7 +395,7 @@ export const processGameTick = (
                 }
 
                 const executionerChance = getMod(p, 'executioner');
-                const executionerThreshold = monster.maxHp * huntCount * 0.20; 
+                const executionerThreshold = monster.maxHp * effectiveHuntCount * 0.20; 
                 if (monsterHp < executionerThreshold && executionerChance > 0) {
                     if (Math.random() < (executionerChance / 100)) {
                         totalDamage = monsterHp; // Instant Kill
@@ -425,7 +464,8 @@ export const processGameTick = (
                         // --- AOE vs SINGLE TARGET LOGIC ---
                         // AoE spells hit ALL monsters (dmg * huntCount)
                         // Single target spells hit ONLY ONE (dmg * 1)
-                        const finalSpellDmg = spell.isAoe ? spellDmg * huntCount : spellDmg; 
+                        // Use effectiveHuntCount (1 if rare)
+                        const finalSpellDmg = spell.isAoe ? spellDmg * effectiveHuntCount : spellDmg; 
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
                              hit('DODGED', 'speech', 'monster');
@@ -461,7 +501,7 @@ export const processGameTick = (
                         // --- RUNE AOE LOGIC ---
                         let finalRuneDmg = runeDmg;
                         if (runeItem.runeType === 'area') {
-                            finalRuneDmg = runeDmg * huntCount;
+                            finalRuneDmg = runeDmg * effectiveHuntCount;
                         }
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
@@ -488,10 +528,10 @@ export const processGameTick = (
             // --- LOOT PHASE & KILL COUNT ---
             if (monsterHp <= 0) {
                 // TRACK KILL
-                killedMonsters.push({ name: monster.name, count: huntCount });
+                killedMonsters.push({ name: monster.name, count: effectiveHuntCount });
 
                 const goldDropBase = Math.floor(Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold;
-                const goldDrop = goldDropBase * huntCount;
+                const goldDrop = goldDropBase * effectiveHuntCount;
                 const staminaMultiplier = p.stamina > 0 ? 1.5 : 1.0;
                 const stageMult = getXpStageMultiplier(p.level);
                 
@@ -513,7 +553,7 @@ export const processGameTick = (
 
                 preyXpMult += (hazardXpBonus - 1); 
 
-                const xpGained = Math.floor(monster.exp * stageMult * staminaMultiplier * huntCount * preyXpMult);
+                const xpGained = Math.floor(monster.exp * stageMult * staminaMultiplier * effectiveHuntCount * preyXpMult);
                 p.currentXp += xpGained;
                 stats.xpGained += xpGained;
 
@@ -557,7 +597,8 @@ export const processGameTick = (
                 let currentSlots = Object.keys(p.inventory).length + (p.uniqueInventory?.length || 0);
                 let bpFullMessageSent = false;
 
-                for(let i=0; i<huntCount; i++) {
+                // Loop for multiple loot rolls if lured
+                for(let i=0; i<effectiveHuntCount; i++) {
                     const drop = generateLootWithRarity(monster, lootBonus);
                     
                     // Process Unique Items
@@ -620,12 +661,12 @@ export const processGameTick = (
                     }
                 });
 
-                if (lootMsg) log(`Loot x${huntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (${xpGained} xp)`, 'loot');
+                if (lootMsg) log(`Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (${xpGained} xp)`, 'loot');
 
                 p.taskOptions.forEach(task => {
                     if (task.status === 'active' && !task.isComplete) {
                         if (task.type === 'kill' && task.monsterId === monster.id) {
-                            task.killsCurrent += huntCount;
+                            task.killsCurrent += effectiveHuntCount;
                             if (task.killsCurrent >= task.killsRequired) {
                                 task.isComplete = true;
                                 log('Task Complete! Return to Task Panel to claim reward.', 'gain');
@@ -639,7 +680,7 @@ export const processGameTick = (
                     if (!p.quests[q.id]) p.quests[q.id] = { kills: 0, completed: false };
                     if (!p.quests[q.id].completed) {
                         if (q.requiredKills && p.quests[q.id].kills < q.requiredKills) {
-                            p.quests[q.id].kills += huntCount;
+                            p.quests[q.id].kills += effectiveHuntCount;
                             if (p.quests[q.id].kills >= q.requiredKills) {
                                 p.quests[q.id].kills = q.requiredKills;
                                 log(`Quest Objective Complete: ${q.name}!`, 'gain');

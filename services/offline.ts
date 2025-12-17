@@ -24,9 +24,10 @@ export const calculateOfflineProgress = (
     let stopHunt = false;
     let stopTrain = false;
 
-    // Minimum 10 seconds to trigger report to avoid spam on refresh
+    // Minimum 10 seconds to trigger report
     if (diffSeconds > 10) {
-        const effectiveTime = Math.min(diffSeconds, MAX_OFFLINE_SEC);
+        const potentialTime = Math.min(diffSeconds, MAX_OFFLINE_SEC);
+        let effectiveTime = potentialTime; // Can be reduced if supplies run out
         
         report = {
             secondsOffline: diffSeconds,
@@ -35,7 +36,7 @@ export const calculateOfflineProgress = (
             killedMonsters: [],
             lootObtained: {},
             leveledUp: 0,
-            waste: 0, // Init waste
+            waste: 0, 
         };
 
         // --- HUNTING OFFLINE ---
@@ -44,71 +45,112 @@ export const calculateOfflineProgress = (
             const huntCount = modifiedPlayer.activeHuntCount || 1;
             
             if (monster) {
-                // Get rates
+                // Get detailed stats including specific item usage per hour
                 const stats = estimateHuntStats(modifiedPlayer, monster, huntCount);
                 
-                // Calculate total cycles (kills)
-                const hoursPassed = effectiveTime / 3600;
-                let totalCycles = Math.floor(stats.cyclesPerHour * hoursPassed);
+                // --- SUPPLY CHECK (THE "ENOUGH POTIONS?" CHECK) ---
+                // We calculate how many hours we can survive based on Inventory + Gold (Auto-Refill)
                 
-                // Ensure at least 1 kill if user has enough damage and time > 30s
-                if (totalCycles === 0 && effectiveTime > 30 && stats.cyclesPerHour > 0) {
-                    totalCycles = 1;
+                let maxDurationBySupplies = MAX_OFFLINE_SEC * 2; // Default infinite if no consumption
+
+                const checkResource = (itemId: string | undefined, usagePerHour: number) => {
+                    if (!itemId || usagePerHour <= 0) return MAX_OFFLINE_SEC * 2;
+                    
+                    const inventoryCount = modifiedPlayer.inventory[itemId] || 0;
+                    const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 999999;
+                    
+                    // How long can we last on inventory?
+                    const hoursOnInventory = inventoryCount / usagePerHour;
+                    
+                    // How long can we last on auto-buy (Gold + Bank)?
+                    const totalGold = modifiedPlayer.gold + modifiedPlayer.bankGold;
+                    const affordableCount = Math.floor(totalGold / itemPrice);
+                    const hoursOnGold = affordableCount / usagePerHour;
+                    
+                    return (hoursOnInventory + hoursOnGold) * 3600; // Convert to seconds
+                };
+
+                const limitAmmo = checkResource(stats.ammoId, stats.ammoUsagePerHour);
+                const limitRune = checkResource(stats.runeId, stats.runeUsagePerHour);
+                const limitHP = checkResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
+                const limitMP = checkResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
+
+                // The hunt stops at the EARLIEST limit
+                const limitingFactor = Math.min(limitAmmo, limitRune, limitHP, limitMP);
+                
+                if (limitingFactor < effectiveTime) {
+                    effectiveTime = limitingFactor;
+                    // If we ran out of something critical, we stop the hunt
+                    // Note: If limit is 0 (can't even start), effectiveTime is 0.
+                    if (limitingFactor < diffSeconds) {
+                        stopHunt = true; // Mark to stop future hunting
+                    }
                 }
 
+                // If effective time is tiny (e.g. out of ammo immediately), skip rewards
+                if (effectiveTime < 10) {
+                    return { player: modifiedPlayer, report, stopHunt: true, stopTrain };
+                }
+
+                report.secondsOffline = effectiveTime; // Update report to show actual hunted time
+
+                // --- APPLY CONSUMPTION ---
+                const consumeResource = (itemId: string | undefined, usagePerHour: number) => {
+                    if (!itemId || usagePerHour <= 0) return;
+                    
+                    const totalNeeded = Math.ceil(usagePerHour * (effectiveTime / 3600));
+                    let remainingNeeded = totalNeeded;
+                    const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 0;
+
+                    // 1. Deduct from Inventory
+                    const inBag = modifiedPlayer.inventory[itemId] || 0;
+                    if (inBag >= remainingNeeded) {
+                        modifiedPlayer.inventory[itemId] -= remainingNeeded;
+                        if (modifiedPlayer.inventory[itemId] === 0) delete modifiedPlayer.inventory[itemId];
+                        remainingNeeded = 0;
+                    } else {
+                        remainingNeeded -= inBag;
+                        delete modifiedPlayer.inventory[itemId];
+                    }
+
+                    // 2. Deduct from Gold (Auto-Refill cost)
+                    if (remainingNeeded > 0) {
+                        const cost = remainingNeeded * itemPrice;
+                        report!.waste += cost; // Track waste for report
+                        
+                        if (modifiedPlayer.gold >= cost) {
+                            modifiedPlayer.gold -= cost;
+                        } else {
+                            const debt = cost - modifiedPlayer.gold;
+                            modifiedPlayer.gold = 0;
+                            modifiedPlayer.bankGold = Math.max(0, modifiedPlayer.bankGold - debt);
+                        }
+                    }
+                };
+
+                consumeResource(stats.ammoId, stats.ammoUsagePerHour);
+                consumeResource(stats.runeId, stats.runeUsagePerHour);
+                consumeResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
+                consumeResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
+
+
+                // --- APPLY REWARDS (Based on Effective Time) ---
+                const hoursPassed = effectiveTime / 3600;
+                let totalCycles = Math.floor(stats.cyclesPerHour * hoursPassed);
+                if (totalCycles === 0 && effectiveTime > 30 && stats.cyclesPerHour > 0) totalCycles = 1;
                 const totalKills = totalCycles * huntCount;
 
-                // 1. Grant XP
-                // Calculate based on exact kills to be precise
-                const xpPerKill = (stats.xpPerHour / stats.cyclesPerHour) || 0; // approximate back from hourly rate
-                const totalXp = Math.floor(totalKills * (xpPerKill / huntCount)); // XP per individual mob * count
-                
-                // Use the safe estimate function directly for totals to avoid rounding errors in reverse math
+                // XP
                 const safeTotalXp = Math.floor(stats.xpPerHour * hoursPassed);
-                const appliedXp = Math.max(totalXp, safeTotalXp); // Take the better of the two to benefit player
+                modifiedPlayer.currentXp += safeTotalXp;
+                report.xpGained = safeTotalXp;
 
-                modifiedPlayer.currentXp += appliedXp;
-                report.xpGained = appliedXp;
-
-                // 2. Grant Gold
+                // Gold
                 const safeTotalGold = Math.floor(stats.rawGoldPerHour * hoursPassed);
                 modifiedPlayer.gold += safeTotalGold;
                 report.goldGained = safeTotalGold;
 
-                // 3. Apply Waste (Supplies)
-                // Assuming player buys supplies automatically with bank/gold
-                const estimatedWaste = Math.floor(stats.wastePerHour * hoursPassed);
-                
-                if (modifiedPlayer.gold + modifiedPlayer.bankGold < estimatedWaste) {
-                    // Ran out of gold for supplies - reduce effective time
-                    const affordableRatio = (modifiedPlayer.gold + modifiedPlayer.bankGold) / estimatedWaste;
-                    // Apply reduced gains? For simplicity, we just deduct what they have and stop hunting
-                    // But to be fair, we just deduct cost. If negative, they enter "debt" or stop?
-                    // Let's assume they stop if they can't afford.
-                    
-                    // Actually, let's just deduct from gold. If gold < 0, set to 0 and maybe stop future hunt?
-                    // Simpler: Deduct waste. 
-                    let remainingWaste = estimatedWaste;
-                    if (modifiedPlayer.gold >= remainingWaste) {
-                        modifiedPlayer.gold -= remainingWaste;
-                    } else {
-                        remainingWaste -= modifiedPlayer.gold;
-                        modifiedPlayer.gold = 0;
-                        modifiedPlayer.bankGold = Math.max(0, modifiedPlayer.bankGold - remainingWaste);
-                    }
-                } else {
-                    // Normal deduction
-                    if (modifiedPlayer.gold >= estimatedWaste) {
-                        modifiedPlayer.gold -= estimatedWaste;
-                    } else {
-                        const remainder = estimatedWaste - modifiedPlayer.gold;
-                        modifiedPlayer.gold = 0;
-                        modifiedPlayer.bankGold -= remainder;
-                    }
-                }
-                report.waste = estimatedWaste;
-
-                // 4. Grant Loot
+                // Loot
                 const lootSummary: {[key:string]: number} = {};
                 
                 if (totalKills > 0) {
@@ -116,7 +158,6 @@ export const calculateOfflineProgress = (
 
                     // Calculate Loot Modifiers
                     let lootMult = 1;
-                    // FIX: Added '&& s.active' to ensure only active preys count for offline loot
                     const activePrey = modifiedPlayer.prey.slots.find(s => s.monsterId === monster.id && s.active);
                     if (activePrey && activePrey.bonusType === 'loot') lootMult += (activePrey.bonusValue / 100);
                     
@@ -130,10 +171,8 @@ export const calculateOfflineProgress = (
 
                     if (monster.lootTable) {
                         monster.lootTable.forEach(drop => {
-                            // SKIP IF MARKED AS IGNORED
                             if (modifiedPlayer.skippedLoot && modifiedPlayer.skippedLoot.includes(drop.itemId)) return;
 
-                            // Expected drops = Kills * Chance * Multipliers * AvgAmount
                             const chance = drop.chance * lootMult * GLOBAL_DROP_RATE;
                             const avgAmount = (1 + drop.maxAmount) / 2;
                             const totalDrops = Math.floor(totalKills * chance * avgAmount);
@@ -150,7 +189,7 @@ export const calculateOfflineProgress = (
                 }
                 report.lootObtained = lootSummary;
 
-                // 5. Check Level Ups
+                // Level Ups
                 const startLevel = modifiedPlayer.level;
                 const lvlResult = checkForLevelUp(modifiedPlayer);
                 modifiedPlayer = lvlResult.player;
@@ -158,8 +197,9 @@ export const calculateOfflineProgress = (
                 report.leveledUp = endLevel - startLevel;
             }
 
-            if (diffSeconds >= MAX_OFFLINE_SEC) {
-                stopHunt = true;
+            // Always reset start time for next cycle logic if continuous
+            if (stopHunt) {
+                // Keep stopHunt true to UI
             } else {
                 modifiedPlayer.activeHuntStartTime = Date.now();
             }
@@ -170,22 +210,18 @@ export const calculateOfflineProgress = (
             let pointsGained = effectiveTime; 
             
             if (skill === SkillType.MAGIC) {
-                pointsGained *= 25; // Magic takes more "points" per second implicitly in formula
+                pointsGained *= 25; 
             }
             
-            // Snapshot progress
             const startLevel = modifiedPlayer.skills[skill].level;
             const startPct = modifiedPlayer.skills[skill].progress;
             
-            // Apply
             const result = processSkillTraining(modifiedPlayer, skill, pointsGained);
             modifiedPlayer = result.player;
             
-            // Calculate delta for report
             const endLevel = modifiedPlayer.skills[skill].level;
             const endPct = modifiedPlayer.skills[skill].progress;
             
-            // Simple visual approximation of "levels gained" or "percent gained"
             const levelsGained = endLevel - startLevel;
             const pctGained = (levelsGained * 100) + (endPct - startPct);
 

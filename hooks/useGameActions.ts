@@ -156,12 +156,37 @@ export const useGameActions = (
                     }
                 }
 
-                if (prev.gold < item.price * quantity) return prev;
+                const totalCost = item.price * quantity;
+                const totalFunds = prev.gold + prev.bankGold;
+
+                if (totalFunds < totalCost) {
+                    addLog(`Insufficient gold (Need ${totalCost}).`, 'danger');
+                    return prev;
+                }
+
+                let remainingCost = totalCost;
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                // 1. Deduct from Inventory
+                if (newGold >= remainingCost) {
+                    newGold -= remainingCost;
+                    remainingCost = 0;
+                } else {
+                    remainingCost -= newGold;
+                    newGold = 0;
+                }
+
+                // 2. Deduct from Bank
+                if (remainingCost > 0) {
+                    newBank -= remainingCost;
+                }
+
                 const newInv = { ...prev.inventory };
                 newInv[item.id] = (newInv[item.id] || 0) + quantity;
-                return { ...prev, gold: prev.gold - (item.price * quantity), inventory: newInv };
+                addLog(`Bought ${quantity}x ${item.name}.`, 'gain');
+                return { ...prev, gold: newGold, bankGold: newBank, inventory: newInv };
             });
-            addLog(`Bought ${quantity}x ${item.name}.`, 'gain');
         },
         sellItem: (item: Item, quantity: number = 1) => {
             if (item.uniqueId) {
@@ -211,8 +236,15 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 if (!item.slot) return prev;
 
+                // CHECK VOCATION REQUIREMENT
                 if (item.requiredVocation && prev.vocation !== Vocation.NONE && !item.requiredVocation.includes(prev.vocation)) {
                     addLog(`Only ${item.requiredVocation.join(' or ')} can equip this.`, 'danger');
+                    return prev;
+                }
+
+                // CHECK LEVEL REQUIREMENT
+                if (item.requiredLevel && prev.level < item.requiredLevel) {
+                    addLog(`You need level ${item.requiredLevel} to equip ${item.name}.`, 'danger');
                     return prev;
                 }
 
@@ -440,24 +472,86 @@ export const useGameActions = (
         handleBuyBlessing: () => {
             updatePlayerState(prev => {
                 const cost = prev.level <= 30 ? 2000 : prev.level >= 120 ? 20000 : 2000 + (prev.level - 30) * 200;
-                if (prev.hasBlessing || prev.gold < cost) return prev;
-                return { ...prev, gold: prev.gold - cost, hasBlessing: true };
+                if (prev.hasBlessing) return prev;
+
+                const totalFunds = prev.gold + prev.bankGold;
+                if (totalFunds < cost) {
+                    addLog(`Insufficient gold (Need ${cost}).`, 'danger');
+                    return prev;
+                }
+
+                // Deduct
+                let remaining = cost;
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                if (newGold >= remaining) {
+                    newGold -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= newGold;
+                    newGold = 0;
+                }
+                if (remaining > 0) newBank -= remaining;
+
+                addLog("Received the blessing of Henricus.", 'gain');
+                return { ...prev, gold: newGold, bankGold: newBank, hasBlessing: true };
             });
-            addLog("Received the blessing of Henricus.", 'gain');
         },
         promotePlayer: () => {
             updatePlayerState(prev => {
-                if (prev.gold < 20000 || prev.promoted) return prev;
-                return { ...prev, gold: prev.gold - 20000, promoted: true };
+                if (prev.promoted) return prev;
+                const cost = 20000;
+                const totalFunds = prev.gold + prev.bankGold;
+                
+                if (totalFunds < cost) {
+                    addLog(`Insufficient gold (Need ${cost}).`, 'danger');
+                    return prev;
+                }
+
+                let remaining = cost;
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                if (newGold >= remaining) {
+                    newGold -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= newGold;
+                    newGold = 0;
+                }
+                if (remaining > 0) newBank -= remaining;
+
+                addLog("You have been promoted by King Tibianus!", 'gain');
+                return { ...prev, gold: newGold, bankGold: newBank, promoted: true };
             });
-            addLog("You have been promoted by King Tibianus!", 'gain');
         },
         buySpell: (spell: Spell) => {
             updatePlayerState(prev => {
-                if (prev.gold < spell.price || prev.purchasedSpells.includes(spell.id)) return prev;
-                return { ...prev, gold: prev.gold - spell.price, purchasedSpells: [...prev.purchasedSpells, spell.id] };
+                if (prev.purchasedSpells.includes(spell.id)) return prev;
+                const totalFunds = prev.gold + prev.bankGold;
+                
+                if (totalFunds < spell.price) {
+                    addLog(`Insufficient gold (Need ${spell.price}).`, 'danger');
+                    return prev;
+                }
+
+                let remaining = spell.price;
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                if (newGold >= remaining) {
+                    newGold -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= newGold;
+                    newGold = 0;
+                }
+                if (remaining > 0) newBank -= remaining;
+
+                addLog(`Learned spell: ${spell.name}.`, 'magic');
+                return { ...prev, gold: newGold, bankGold: newBank, purchasedSpells: [...prev.purchasedSpells, spell.id] };
             });
-            addLog(`Learned spell: ${spell.name}.`, 'magic');
         },
         updateSettings: (settings: PlayerSettings) => {
             updatePlayerState(prev => ({ ...prev, settings }));
@@ -527,10 +621,28 @@ export const useGameActions = (
                 const now = Date.now();
                 const isFree = now > (prev.taskNextFreeReroll || 0);
                 const cost = prev.level * 800;
+                const totalFunds = prev.gold + prev.bankGold;
                 
-                if (!isFree && prev.gold < cost) return prev;
+                if (!isFree && totalFunds < cost) {
+                    addLog(`Insufficient gold (Need ${cost}).`, 'danger');
+                    return prev;
+                }
                 
-                const newGold = isFree ? prev.gold : prev.gold - cost;
+                // Deduct
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+                if (!isFree) {
+                    let remaining = cost;
+                    if (newGold >= remaining) {
+                        newGold -= remaining;
+                        remaining = 0;
+                    } else {
+                        remaining -= newGold;
+                        newGold = 0;
+                    }
+                    if (remaining > 0) newBank -= remaining;
+                }
+
                 const nextFree = isFree ? now + (20 * 60 * 60 * 1000) : prev.taskNextFreeReroll;
 
                 const newTaskOptions = prev.taskOptions.map((task, index) => {
@@ -542,6 +654,7 @@ export const useGameActions = (
                 return { 
                     ...prev, 
                     gold: newGold, 
+                    bankGold: newBank,
                     taskOptions: newTaskOptions,
                     taskNextFreeReroll: nextFree
                 };
@@ -550,16 +663,33 @@ export const useGameActions = (
         rerollSpecificTask: (index: number) => {
             updatePlayerState(prev => {
                 const cost = prev.level * 100;
-                if (prev.gold < cost) {
+                const totalFunds = prev.gold + prev.bankGold;
+
+                if (totalFunds < cost) {
                     addLog("Not enough gold to reroll this contract.", 'danger');
                     return prev;
                 }
+
+                let remaining = cost;
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                if (newGold >= remaining) {
+                    newGold -= remaining;
+                    remaining = 0;
+                } else {
+                    remaining -= newGold;
+                    newGold = 0;
+                }
+                if (remaining > 0) newBank -= remaining;
+
                 const newOptions = [...prev.taskOptions];
                 const forcedType = index < 4 ? 'kill' : 'collect';
                 newOptions[index] = generateSingleTask(prev.level, forcedType);
                 return {
                     ...prev,
-                    gold: prev.gold - cost,
+                    gold: newGold,
+                    bankGold: newBank,
                     taskOptions: newOptions
                 };
             });
@@ -628,6 +758,9 @@ export const useGameActions = (
 
                 const xpForNext = getXpForLevel(newLevel + 1) - getXpForLevel(newLevel);
 
+                // RESET TASKS FOR LEVEL 8
+                const newTasks = generateTaskOptions(newLevel);
+
                 return {
                     ...INITIAL_PLAYER_STATS, 
                     name: prev.name,
@@ -639,6 +772,7 @@ export const useGameActions = (
                     mana: newMana, maxMana: newMana,
                     currentXp: 0,
                     maxXp: xpForNext,
+                    skills: prev.skills, // CRITICAL FIX: Keep skills on Reset/Ascension
                     relics: prev.relics,
                     ascension: prev.ascension,
                     tibiaCoins: prev.tibiaCoins,
@@ -648,9 +782,11 @@ export const useGameActions = (
                     uniqueInventory: recoveredUnique, 
                     uniqueDepot: prev.uniqueDepot,
                     tutorials: prev.tutorials,
+                    taskOptions: newTasks, // NEW: Generate tasks for new level
+                    taskNextFreeReroll: 0, // NEW: Reset free reroll immediately
                 };
             });
-            addLog("ASCENSION! Reborn at Lvl 8 with Vocation kept. Rare items saved.", 'gain');
+            addLog("ASCENSION! Reborn at Lvl 8. Vocation, Skills and Rare items preserved.", 'gain');
         },
         upgradeAscension: (perk: AscensionPerk) => {
             updatePlayerState(prev => {
@@ -691,12 +827,33 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 const hasFreeReroll = prev.prey.rerollsAvailable > 0;
                 const cost = hasFreeReroll ? 0 : prev.level * 100;
-                if (!hasFreeReroll && prev.gold < cost) return prev;
+                const totalFunds = prev.gold + prev.bankGold;
+
+                if (!hasFreeReroll && totalFunds < cost) {
+                    addLog(`Insufficient gold (Need ${cost}).`, 'danger');
+                    return prev;
+                }
+
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+
+                if (!hasFreeReroll) {
+                    let remaining = cost;
+                    if (newGold >= remaining) {
+                        newGold -= remaining;
+                        remaining = 0;
+                    } else {
+                        remaining -= newGold;
+                        newGold = 0;
+                    }
+                    if (remaining > 0) newBank -= remaining;
+                }
+
                 const newSlots = [...prev.prey.slots];
                 newSlots[slotIndex] = generatePreyCard();
                 const newRerollCount = hasFreeReroll ? prev.prey.rerollsAvailable - 1 : prev.prey.rerollsAvailable;
-                const newGold = hasFreeReroll ? prev.gold : prev.gold - cost;
-                return { ...prev, gold: newGold, prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } };
+                
+                return { ...prev, gold: newGold, bankGold: newBank, prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } };
             });
             addLog("Prey slot rerolled.", 'info');
         },

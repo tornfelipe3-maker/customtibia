@@ -39,8 +39,18 @@ const DIST_FACTOR = {
     [Vocation.NONE]: 0.05
 };
 
+// HELPER: Checks if player meets requirement to use item stats
+const canUseItem = (player: Player, item: Item): boolean => {
+    if (item.requiredLevel && player.level < item.requiredLevel) return false;
+    // Note: Vocation check is usually done at equip time, but we could add it here too for safety
+    return true;
+};
+
 export const calculatePlayerDamage = (player: Player): number => {
-  const weapon = player.equipment[EquipmentSlot.HAND_RIGHT]; 
+  const equippedWeapon = player.equipment[EquipmentSlot.HAND_RIGHT]; 
+  
+  // If weapon exists but player level is too low, treat as unarmed
+  const weapon = (equippedWeapon && canUseItem(player, equippedWeapon)) ? equippedWeapon : undefined;
   
   let attackValue = weapon?.attack || 1;
   let skillLevel = 10;
@@ -86,6 +96,8 @@ export const calculatePlayerDamage = (player: Player): number => {
             if (ammo && ammo.ammoType && 
                ((weapon.weaponType === 'bow' && ammo.ammoType === 'arrow') ||
                (weapon.weaponType === 'crossbow' && ammo.ammoType === 'bolt'))) {
+                 // Ammo also needs level check logic ideally, but usually ammo has low reqs
+                 // For now assuming ammo is usable if weapon is usable
                  ammoAtk = ammo.attack || 0;
             } else {
                 return 0; // No ammo/Wrong ammo = 0 damage
@@ -147,9 +159,12 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
   
   if (player.vocation === Vocation.KNIGHT && spell.type === 'attack') {
       // KNIGHT SPELLS (Physical - Scale with Weapon Skill)
-      const weapon = player.equipment[EquipmentSlot.HAND_RIGHT];
+      const equippedWeapon = player.equipment[EquipmentSlot.HAND_RIGHT];
+      // Knights need valid weapon for spells usually, or it uses reduced stats
+      const weapon = (equippedWeapon && canUseItem(player, equippedWeapon)) ? equippedWeapon : undefined;
+      
       const weaponSkill = getEffectiveSkill(player, weapon?.scalingStat || SkillType.SWORD);
-      const atk = weapon?.attack || 25;
+      const atk = weapon?.attack || 10; // Fallback to low atk if no valid weapon
       
       // Knights use Weapon Dmg * Spell Multiplier
       let mult = 1.0;
@@ -294,7 +309,7 @@ export const calculatePlayerDefense = (player: Player): number => {
   let shieldDef = 0;
   
   Object.values(player.equipment).forEach((item) => {
-    if (item) {
+    if (item && canUseItem(player, item)) {
       if (item.armor) totalArmor += item.armor;
       if (item.slot === EquipmentSlot.HAND_LEFT) shieldDef = item.defense || 0;
       // Some weapons have defense modifiers

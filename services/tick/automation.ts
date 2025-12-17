@@ -83,5 +83,39 @@ export const processAutomation = (
         }
     }
 
+    // Auto Magic Shield (Utamo Vita)
+    if (p.settings.autoMagicShield) {
+        // Only for Mages
+        if (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID) {
+            const spellId = 'utamo_vita';
+            const spell = SPELLS.find(s => s.id === spellId);
+            
+            // Check if spell exists, is learned, level/ML reqs, mana cost, and COOLDOWN
+            if (spell && p.purchasedSpells.includes(spellId) && 
+                p.level >= spell.minLevel && 
+                p.mana >= spell.manaCost && 
+                (p.spellCooldowns[spellId] || 0) <= now && 
+                p.globalCooldown <= now) {
+                
+                // Cast Utamo
+                p.mana -= spell.manaCost;
+                
+                // Set duration: 30s
+                p.magicShieldUntil = now + 30000;
+                
+                // Set Cooldown: 29s
+                p.spellCooldowns[spellId] = now + spell.cooldown;
+                p.globalCooldown = now + 1000;
+
+                const magicRes = processSkillTraining(p, SkillType.MAGIC, spell.manaCost);
+                p = magicRes.player;
+                if (magicRes.leveledUp) log(`Magic Level up: ${p.skills[SkillType.MAGIC].level}!`, 'gain');
+
+                log('Cast Utamo Vita.', 'magic');
+                hit('Utamo Vita', 'speech', 'player');
+            }
+        }
+    }
+
     return { player: p, waste };
 };

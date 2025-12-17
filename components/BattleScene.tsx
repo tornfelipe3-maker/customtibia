@@ -202,6 +202,10 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       });
   };
 
+  // Determine effective count for visualization
+  // If monster is influenced, we force count to 1 for display logic
+  const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
+
   return (
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${getBorderClass()}`}>
          
@@ -262,7 +266,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                         <span className="text-xs font-bold text-[#0f0] drop-shadow-[1px_1px_0_#000]">
                             {activeMonster.name}
                         </span>
-                        {activeHuntCount > 1 && <span className="text-red-500 text-[10px] font-bold ml-1">x{activeHuntCount}</span>}
+                        {displayHuntCount > 1 && <span className="text-red-500 text-[10px] font-bold ml-1">x{displayHuntCount}</span>}
                      </div>
                   </div>
                   
@@ -280,8 +284,8 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                                 alt="monster" 
                             />
                             
-                            {/* Clones for 'Lure' mode */}
-                            {(!isDead || isSpawning) && activeHuntCount > 1 && (
+                            {/* Clones for 'Lure' mode - Only show if displayHuntCount > 1 (so NOT rare) */}
+                            {(!isDead || isSpawning) && displayHuntCount > 1 && (
                                 <div className="absolute -right-6 -bottom-2 z-[-1]">
                                     <img src={activeMonster.image} className="w-24 h-24 opacity-60 scale-150 pixelated" style={getInfluencedStyle(activeMonster)} alt="mob" />
                                 </div>
@@ -301,9 +305,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                      <div 
                         className="h-full transition-all duration-200"
                         style={{ 
-                           width: `${Math.max(0, ((currentMonsterHp || 0) / (activeMonster.maxHp * activeHuntCount)) * 100)}%`,
-                           backgroundColor: (currentMonsterHp || 0) < (activeMonster.maxHp * activeHuntCount) * 0.2 ? '#d00' : 
-                                            (currentMonsterHp || 0) < (activeMonster.maxHp * activeHuntCount) * 0.5 ? '#dd0' : '#0c0'
+                           width: `${Math.max(0, ((currentMonsterHp || 0) / (activeMonster.maxHp * displayHuntCount)) * 100)}%`,
+                           backgroundColor: (currentMonsterHp || 0) < (activeMonster.maxHp * displayHuntCount) * 0.2 ? '#d00' : 
+                                            (currentMonsterHp || 0) < (activeMonster.maxHp * displayHuntCount) * 0.5 ? '#dd0' : '#0c0'
                         }}
                      ></div>
                   </div>
@@ -338,8 +342,8 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          {/* HUD Info Overlay */}
          {activeMonster && (
              <div className="absolute top-3 left-3 z-20 text-[10px] text-white drop-shadow-[1px_1px_0_#000] font-mono opacity-80 pointer-events-none bg-black/30 p-1.5 rounded border border-black/20">
-                <div>HP: {currentMonsterHp?.toLocaleString()} / {(activeMonster.maxHp * activeHuntCount).toLocaleString()}</div>
-                <div>XP: {(activeMonster.exp * activeHuntCount).toLocaleString()}</div>
+                <div>HP: {currentMonsterHp?.toLocaleString()} / {(activeMonster.maxHp * displayHuntCount).toLocaleString()}</div>
+                <div>XP: {(activeMonster.exp * displayHuntCount).toLocaleString()}</div>
              </div>
          )}
       </div>

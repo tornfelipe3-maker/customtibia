@@ -124,10 +124,12 @@ export const INITIAL_PLAYER_STATS: Player = {
         attackSpellRotation: [],   // Init empty
         autoAttackRune: false,
         selectedRuneId: '',
+        autoMagicShield: false, // New Setting
     },
     quests: {},
     bossCooldowns: {},
     spellCooldowns: {},
+    magicShieldUntil: 0, // New State
     runeCooldown: 0,
     purchasedSpells: [],
     globalCooldown: 0,

@@ -1,15 +1,11 @@
-
-import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss } from "../types";
-import { MONSTERS, SHOP_ITEMS, BOSSES } from "../constants";
+import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss, Vocation } from "../types";
+import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES } from "../constants";
 import { getEffectiveSkill } from "./progression";
 import { GENERATE_MODIFIERS } from "./loot"; 
 
 export const getXpStageMultiplier = (level: number): number => {
   // Balanced Curve
-  // Early game is fast to hook the player.
-  // Mid game (50-100) slows down to enforce gear progression.
-  // Late game (150+) plummets to enforce Ascension.
-  if (level <= 8) return 250; // Boosted 5x (was 50)
+  if (level <= 8) return 250; 
   if (level <= 20) return 30;  
   if (level <= 50) return 20;  
   if (level <= 80) return 10;  
@@ -62,56 +58,38 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
     
     let type = forceType;
     if (!type) {
-        // Enraged is common danger, Blessed is the rare Loot Piñata
         if (roll < 0.50) type = 'corrupted';      
         else if (roll < 0.90) type = 'enraged';   
         else type = 'blessed';                    
     }
 
     if (type === 'corrupted') {
-        // CORRUPTED: The Elite Soldier
-        // Strong all-rounder. Hard to kill, hits hard.
         variant.influencedType = 'corrupted';
         variant.name = `Corrupted ${baseMonster.name}`;
         variant.hp = Math.floor(baseMonster.hp * 4.0);       
         variant.maxHp = Math.floor(baseMonster.maxHp * 4.0);
         variant.damageMin = Math.floor(baseMonster.damageMin * 1.5); 
         variant.damageMax = Math.floor(baseMonster.damageMax * 1.8);
-        variant.exp = Math.floor(baseMonster.exp * 6); // Boosted XP
+        variant.exp = Math.floor(baseMonster.exp * 6); 
         
     } else if (type === 'enraged') {
-        // ENRAGED: The Berserker (DPS THREAT)
-        // High, fast damage. Scares the player by dropping HP fast.
         variant.influencedType = 'enraged';
         variant.name = `Enraged ${baseMonster.name}`;
         variant.hp = Math.floor(baseMonster.hp * 2.5); 
         variant.maxHp = Math.floor(baseMonster.maxHp * 2.5);
-        
-        // High Damage Spike (But not necessarily 1-hit KO from full)
         variant.damageMin = Math.floor(baseMonster.damageMin * 2.0); 
         variant.damageMax = Math.floor(baseMonster.damageMax * 3.2); 
-        
-        // Very Fast Attacks - This is what kills you if you don't heal
         variant.attackSpeedMs = Math.max(400, Math.floor(baseMonster.attackSpeedMs * 0.6)); 
-        variant.exp = Math.floor(baseMonster.exp * 12); // MASSIVE XP for the risk
+        variant.exp = Math.floor(baseMonster.exp * 12); 
 
     } else if (type === 'blessed') {
-        // BLESSED: The Golden Titan (LOOT & ENDURANCE)
-        // Huge HP. Good Damage. The challenge is surviving the long fight.
-        // Best Loot Table.
         variant.influencedType = 'blessed';
         variant.name = `Blessed ${baseMonster.name}`;
-        
-        // Insane HP Pool (Attrition War)
         variant.hp = Math.floor(baseMonster.hp * 15.0); 
         variant.maxHp = Math.floor(baseMonster.maxHp * 15.0);
-        
-        // Respectable Damage - Enough to overcome basic regen and force potion use
         variant.damageMin = Math.floor(baseMonster.damageMin * 1.8);
         variant.damageMax = Math.floor(baseMonster.damageMax * 2.2);
-        
-        // Massive Loot Pinata & XP
-        variant.exp = Math.floor(baseMonster.exp * 40); // EXTREME XP due to time taken
+        variant.exp = Math.floor(baseMonster.exp * 40);
         variant.minGold = baseMonster.minGold * 15;
         variant.maxGold = baseMonster.maxGold * 15;
     }
@@ -220,18 +198,11 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
             const itemDef = SHOP_ITEMS.find(i => i.id === targetId);
             targetName = itemDef ? itemDef.name : targetId;
             
-            // Adjust for Average Drop Yield
-            // If monster drops 2-4 items, avg is 3. We shouldn't need as many kills.
             const avgYield = (1 + (chosenLoot.maxAmount || 1)) / 2;
             const dropChance = chosenLoot.chance;
             
-            // Desired Item Count
             let itemTarget = Math.floor(killTarget * dropChance * avgYield);
-            
-            // Ensure bounds
             itemTarget = Math.max(5, itemTarget);
-            
-            // Recalculate estimated kills for rewards
             let expectedKills = Math.ceil(itemTarget / (dropChance * avgYield));
             
             amount = itemTarget;
@@ -246,12 +217,11 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
 
     const stageMult = getXpStageMultiplier(playerLevel);
     
-    // Reward Calculation
     const sizeRatio = Math.min(1.5, Math.max(0, (effortMetric - minKills) / (maxKills - minKills))); 
     let bonusMultiplier = 0.3 + (sizeRatio * 0.40); 
     
     if (taskType === 'collect') {
-        bonusMultiplier += 0.25; // Bonus for collecting (Inventory management tax)
+        bonusMultiplier += 0.25; 
     }
 
     const totalHuntXp = monster.exp * effortMetric * stageMult;
@@ -290,18 +260,37 @@ export const generateTaskOptions = (playerLevel: number): HuntingTask[] => {
   return tasks;
 };
 
-// --- ROBUST OFFLINE ESTIMATOR ---
-export const estimateHuntStats = (player: Player, monster: Monster, huntCount: number = 1) => {
+// --- PRECISE OFFLINE CALCULATOR ---
+export interface HuntEstimates {
+    xpPerHour: number;
+    rawGoldPerHour: number;
+    cyclesPerHour: number;
+    wastePerHour: number; // Rough gold value fallback
+    
+    // New exact usage tracking
+    ammoId?: string;
+    ammoUsagePerHour: number;
+    
+    runeId?: string;
+    runeUsagePerHour: number;
+    
+    healthPotionId?: string;
+    healthPotionUsagePerHour: number;
+    
+    manaPotionId?: string;
+    manaPotionUsagePerHour: number;
+}
+
+export const estimateHuntStats = (player: Player, monster: Monster, huntCount: number = 1): HuntEstimates => {
   const weapon = player.equipment[EquipmentSlot.HAND_RIGHT];
   
-  // Calculate Avg Damage
+  // 1. Calculate Average Damage (Simplified)
   let avgDmg = 5 + (player.level / 3); 
   
   if (weapon) {
       let attackValue = weapon.attack || 1;
       let skill = getEffectiveSkill(player, weapon.scalingStat || SkillType.SWORD);
       
-      // Use rough factors from combat.ts
       let factor = 0.06;
 
       if (weapon.scalingStat === SkillType.MAGIC) {
@@ -330,7 +319,7 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   avgDmg = Math.max(5, avgDmg);
 
-  // Time Calc
+  // Time & Cycles
   const totalHp = monster.hp * huntCount;
   const turnsToKill = Math.ceil(totalHp / avgDmg);
   const attackSpeedSeconds = 2.0; 
@@ -363,66 +352,110 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   const xpPerCycle = monster.exp * huntCount * stageMult * xpMult * staminaMult;
 
-  // WASTE CALCULATION (Approximation)
-  // Ammo cost
-  let ammoCostPerHour = 0;
+  // --- SUPPLY USAGE CALCULATION ---
+  
+  let ammoId: string | undefined;
+  let ammoUsagePerHour = 0;
+  let runeId: string | undefined;
+  let runeUsagePerHour = 0;
+  let healthPotionId: string | undefined;
+  let healthPotionUsagePerHour = 0;
+  let manaPotionId: string | undefined;
+  let manaPotionUsagePerHour = 0;
+
+  // 1. AMMO
   if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
       const ammo = player.equipment[EquipmentSlot.AMMO];
-      if (ammo && ammo.price) {
-          const shotsPerHour = cyclesPerHour * turnsToKill;
-          ammoCostPerHour = shotsPerHour * ammo.price;
+      if (ammo) {
+          ammoId = ammo.id;
+          ammoUsagePerHour = cyclesPerHour * turnsToKill;
       }
   }
 
-  // Rune cost
-  let runeCostPerHour = 0;
+  // 2. RUNES (Auto Attack Rune)
   if (player.settings.autoAttackRune && player.settings.selectedRuneId) {
-      const rune = SHOP_ITEMS.find(i => i.id === player.settings.selectedRuneId);
-      if (rune && rune.price) {
-          // Assume 1 rune every 2 turns max (cooldown)
-          const runesUsed = cyclesPerHour * (turnsToKill / 2); 
-          runeCostPerHour = runesUsed * rune.price;
-      }
+      runeId = player.settings.selectedRuneId;
+      // Assume 1 rune every 2 turns max (cooldown)
+      runeUsagePerHour = cyclesPerHour * (turnsToKill / 2); 
   }
 
-  // Potion Waste (Heuristic based on Monster difficulty vs Player)
-  let potionCostPerHour = 0;
+  // 3. HEALTH POTIONS (Incoming DPS vs Mitigation)
   const monsterDPS = ((monster.damageMin + monster.damageMax) / 2) * huntCount / (monster.attackSpeedMs / 1000);
   
-  // Rough player mitigation
+  // Mitigation
   let mitigation = 0;
   Object.values(player.equipment).forEach(i => { if (i && i.armor) mitigation += i.armor; });
-  // Mitigation factor
   const netIncomingDPS = Math.max(0, monsterDPS - (mitigation * 0.8));
   
-  // Simple check: If monster is hard, we use pots
-  if (netIncomingDPS > (player.level / 5)) {
-      // Estimate gold cost for healing per hour
-      // 1 Gold ~ 2 HP healing efficiency on average
-      const hpNeedPerHour = netIncomingDPS * 3600;
-      // Subtract natural regen approx (1 HP per sec * 3600)
-      const netHpNeed = Math.max(0, hpNeedPerHour - 3600); 
-      potionCostPerHour = netHpNeed * 0.5; // Cost 0.5gp per HP healed
+  // Natural Regen
+  const baseRegen = REGEN_RATES[player.vocation] || REGEN_RATES[Vocation.NONE];
+  const regenMultiplier = player.promoted ? 1.8 : 1.0;
+  const hpRegenPerSec = baseRegen.hp * regenMultiplier;
+
+  const hpDeficitPerSec = Math.max(0, netIncomingDPS - hpRegenPerSec);
+  
+  if (hpDeficitPerSec > 0 && player.settings.autoHealthPotionThreshold > 0 && player.settings.selectedHealthPotionId) {
+      healthPotionId = player.settings.selectedHealthPotionId;
+      const potion = SHOP_ITEMS.find(i => i.id === healthPotionId);
+      if (potion && potion.restoreAmount) {
+          const hpNeededPerHour = hpDeficitPerSec * 3600;
+          healthPotionUsagePerHour = Math.ceil(hpNeededPerHour / potion.restoreAmount);
+      }
   }
 
-  // Mana Waste (Spells)
-  let manaWastePerHour = 0;
-  if (player.settings.autoAttackSpell) {
-      // Assume casting spell every 2s (cooldown avg)
-      const castsPerHour = 1800;
-      const avgManaCost = 40; // Approx
-      const manaNeed = castsPerHour * avgManaCost;
-      const naturalMana = 3600; // 1 per sec
-      const netManaNeed = Math.max(0, manaNeed - naturalMana);
-      manaWastePerHour = netManaNeed * 0.5; // 0.5gp per MP
+  // 4. MANA POTIONS (Spell Usage + Heal Spells)
+  let manaDeficitPerSec = 0;
+  const manaRegenPerSec = baseRegen.mana * regenMultiplier;
+  
+  // Cost from Attack Spells
+  if (player.settings.autoAttackSpell && player.settings.attackSpellRotation?.length > 0) {
+      // Simplified: Assume average cost of rotation every 2 seconds
+      // Ideally we check specific spells, but avg 40 mana every 2s is a safe baseline for mages
+      manaDeficitPerSec += 20; 
   }
 
-  const totalWastePerHour = Math.floor(ammoCostPerHour + runeCostPerHour + potionCostPerHour + manaWastePerHour);
+  // Cost from Healing Spells (if taking damage)
+  if (hpDeficitPerSec > 0 && player.settings.autoHealSpellThreshold > 0 && player.settings.selectedHealSpellId) {
+      // If we are taking damage, we might use spells INSTEAD of potions if configured?
+      // For simplicity, we assume potions cover heavy damage, spells cover light.
+      // But if bot has heal spell, it uses mana.
+      // Let's assume spell heals 100 HP for 40 Mana.
+      // 2.5 HP per Mana.
+      const manaForHealing = hpDeficitPerSec / 2.5;
+      manaDeficitPerSec += manaForHealing;
+  }
+
+  // Net Mana Balance
+  const netManaDeficit = Math.max(0, manaDeficitPerSec - manaRegenPerSec);
+
+  if (netManaDeficit > 0 && player.settings.autoManaPotionThreshold > 0 && player.settings.selectedManaPotionId) {
+      manaPotionId = player.settings.selectedManaPotionId;
+      const potion = SHOP_ITEMS.find(i => i.id === manaPotionId);
+      if (potion && potion.restoreAmount) {
+          const manaNeededPerHour = netManaDeficit * 3600;
+          manaPotionUsagePerHour = Math.ceil(manaNeededPerHour / potion.restoreAmount);
+      }
+  }
+
+  // Calculate generic waste value for display
+  let totalWasteCost = 0;
+  const getItemPrice = (id?: string) => SHOP_ITEMS.find(i => i.id === id)?.price || 0;
+  
+  totalWasteCost += ammoUsagePerHour * getItemPrice(ammoId);
+  totalWasteCost += runeUsagePerHour * getItemPrice(runeId);
+  totalWasteCost += healthPotionUsagePerHour * getItemPrice(healthPotionId);
+  totalWasteCost += manaPotionUsagePerHour * getItemPrice(manaPotionId);
 
   return {
     xpPerHour: Math.floor(cyclesPerHour * xpPerCycle),
     rawGoldPerHour: Math.floor(cyclesPerHour * rawGoldPerCycle),
-    cyclesPerHour: cyclesPerHour, // Kills per hour
-    wastePerHour: totalWastePerHour // Estimated Supply Cost
+    cyclesPerHour: cyclesPerHour,
+    wastePerHour: totalWasteCost,
+    
+    // Detailed Breakdown
+    ammoId, ammoUsagePerHour,
+    runeId, runeUsagePerHour,
+    healthPotionId, healthPotionUsagePerHour,
+    manaPotionId, manaPotionUsagePerHour
   };
 };

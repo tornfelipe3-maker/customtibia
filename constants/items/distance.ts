@@ -4,7 +4,7 @@ import { IMG_BASE } from '../config';
 
 export const DISTANCE_LIST: Item[] = [
   // TIER 1 (Lvl 1-8) -> Item Lvl 2
-  { id: 'small_stone', name: 'Small Stone', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 15, defense: 0, price: 40, sellPrice: 0, soldTo: [NpcType.TRADER], description: 'Pedra de arremesso.', scalingStat: SkillType.DISTANCE, requiredVocation: [Vocation.PALADIN], image: `${IMG_BASE}Small_Stone.gif`, requiredLevel: 2 },
+  { id: 'small_stone', name: 'Small Stone', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 15, defense: 0, price: 40, sellPrice: 5, soldTo: [NpcType.TRADER, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Pedra de arremesso.', scalingStat: SkillType.DISTANCE, requiredVocation: [Vocation.PALADIN], image: `${IMG_BASE}Small_Stone.gif`, requiredLevel: 2 },
   
   // TIER 2 (Lvl 9-20) -> Item Lvl 8
   { id: 'spear', name: 'Spear', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 25, defense: 0, price: 80, sellPrice: 10, soldTo: [NpcType.TRADER, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Arma de arremesso.', scalingStat: SkillType.DISTANCE, requiredVocation: [Vocation.PALADIN], image: `${IMG_BASE}Spear.gif`, requiredLevel: 8 },

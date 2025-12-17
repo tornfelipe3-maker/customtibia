@@ -83,8 +83,8 @@ export const processGameTick = (
         triggers.tutorial = 'level12';
     }
 
-    // --- CHECK ASCENSION TRIGGER ---
-    if (p.level >= 50 && !p.tutorials.seenAscension) {
+    // --- CHECK ASCENSION TRIGGER (UPDATED TO 30) ---
+    if (p.level >= 30 && !p.tutorials.seenAscension) {
         triggers.tutorial = 'ascension';
     }
 

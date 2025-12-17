@@ -5,13 +5,10 @@ import { processGameTick, calculateOfflineProgress, StorageService, generateTask
 import { BOSSES } from '../constants';
 import { useGameActions } from './useGameActions';
 
-// Web Worker code using specific self typing workaround
 const WORKER_CODE = `
 self.onmessage = function(e) {
     if (e.data.type === 'START') {
         if (self.timer) clearInterval(self.timer);
-        // We set a faster interval than needed to compensate for browser throttling
-        // The main thread logic handles the actual delta time, so over-ticking is fine.
         self.timer = setInterval(() => {
             self.postMessage('TICK');
         }, Math.max(10, e.data.interval)); 
@@ -28,32 +25,23 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   const [activeMonster, setActiveMonster] = useState<Monster | undefined>(undefined);
   const [currentMonsterHp, setCurrentMonsterHp] = useState<number>(0);
   const [reforgeResult, setReforgeResult] = useState<{ oldItem: Item, newItem: Item } | null>(null);
-  const [gameSpeed, setGameSpeed] = useState<number>(1); // 1x, 2x, 4x
+  const [gameSpeed, setGameSpeed] = useState<number>(1); 
   
-  // Analyzer State
   const [analyzerHistory, setAnalyzerHistory] = useState<{ timestamp: number, xp: number, profit: number, waste: number }[]>([]);
   const [sessionKills, setSessionKills] = useState<{[name: string]: number}>({});
-
-  // Offline Report State (For initial load only)
   const [offlineReport, setOfflineReport] = useState<OfflineReport | null>(null);
 
-  // Tutorial State
   const [isPaused, setIsPaused] = useState(false);
   const [activeTutorial, setActiveTutorial] = useState<'mob' | 'item' | 'ascension' | 'level12' | null>(null);
 
-  // Refs for loop access
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
-  
-  // Track simulation time
   const lastTickRef = useRef<number>(Date.now());
   
-  // Helper for Log
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
       setLogs(prev => [...prev, { id: Math.random().toString(), message, type, timestamp: Date.now(), rarity }]);
   };
 
-  // --- ACTIONS FACADE ---
   const actions = useGameActions(
       playerRef, 
       setPlayer,
@@ -70,10 +58,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       setOfflineReport
   );
 
-  // Offline Progress & Migration (Run once on mount/login)
   useEffect(() => {
       if (initialPlayer) {
-          // ... (Migration logic same as before) ...
           const migratedPlayer = { ...initialPlayer };
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
@@ -86,6 +72,10 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
           if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;
           
+          // NEW POCOES INDIVIDUAL CD MIGRATION
+          if (migratedPlayer.healthPotionCooldown === undefined) migratedPlayer.healthPotionCooldown = 0;
+          if (migratedPlayer.manaPotionCooldown === undefined) migratedPlayer.manaPotionCooldown = 0;
+
           if (!migratedPlayer.tutorials) {
               migratedPlayer.tutorials = { 
                   introCompleted: false, seenRareMob: false, seenRareItem: false, 
@@ -110,7 +100,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               category: t.category || t.type 
           }));
           
-          // Initial Offline Check
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime);
           
           if (report) {
@@ -122,16 +111,14 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           
           setPlayer(updatedPlayer);
           playerRef.current = updatedPlayer;
-          lastTickRef.current = Date.now(); // Reset time anchor
+          lastTickRef.current = Date.now();
       }
   }, [initialPlayer]);
 
-  // Sync Pause
   useEffect(() => {
       if (offlineReport !== null) setIsPaused(true);
   }, [offlineReport]);
 
-  // Auto-Save
   useEffect(() => {
       if (!accountName) return;
       const timer = setInterval(() => {
@@ -144,15 +131,13 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       return () => clearInterval(timer);
   }, [accountName]);
 
-  // --- SMART GAME LOOP ---
   useEffect(() => {
       if (!player) return;
       if (isPaused) {
-          lastTickRef.current = Date.now(); // Keep anchor fresh while paused
+          lastTickRef.current = Date.now();
           return;
       }
 
-      // Initialize Timer Worker
       const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
       const worker = new Worker(URL.createObjectURL(blob));
 
@@ -167,22 +152,16 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          // --- PRECISE SIMULATION LIMIT ---
-          // Changed from 5000 (5s) to 900000 (15 Minutes)
-          // This allows "Alt-Tab" behavior to simulate exact combat ticks rather than averaging.
           const MAX_SIMULATION_MS = 15 * 60 * 1000; 
 
-          // If the gap is HUGE (e.g. PC sleep for hours), use Offline Math
           if (delta > MAX_SIMULATION_MS) { 
               const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current);
               
               if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
-                  // Apply results silently (no modal) to log and history
                   const xp = report.xpGained;
                   const gold = report.goldGained;
                   const waste = report.waste || 0;
                   
-                  // Update History
                   setAnalyzerHistory(prev => {
                       const newEntry = { timestamp: now, xp, profit: gold, waste };
                       const newHistory = [...prev, newEntry];
@@ -190,13 +169,11 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                       return newHistory;
                   });
 
-                  // Add Log
                   const timeAway = Math.floor(report.secondsOffline);
                   if (timeAway > 60) {
                       addLog(`Deep Sleep (${Math.floor(timeAway/60)}m): +${xp.toLocaleString()} XP, +${gold.toLocaleString()} Gold.`, 'info');
                   }
                   
-                  // Handle Stop Conditions
                   if (stopHunt) {
                       fastForwardedPlayer.activeHuntId = null;
                       addLog("Hunt stopped (Time Limit or Resource).", 'danger');
@@ -210,21 +187,15 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                   }
               }
 
-              // Update State
               setPlayer(fastForwardedPlayer);
               playerRef.current = fastForwardedPlayer;
-              lastTickRef.current = now; // Reset anchor
-              return; // Skip standard loop
+              lastTickRef.current = now;
+              return;
           }
 
-          // --- STANDARD LOOP (Fast-Forward Simulation) ---
-          // Calculates how many ticks we missed and runs them all instantly.
           let ticksToProcess = Math.floor(delta / tickDuration);
           if (ticksToProcess <= 0) return;
 
-          // Safety cap: Don't freeze browser if calculations are too heavy per tick
-          // 15 mins * 60 secs = 900 ticks. Modern JS can handle this easily in a for loop.
-          
           let tempPlayer = playerRef.current;
           let tempMonsterHp = monsterHpRef.current;
           let tempActiveMonster = activeMonster; 
@@ -240,7 +211,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
           for (let i = 0; i < ticksToProcess; i++) {
               const simTime = lastTickRef.current + ((i + 1) * tickDuration);
-              
               const result = processGameTick(tempPlayer, tempPlayer.activeHuntId, tempPlayer.activeTrainingSkill, tempMonsterHp, simTime);
               
               tempPlayer = result.player;
@@ -267,9 +237,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
           lastTickRef.current += (ticksToProcess * tickDuration);
 
-          // Update State Batch
           if (batchLogs.length > 0) setLogs(prev => [...prev, ...batchLogs].slice(-100));
-          // Only show recent hits to avoid UI spam lag
           if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50));
 
           if (Object.keys(batchKills).length > 0) {
@@ -304,10 +272,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               }
           }
 
-          // Sync Ref & State
           playerRef.current = tempPlayer; 
           setPlayer(tempPlayer);
-          
           monsterHpRef.current = tempMonsterHp;
           setActiveMonster(tempActiveMonster);
           setCurrentMonsterHp(tempMonsterHp);
@@ -327,7 +293,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
 
       worker.onmessage = () => runGameLoop();
 
-      // FORCE Catch-up on Visibility Change (Crucial for background tabs)
       const handleVisibilityChange = () => {
           if (document.visibilityState === 'visible') {
               runGameLoop();

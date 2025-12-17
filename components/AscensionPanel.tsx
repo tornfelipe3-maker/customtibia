@@ -17,7 +17,7 @@ export const AscensionPanel: React.FC<AscensionPanelProps> = ({ player, onAscend
   const [activeInfo, setActiveInfo] = useState<AscensionPerk | null>(null);
   
   const pointsToGain = calculateSoulPointsToGain(player);
-  const canAscend = player.level >= 50;
+  const canAscend = player.level >= 30; // Changed from 50
 
   const toggleInfo = (id: AscensionPerk) => {
       setActiveInfo(activeInfo === id ? null : id);
@@ -127,7 +127,7 @@ export const AscensionPanel: React.FC<AscensionPanelProps> = ({ player, onAscend
                                 : 'bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed'}
                         `}
                     >
-                        {canAscend ? t('ascension_btn') : `Level ${player.level} / 50`}
+                        {canAscend ? t('ascension_btn') : `Level ${player.level} / 30`}
                     </button>
                 ) : (
                     <div className="w-full animate-in fade-in zoom-in duration-200">

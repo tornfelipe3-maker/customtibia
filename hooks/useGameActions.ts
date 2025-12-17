@@ -807,7 +807,7 @@ export const useGameActions = (
             setActiveMonster(undefined);
 
             updatePlayerState(prev => {
-                if (prev.level < 50) return prev;
+                if (prev.level < 30) return prev; // CHANGED FROM 50 to 30
                 const points = calculateSoulPointsToGain(prev);
                 
                 const recoveredUnique: Item[] = [...prev.uniqueInventory];

@@ -100,8 +100,15 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
 
 // --- ASCENSION HELPERS ---
 export const calculateSoulPointsToGain = (player: Player): number => {
-    if (player.level < 50) return 0;
-    const base = (1 + Math.floor((player.level - 50) / 10)) * 10;
+    // New Threshold: Level 30
+    if (player.level < 30) return 0;
+    
+    // Formula: 10 points at lvl 30. +10 points every 10 levels after.
+    // Lvl 30 = 10 SP
+    // Lvl 40 = 20 SP
+    // Lvl 50 = 30 SP
+    const base = (1 + Math.floor((player.level - 30) / 10)) * 10;
+    
     const multiplier = 1 + ((player.ascension?.soul_gain || 0) / 20); 
     return Math.floor(base * multiplier);
 };

@@ -3,41 +3,35 @@ import { EquipmentSlot, Vocation, SkillType, NpcType, DamageType } from './enums
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
-// ... (Existing interfaces remain unchanged until LogEntry) ...
-
 export interface ItemModifiers {
     attack?: number;
     defense?: number;
     armor?: number;
-    // New Special Stats
-    xpBoost?: number;       // Percent
-    lootBoost?: number;     // Percent
-    attackSpeed?: number;   // Percent (Chance to double hit)
-    blessedChance?: number; // Percent (Spawn rate increase)
-    critChance?: number;    // Percent
-    
-    // NEW ATTRIBUTES
-    bossSlayer?: number;    // Percent damage vs Bosses
-    dodgeChance?: number;   // Percent chance to ignore damage
-    goldFind?: number;      // Percent gold increase
-    executioner?: number;   // Percent chance to kill mob < 20% HP
-    reflection?: number;    // Percent damage reflected to attacker
-    
-    [key: string]: number | undefined; // Allow dynamic skill bonuses
+    xpBoost?: number;
+    lootBoost?: number;
+    attackSpeed?: number;
+    blessedChance?: number;
+    critChance?: number;
+    bossSlayer?: number;
+    dodgeChance?: number;
+    goldFind?: number;
+    executioner?: number;
+    reflection?: number;
+    [key: string]: number | undefined;
 }
 
 export interface Skill {
   level: number;
-  progress: number; // 0 to 100
+  progress: number;
 }
 
 export interface Item {
   id: string;
-  uniqueId?: string; // For unique instances (Rare+)
+  uniqueId?: string;
   name: string;
   type: 'equipment' | 'potion' | 'loot';
-  rarity?: Rarity; // New Rarity System
-  modifiers?: ItemModifiers; // Bonus stats
+  rarity?: Rarity;
+  modifiers?: ItemModifiers;
   potionType?: 'health' | 'mana' | 'spirit';
   ammoType?: 'arrow' | 'bolt';
   weaponType?: 'bow' | 'crossbow';
@@ -62,9 +56,7 @@ export interface Item {
   };
   isRune?: boolean;
   runeType?: 'single' | 'area';
-  // New property for stacking in equipment slots
   count?: number;
-  // Mana Cost for Wands/Rods
   manaCost?: number;
 }
 
@@ -76,8 +68,8 @@ export interface LootDrop {
 
 export interface Monster {
   id: string;
-  guid?: string; // Unique Instance ID for React Keys/Animations
-  spawnTime?: number; // NEW: Timestamp when monster spawned for combat delay
+  guid?: string;
+  spawnTime?: number;
   name: string;
   level: number;
   image?: string;
@@ -93,7 +85,6 @@ export interface Monster {
   elements?: {
       [key in 'fire' | 'ice' | 'energy' | 'earth' | 'physical' | 'holy' | 'death']?: number;
   };
-  // Influenced System
   isInfluenced?: boolean;
   influencedType?: 'corrupted' | 'blessed' | 'enraged';
 }
@@ -107,15 +98,11 @@ export interface Quest {
   id: string;
   name: string;
   description: string;
-  
-  // Requirement
   targetMonsterId?: string;
   requiredKills?: number;
   requiredLevel?: number;
-  requiredItems?: { [itemId: string]: number }; // e.g. Gather 5 Wolf Paws
-  costGold?: number; // NEW: Cost to complete quest (e.g. Yasir)
-
-  // Reward
+  requiredItems?: { [itemId: string]: number };
+  costGold?: number;
   rewardNpcAccess?: NpcType;
   rewardItems?: { itemId: string, count: number }[];
   rewardGold?: number;
@@ -125,20 +112,16 @@ export interface Quest {
 export type TaskStatus = 'available' | 'active';
 
 export interface HuntingTask {
-  uuid: string; // Unique ID for the specific instance of the task
-  type: 'kill' | 'collect'; // Logic type
-  category: 'kill' | 'collect'; // Display category (matches type usually)
+  uuid: string;
+  type: 'kill' | 'collect';
+  category: 'kill' | 'collect';
   status: TaskStatus;
-  
-  targetId: string; // MonsterID for kill, ItemID for collect
-  targetName: string; // Helper
-  amountRequired: number; // Kills or Item Count
-  amountCurrent: number; // Only used for 'kill' tracking. 'collect' checks inventory dynamically.
-  
+  targetId: string;
+  targetName: string;
+  amountRequired: number;
+  amountCurrent: number;
   rewardXp: number;
   rewardGold: number;
-  
-  // Legacy fields for migration (optional)
   monsterId?: string; 
   killsRequired?: number; 
   killsCurrent?: number; 
@@ -152,15 +135,12 @@ export interface PlayerSettings {
   selectedManaPotionId: string;
   autoHealSpellThreshold: number;
   selectedHealSpellId: string;
-  
   autoAttackSpell: boolean;
-  selectedAttackSpellId: string; // Deprecated but kept for compatibility
-  attackSpellRotation: string[]; // NEW: List of spell IDs in priority order
-  
+  selectedAttackSpellId: string;
+  attackSpellRotation: string[];
   autoAttackRune: boolean;
   selectedRuneId: string;
-
-  autoMagicShield: boolean; // NEW: Toggle for Utamo Vita
+  autoMagicShield: boolean;
 }
 
 export type PreyBonusType = 'xp' | 'damage' | 'defense' | 'loot';
@@ -168,10 +148,10 @@ export type PreyBonusType = 'xp' | 'damage' | 'defense' | 'loot';
 export interface PreySlot {
     monsterId: string | null;
     bonusType: PreyBonusType;
-    bonusValue: number; // Percentage (e.g. 40 for 40%)
-    active: boolean;    // Is currently running?
-    startTime: number;  // When it was activated (0 if never activated)
-    duration: number;   // How long it lasts (ms) - usually 2h
+    bonusValue: number;
+    active: boolean;
+    startTime: number;
+    duration: number;
 }
 
 export type AscensionPerk = 'gold_boost' | 'damage_boost' | 'loot_boost' | 'boss_cd' | 'soul_gain' | 'xp_boost';
@@ -181,11 +161,10 @@ export interface Relic {
     name: string;
     description: string;
     bonusType: 'gold' | 'xp' | 'damage';
-    value: number; // Percentage
+    value: number;
     icon: string;
 }
 
-// Extra flags for GM debugging
 export interface GmFlags {
     forceRarity?: 'enraged' | 'blessed' | 'corrupted' | null;
 }
@@ -196,20 +175,20 @@ export interface OfflineReport {
     goldGained: number;
     killedMonsters: { name: string, count: number }[];
     lootObtained: { [itemId: string]: number };
-    leveledUp: number; // How many levels
+    leveledUp: number;
     skillTrained?: SkillType;
-    skillGain?: number; // Percent or levels
-    waste: number; // NEW: Total gold value of supplies used
+    skillGain?: number;
+    waste: number;
 }
 
 export interface Player {
   name: string;
-  isNameChosen?: boolean; // Flag to check if name was selected at level 2
-  isGm?: boolean; // GM Flag
-  gmExtra?: GmFlags; // New GM config container
+  isNameChosen?: boolean;
+  isGm?: boolean;
+  gmExtra?: GmFlags;
   level: number;
   vocation: Vocation;
-  promoted: boolean; // Promotion Flag
+  promoted: boolean;
   currentXp: number;
   maxXp: number;
   hp: number;
@@ -222,30 +201,30 @@ export interface Player {
   lastSaveTime: number;
   activeHuntId: string | null;
   activeHuntCount: number;
-  activeHuntStartTime: number; // Tracks when the hunt started
+  activeHuntStartTime: number; 
   activeTrainingSkill: SkillType | null;
-  activeTrainingStartTime: number; // New: Tracks when training started
+  activeTrainingStartTime: number;
   equipment: {
     [key in EquipmentSlot]?: Item;
   };
   inventory: {
     [itemId: string]: number;
   };
-  uniqueInventory: Item[]; // NEW: Stores items with modifiers/rarity
-  relics: Relic[]; // NEW: Permanent items
+  uniqueInventory: Item[];
+  relics: Relic[];
   depot: {
     [itemId: string]: number;
   };
-  uniqueDepot: Item[]; // NEW: Stores unique items in Depot
+  uniqueDepot: Item[];
   skills: {
     [key in SkillType]: Skill;
   };
   settings: PlayerSettings;
   quests: {
     [questId: string]: {
-      kills: number; // Tracks kills for this quest
-      itemsHandedIn?: boolean; // If item requirements met
-      completed: boolean; // If reward claimed
+      kills: number;
+      itemsHandedIn?: boolean;
+      completed: boolean;
     }
   };
   bossCooldowns: {
@@ -254,49 +233,37 @@ export interface Player {
   spellCooldowns: {
     [spellId: string]: number;
   };
-  magicShieldUntil: number; // NEW: Timestamp for Utamo Vita Expiration
+  healthPotionCooldown: number; // NEW: Individual Tracker
+  manaPotionCooldown: number;   // NEW: Individual Tracker
+  magicShieldUntil: number;
   runeCooldown: number; 
   purchasedSpells: string[];
   globalCooldown: number;
-  
-  // REMOVED: activeTask (Tasks now live in taskOptions with status='active')
-  activeTask?: HuntingTask | null; // Kept optional just for migration logic safety, but unused
-  
-  taskOptions: HuntingTask[]; // Fixed size 8: 0-3 (Kill), 4-7 (Collect)
-  taskNextFreeReroll: number; // Timestamp for next free task reroll
+  taskOptions: HuntingTask[];
+  taskNextFreeReroll: number;
   skippedLoot: string[];
   hasBlessing: boolean;
-  
-  // HAZARD SYSTEM
-  hazardLevel: number; // Max Unlocked Level (0 to 100)
-  activeHazardLevel: number; // Currently Selected Level
-
-  // STORE & CURRENCY
+  hazardLevel: number;
+  activeHazardLevel: number;
   tibiaCoins: number;
-  premiumUntil: number; // Timestamp
-  xpBoostUntil: number; // Timestamp
-
-  // PREY SYSTEM
+  premiumUntil: number;
+  xpBoostUntil: number;
   prey: {
       slots: PreySlot[];
-      nextFreeReroll: number; // Timestamp for Next Reset
-      rerollsAvailable: number; // 0 to 3
+      nextFreeReroll: number;
+      rerollsAvailable: number;
   };
-
-  // ASCENSION SYSTEM
   soulPoints: number;
   ascension: {
-      [key in AscensionPerk]: number; // Level of the perk
+      [key in AscensionPerk]: number;
   };
-
-  // TUTORIALS
   tutorials: {
       introCompleted: boolean;
       seenRareMob: boolean;
       seenRareItem: boolean;
-      seenAscension: boolean; // NEW: Flag for level 50 modal
-      seenLevel12: boolean;   // NEW: Flag for Rare Mob Unlock
-      seenMenus: string[]; // List of Menu IDs seen (e.g. ['hunt', 'shop'])
+      seenAscension: boolean;
+      seenLevel12: boolean;
+      seenMenus: string[];
   };
 }
 
@@ -305,7 +272,7 @@ export interface LogEntry {
   message: string;
   type: 'info' | 'combat' | 'loot' | 'danger' | 'gain' | 'skill' | 'magic';
   timestamp: number;
-  rarity?: Rarity; // For colored logs
+  rarity?: Rarity;
 }
 
 export interface HitSplat {
@@ -322,7 +289,7 @@ export interface Spell {
   minLevel: number;
   reqMagicLevel?: number;
   price: number;
-  type: 'attack' | 'heal' | 'support'; // Added 'support'
+  type: 'attack' | 'heal' | 'support';
   vocations: Vocation[];
   damageType?: DamageType;
   cooldown: number;

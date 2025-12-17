@@ -206,8 +206,9 @@ export const processGameTick = (
 
                 const rawDmgBase = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
                 let difficultyMult = 1;
-                // CHANGED: Reduced from 0.08 (8%) to 0.03 (3%) per extra mob
-                if (effectiveHuntCount > 1) difficultyMult = 1 + ((effectiveHuntCount - 1) * 0.03);
+                // REBALANCED: Reduced lure penalty from 0.03 (3%) to 0.015 (1.5%) per mob.
+                // This halves the difficulty ramp-up for luring.
+                if (effectiveHuntCount > 1) difficultyMult = 1 + ((effectiveHuntCount - 1) * 0.015);
                 
                 let totalIncomingRaw = Math.floor((rawDmgBase * effectiveHuntCount) * difficultyMult * hazardDmgMult);
                 

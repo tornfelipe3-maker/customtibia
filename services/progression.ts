@@ -61,6 +61,8 @@ const getSkillStageMultiplier = (level: number, skillType: SkillType, vocation: 
     return 1;                   // Real Tibia (Level 100+)
 };
 
+const isPremium = (player: Player) => player.premiumUntil > Date.now();
+
 /**
  * Processes skill progression with Stages logic per Vocation.
  * Supports multiple level-ups per tick if gain is massive.
@@ -75,8 +77,12 @@ export const processSkillTraining = (player: Player, skillType: SkillType, value
   // Apply Stage Multiplier based on Level AND Vocation logic
   const stageMultiplier = getSkillStageMultiplier(skill.level, skillType, p.vocation);
   
-  // Removed Ascension Skill Boost (User Request)
-  const finalAmount = rawAmount * stageMultiplier;
+  let finalAmount = rawAmount * stageMultiplier;
+
+  // --- PREMIUM BONUS (2x SKILL) ---
+  if (isPremium(p)) {
+      finalAmount *= 2;
+  }
 
   // Calculate points needed for current level
   let pointsNeeded = getPointsForNextSkill(skillType, skill.level, p.vocation);

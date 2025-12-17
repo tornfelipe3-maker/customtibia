@@ -9,8 +9,8 @@ const isPremium = (player: Player) => player.premiumUntil > Date.now();
 
 // Defense: How much of the Armor Value is effective per vocation
 const ARMOR_EFFICIENCY = {
-    [Vocation.KNIGHT]: 1.0,   // 100% Armor Effectiveness
-    [Vocation.PALADIN]: 0.75, // 75% Armor Effectiveness
+    [Vocation.KNIGHT]: 1.20,   // Buffed: 120% Armor Effectiveness (Tank Master)
+    [Vocation.PALADIN]: 0.85, // Buffed: 85% Armor Effectiveness
     [Vocation.MONK]: 0.60,
     [Vocation.SORCERER]: 0.40, // 40% (Squishy)
     [Vocation.DRUID]: 0.40,
@@ -22,7 +22,7 @@ const SHIELD_FACTOR = 0.05;
 
 // Damage Scaling Factors
 const MELEE_FACTOR = {
-    [Vocation.KNIGHT]: 0.12,  // High scaling with Weapon/Skill
+    [Vocation.KNIGHT]: 0.16,  // Buffed from 0.12 -> High scaling with Weapon/Skill
     [Vocation.PALADIN]: 0.06,
     [Vocation.MONK]: 0.10,
     [Vocation.SORCERER]: 0.03,
@@ -31,7 +31,7 @@ const MELEE_FACTOR = {
 };
 
 const DIST_FACTOR = {
-    [Vocation.PALADIN]: 0.14, // High scaling for Distance
+    [Vocation.PALADIN]: 0.17, // Buffed from 0.14 -> High scaling for Distance
     [Vocation.KNIGHT]: 0.04,
     [Vocation.SORCERER]: 0.04,
     [Vocation.DRUID]: 0.04,
@@ -57,7 +57,8 @@ export const calculatePlayerDamage = (player: Player): number => {
   let factor = 0.05;
   
   // Base Damage from Level (Ensures progression even without skills)
-  let baseLevelDmg = player.level * 0.2; 
+  // Buffed from 0.2 to 0.6 to help Early Game
+  let baseLevelDmg = player.level * 0.6; 
 
   let damage = 0;
 
@@ -66,7 +67,7 @@ export const calculatePlayerDamage = (player: Player): number => {
     skillLevel = getEffectiveSkill(player, SkillType.FIST);
     factor = player.vocation === Vocation.MONK ? 0.18 : 0.12; 
 
-    // Fist Formula: (Level * 0.2) + (Skill * 5 * Factor)
+    // Fist Formula: (Level * 0.6) + (Skill * 5 * Factor)
     // Strong early game, falls off without Monk class
     const baseDmg = baseLevelDmg + (skillLevel * 5 * factor); 
     const maxDmg = Math.floor(baseDmg);
@@ -107,7 +108,7 @@ export const calculatePlayerDamage = (player: Player): number => {
             ammoAtk = attackValue; 
         }
 
-        // Formula: (Level * 0.2) + (Skill * (AmmoAtk + WeaponAtk) * Factor)
+        // Formula: (Level * 0.6) + (Skill * (AmmoAtk + WeaponAtk) * Factor)
         const totalWeaponAtk = ammoAtk + (weapon.attack || 0);
         const maxHit = baseLevelDmg + (skillLevel * totalWeaponAtk * factor);
         
@@ -122,7 +123,7 @@ export const calculatePlayerDamage = (player: Player): number => {
         skillLevel = getEffectiveSkill(player, stat);
         factor = MELEE_FACTOR[player.vocation] || 0.04;
         
-        // Formula: (Level * 0.2) + (Skill * WeaponAtk * Factor)
+        // Formula: (Level * 0.6) + (Skill * WeaponAtk * Factor)
         const maxHit = baseLevelDmg + (skillLevel * attackValue * factor);
         
         const minDmg = Math.floor(maxHit * 0.6); // Melee is consistent

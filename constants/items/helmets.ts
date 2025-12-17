@@ -10,7 +10,8 @@ export const HELMETS_LIST: Item[] = [
   { id: 'brass_helmet', name: 'Brass Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 1, price: 400, sellPrice: 5, soldTo: [NpcType.TRADER, NpcType.RASHID], description: 'Capacete de latão (Tier 1).', image: `${IMG_BASE}Brass_Helmet.gif`, requiredLevel: 2 },
   
   // TIER 2 (Lvl 9-20) -> Item Lvl 8
-  { id: 'plate_helmet', name: 'Plate Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 2, price: 800, sellPrice: 15, soldTo: [NpcType.TRADER, NpcType.RASHID], description: 'Capacete de placas (Tier 2).', image: `${IMG_BASE}Plate_Helmet.gif`, requiredLevel: 8 },
+  // Using Steel Helmet sprite as "Plate" replacement (Silver Brass look)
+  { id: 'plate_helmet', name: 'Plate Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 2, price: 800, sellPrice: 15, soldTo: [NpcType.TRADER, NpcType.RASHID], description: 'Capacete de placas (Tier 2).', image: `${IMG_BASE}Steel_Helmet.gif`, requiredLevel: 8 },
 
   // TIER 3 (Lvl 20-40) -> Item Lvl 20
   { id: 'crown_helmet', name: 'Crown Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 3, price: 0, sellPrice: 2500, soldTo: [NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Elmo real (Tier 3).', image: `${IMG_BASE}Crown_Helmet.gif`, requiredLevel: 20 },

@@ -235,6 +235,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
   const rerollCost = player.level * 800; // Global Reroll Cost (8x individual)
   const individualRerollCost = player.level * 100; // New Individual Cost
   const isFreeReroll = (player.taskNextFreeReroll || 0) <= Date.now();
+  const totalFunds = player.gold + player.bankGold;
   
   const [timeUntilFree, setTimeUntilFree] = useState<string>("");
 
@@ -304,7 +305,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
                             key={task.uuid} 
                             task={task} 
                             playerInventory={player.inventory}
-                            playerGold={player.gold}
+                            playerGold={totalFunds}
                             rerollCost={individualRerollCost}
                             onClick={() => onSelectTask(task)}
                             onCancel={() => onCancelTask(task.uuid)}
@@ -327,7 +328,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
                             key={task.uuid} 
                             task={task} 
                             playerInventory={player.inventory}
-                            playerGold={player.gold}
+                            playerGold={totalFunds}
                             rerollCost={individualRerollCost}
                             onClick={() => onSelectTask(task)}
                             onCancel={() => onCancelTask(task.uuid)}
@@ -345,12 +346,12 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
        <div className="p-4 border-t border-[#333] bg-[#1a1a1a] flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative z-20">
           <button 
              onClick={onRerollTasks}
-             disabled={!isFreeReroll && player.gold < rerollCost}
+             disabled={!isFreeReroll && totalFunds < rerollCost}
              className={`
                 flex items-center justify-center gap-3 px-8 py-3 rounded-lg border shadow-lg transition-all w-full max-w-md
                 ${isFreeReroll 
                     ? 'bg-gradient-to-r from-green-800 to-green-700 hover:brightness-110 text-white border-green-600' 
-                    : (player.gold >= rerollCost 
+                    : (totalFunds >= rerollCost 
                         ? 'bg-[#2a2a2a] hover:bg-[#333] border-[#444] hover:border-gray-500 text-gray-300' 
                         : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed')
                 }

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport } from '../types';
-import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState } from '../services';
+import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp } from '../services';
 import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS } from '../constants';
 
 export const useGameActions = (
@@ -698,37 +698,107 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 const taskIndex = prev.taskOptions.findIndex(t => t.uuid === taskUuid);
                 if (taskIndex === -1) return prev;
-                
-                const task = prev.taskOptions[taskIndex];
-                let isComplete = false;
 
-                if (task.type === 'collect') {
-                    const currentQty = prev.inventory[task.targetId] || 0;
-                    if (currentQty >= task.amountRequired) isComplete = true;
+                const task = prev.taskOptions[taskIndex];
+                let isReady = false;
+
+                if (task.type === 'kill') {
+                    isReady = !!task.isComplete;
                 } else {
-                    if (task.killsCurrent >= task.killsRequired) isComplete = true;
+                    // Collect
+                    const amount = prev.inventory[task.targetId] || 0;
+                    isReady = amount >= task.amountRequired;
                 }
 
-                if (!isComplete) return prev;
+                if (!isReady) {
+                    addLog("Requirements not met.", 'danger');
+                    return prev;
+                }
 
-                let newInv = { ...prev.inventory };
+                // Apply Rewards
+                const newGold = prev.gold + task.rewardGold;
+                const newXp = prev.currentXp + task.rewardXp;
+                
+                // Deduct items if collect
+                const newInv = { ...prev.inventory };
                 if (task.type === 'collect') {
-                    newInv[task.targetId] -= task.amountRequired;
+                    newInv[task.targetId] = (newInv[task.targetId] || 0) - task.amountRequired;
                     if (newInv[task.targetId] <= 0) delete newInv[task.targetId];
                 }
 
+                // Regenerate Slot
                 const newOptions = [...prev.taskOptions];
-                newOptions[taskIndex] = generateSingleTask(prev.level, task.category);
+                // Preserve category (kill vs collect) for that slot
+                const category = task.category || task.type;
+                newOptions[taskIndex] = generateSingleTask(prev.level, category);
 
-                return { 
-                    ...prev, 
+                addLog(`Claimed: ${task.rewardGold}g, ${task.rewardXp}xp.`, 'gain');
+
+                // Level Up Check
+                const tempPlayer = { ...prev, gold: newGold, currentXp: newXp };
+                const lvlResult = checkForLevelUp(tempPlayer);
+                if (lvlResult.leveledUp) {
+                    addLog(`Level Up! ${lvlResult.player.level}. HP+${lvlResult.hpGain}, MP+${lvlResult.manaGain}.`, 'gain');
+                }
+
+                return {
+                    ...lvlResult.player,
                     inventory: newInv,
-                    gold: prev.gold + task.rewardGold, 
-                    currentXp: prev.currentXp + task.rewardXp, 
                     taskOptions: newOptions
                 };
             });
-            addLog("Task Reward Claimed! New contract posted.", 'gain');
+        },
+        claimQuest: (questId: string) => {
+            updatePlayerState(prev => {
+                const q = QUESTS.find(q => q.id === questId);
+                if (!q || prev.quests[questId]?.completed) return prev;
+                
+                // CHECK GOLD COST (FOR YASIR)
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+                
+                if (q.costGold) {
+                    const totalFunds = newGold + newBank;
+                    if (totalFunds < q.costGold) {
+                        addLog(`Need ${q.costGold} gold to complete this quest.`, 'danger');
+                        return prev;
+                    }
+                    
+                    let remaining = q.costGold;
+                    if (newGold >= remaining) {
+                        newGold -= remaining;
+                        remaining = 0;
+                    } else {
+                        remaining -= newGold;
+                        newGold = 0;
+                    }
+                    if (remaining > 0) newBank -= remaining;
+                }
+
+                newGold += (q.rewardGold || 0);
+                let newXp = prev.currentXp + (q.rewardExp || 0);
+                let newInv = { ...prev.inventory };
+                if (q.rewardItems) {
+                    q.rewardItems.forEach(ri => {
+                        newInv[ri.itemId] = (newInv[ri.itemId] || 0) + ri.count;
+                    });
+                }
+                
+                addLog(`Quest Completed: ${q.name}!`, 'gain');
+
+                // Level Up Check
+                const tempPlayer = { ...prev, gold: newGold, bankGold: newBank, currentXp: newXp };
+                const lvlResult = checkForLevelUp(tempPlayer);
+                if (lvlResult.leveledUp) {
+                    addLog(`Level Up! ${lvlResult.player.level}. HP+${lvlResult.hpGain}, MP+${lvlResult.manaGain}.`, 'gain');
+                }
+
+                return { 
+                    ...lvlResult.player, 
+                    inventory: newInv, 
+                    quests: { ...prev.quests, [questId]: { ...prev.quests[questId], completed: true } } 
+                };
+            });
         },
         ascend: () => {
             resetCombatState();
@@ -856,22 +926,6 @@ export const useGameActions = (
                 return { ...prev, gold: newGold, bankGold: newBank, prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } };
             });
             addLog("Prey slot rerolled.", 'info');
-        },
-        claimQuest: (questId: string) => {
-            updatePlayerState(prev => {
-                const q = QUESTS.find(q => q.id === questId);
-                if (!q || prev.quests[questId]?.completed) return prev;
-                let newGold = prev.gold + (q.rewardGold || 0);
-                let newXp = prev.currentXp + (q.rewardExp || 0);
-                let newInv = { ...prev.inventory };
-                if (q.rewardItems) {
-                    q.rewardItems.forEach(ri => {
-                        newInv[ri.itemId] = (newInv[ri.itemId] || 0) + ri.count;
-                    });
-                }
-                return { ...prev, gold: newGold, currentXp: newXp, inventory: newInv, quests: { ...prev.quests, [questId]: { ...prev.quests[questId], completed: true } } };
-            });
-            addLog("Quest Reward Claimed!", 'gain');
         },
         gmLevelUp: () => updatePlayerState(p => ({ ...p, level: p.level + 1 })),
         gmSkillUp: () => updatePlayerState(p => {

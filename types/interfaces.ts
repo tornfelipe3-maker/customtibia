@@ -113,6 +113,7 @@ export interface Quest {
   requiredKills?: number;
   requiredLevel?: number;
   requiredItems?: { [itemId: string]: number }; // e.g. Gather 5 Wolf Paws
+  costGold?: number; // NEW: Cost to complete quest (e.g. Yasir)
 
   // Reward
   rewardNpcAccess?: NpcType;

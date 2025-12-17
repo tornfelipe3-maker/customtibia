@@ -269,6 +269,8 @@ export const processGameTick = (
                         if (reflectedDmg > 0) {
                             monsterHp -= reflectedDmg;
                             hit(reflectedDmg, 'damage', 'monster');
+                            // Visual feedback for Reflect
+                            if(Math.random() > 0.8) log('Damage reflected!', 'magic');
                         }
                     }
 
@@ -361,7 +363,7 @@ export const processGameTick = (
             }
 
             // --- 2. PLAYER ATTACK PHASE ---
-            let totalDamage = calculatePlayerDamage(p);
+            let autoAttackDamage = calculatePlayerDamage(p);
             let hasSufficientMana = true;
 
             // Check Mana Cost for Wand/Rod Attacks
@@ -370,7 +372,7 @@ export const processGameTick = (
                 if (p.mana >= weapon.manaCost) {
                     p.mana -= weapon.manaCost;
                 } else {
-                    totalDamage = 0; // Cannot attack
+                    autoAttackDamage = 0; // Cannot attack
                     hasSufficientMana = false;
                     hit('No Mana', 'miss', 'player');
                 }
@@ -379,19 +381,19 @@ export const processGameTick = (
             if (hasSufficientMana) {
                 if ((monster as Boss).cooldownSeconds) {
                     const bossBonus = getMod(p, 'bossSlayer');
-                    if (bossBonus > 0) totalDamage = Math.floor(totalDamage * (1 + (bossBonus / 100)));
+                    if (bossBonus > 0) autoAttackDamage = Math.floor(autoAttackDamage * (1 + (bossBonus / 100)));
                 }
 
                 const critChance = getMod(p, 'critChance');
-                if (totalDamage > 0 && Math.random() < (critChance / 100)) {
-                    totalDamage = Math.floor(totalDamage * 1.5);
+                if (autoAttackDamage > 0 && Math.random() < (critChance / 100)) {
+                    autoAttackDamage = Math.floor(autoAttackDamage * 1.5);
                     hit('CRIT!', 'speech', 'player');
                 }
 
                 const attackSpeed = getMod(p, 'attackSpeed');
-                if (totalDamage > 0 && Math.random() < (attackSpeed / 100)) {
-                    const extraDmg = Math.floor(totalDamage * 0.7); 
-                    totalDamage += extraDmg;
+                if (autoAttackDamage > 0 && Math.random() < (attackSpeed / 100)) {
+                    const extraDmg = Math.floor(autoAttackDamage * 0.7); 
+                    autoAttackDamage += extraDmg;
                     hit('Double Hit!', 'speech', 'player');
                 }
 
@@ -399,19 +401,19 @@ export const processGameTick = (
                 const executionerThreshold = monster.maxHp * effectiveHuntCount * 0.20; 
                 if (monsterHp < executionerThreshold && executionerChance > 0) {
                     if (Math.random() < (executionerChance / 100)) {
-                        totalDamage = monsterHp; // Instant Kill
+                        autoAttackDamage = monsterHp; // Instant Kill
                         hit('EXECUTED!', 'speech', 'player');
                         log('Executioner triggered! Instant kill.', 'danger');
                     }
                 }
 
                 if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
-                    totalDamage = 0;
+                    autoAttackDamage = 0;
                     hit('DODGED', 'speech', 'monster');
                 }
 
-                if (totalDamage > 0) {
-                    if (Math.random() > 0.7) log(`You hit ${monster.name} for ${totalDamage} hitpoints.`, 'combat');
+                if (autoAttackDamage > 0) {
+                    if (Math.random() > 0.7) log(`You hit ${monster.name} for ${autoAttackDamage} hitpoints.`, 'combat');
                     
                     // ICE RAPIER MECHANIC
                     if (p.equipment[EquipmentSlot.HAND_RIGHT]?.id === 'ice_rapier') {
@@ -428,7 +430,7 @@ export const processGameTick = (
 
                 if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
                     const ammo = p.equipment[EquipmentSlot.AMMO];
-                    if (ammo && totalDamage > 0) {
+                    if (ammo && autoAttackDamage > 0) {
                         if (ammo.count && ammo.count > 0) {
                             if (ammo.ammoType === 'arrow' || ammo.ammoType === 'bolt') {
                                 stats.waste += ammo.price || 0;
@@ -445,6 +447,13 @@ export const processGameTick = (
                 }
             }
 
+            // Apply Auto Attack Damage
+            if (autoAttackDamage > 0) {
+                monsterHp -= autoAttackDamage;
+                hit(autoAttackDamage, 'damage', 'monster');
+            }
+
+            // --- SPELL/RUNE ATTACK PHASE (Independent) ---
             if (p.settings.autoAttackSpell && p.globalCooldown <= now) {
                 const rotation = p.settings.attackSpellRotation || [];
                 if (rotation.length === 0 && p.settings.selectedAttackSpellId) {
@@ -463,17 +472,16 @@ export const processGameTick = (
                         const spellDmg = calculateSpellDamage(p, spell);
                         
                         // --- AOE vs SINGLE TARGET LOGIC ---
-                        // AoE spells hit ALL monsters (dmg * huntCount)
-                        // Single target spells hit ONLY ONE (dmg * 1)
-                        // Use effectiveHuntCount (1 if rare)
                         const finalSpellDmg = spell.isAoe ? spellDmg * effectiveHuntCount : spellDmg; 
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
                              hit('DODGED', 'speech', 'monster');
                         } else {
-                            totalDamage += finalSpellDmg;
+                            // Apply Spell Damage separately
+                            monsterHp -= finalSpellDmg;
+                            hit(finalSpellDmg, 'damage', 'monster');
+                            
                             hit(spellName, 'speech', 'player');
-                            // Only log details occasionally to avoid spam
                             if (Math.random() > 0.7) {
                                 log(`You hit ${monster.name} for ${finalSpellDmg} hitpoints. (Spell: ${spellName})`, 'combat');
                             }
@@ -508,7 +516,10 @@ export const processGameTick = (
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
                              hit('DODGED', 'speech', 'monster');
                         } else {
-                            totalDamage += finalRuneDmg;
+                            // Apply Rune Damage separately
+                            monsterHp -= finalRuneDmg;
+                            hit(finalRuneDmg, 'damage', 'monster');
+
                             if (Math.random() > 0.7) {
                                 log(`You hit ${monster.name} for ${finalRuneDmg} hitpoints. (Rune: ${runeItem.name})`, 'combat');
                             }
@@ -522,9 +533,6 @@ export const processGameTick = (
                     }
                 }
             }
-
-            monsterHp -= totalDamage;
-            hit(totalDamage, 'damage', 'monster');
 
             // --- LOOT PHASE & KILL COUNT ---
             if (monsterHp <= 0) {
@@ -676,12 +684,22 @@ export const processGameTick = (
                     }
                 });
 
-                const relevantQuests = QUESTS.filter(q => q.targetMonsterId === monster.id);
+                // --- QUEST PROGRESSION (UPDATED) ---
+                const relevantQuests = QUESTS.filter(q => 
+                    // Matches specific monster ID
+                    q.targetMonsterId === monster.id || 
+                    // Matches ANY_RARE + monster is influenced
+                    (q.targetMonsterId === 'ANY_RARE' && monster.isInfluenced)
+                );
+
                 relevantQuests.forEach(q => {
                     if (!p.quests[q.id]) p.quests[q.id] = { kills: 0, completed: false };
                     if (!p.quests[q.id].completed) {
                         if (q.requiredKills && p.quests[q.id].kills < q.requiredKills) {
-                            p.quests[q.id].kills += effectiveHuntCount;
+                            // Rare Mobs are always 1x (no luring), but standard logic supports >1
+                            const killsToAdd = (q.targetMonsterId === 'ANY_RARE') ? 1 : effectiveHuntCount;
+                            p.quests[q.id].kills += killsToAdd;
+                            
                             if (p.quests[q.id].kills >= q.requiredKills) {
                                 p.quests[q.id].kills = q.requiredKills;
                                 log(`Quest Objective Complete: ${q.name}!`, 'gain');

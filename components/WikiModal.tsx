@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { BookOpen, X, Sword, Shield, Star, Zap, RefreshCw, Ghost, Target, Gem, Crown, DollarSign, Gift, Clock } from 'lucide-react';
+import { BookOpen, X, Sword, Shield, Star, Zap, RefreshCw, Ghost, Target, Gem, Crown, DollarSign, Gift, Clock, Footprints } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface WikiModalProps {
@@ -58,6 +58,18 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                 <div className="bg-blue-900/20 border border-blue-800/50 p-3 rounded text-xs text-blue-200">
                     {t('wiki_basics_skills_tip')}
                 </div>
+            </section>
+
+            <section>
+              <h3 className="text-red-400 font-bold text-lg mb-2 flex items-center gap-2">
+                <Footprints size={18} /> {t('wiki_lure_title')}
+              </h3>
+              <p className="text-sm text-gray-300 mb-2">
+                {t('wiki_lure_desc')}
+              </p>
+              <div className="bg-red-900/20 border border-red-800/50 p-3 rounded text-xs text-red-200">
+                 {t('wiki_lure_example')}
+              </div>
             </section>
           </div>
         );

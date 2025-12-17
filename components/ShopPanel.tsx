@@ -2,17 +2,18 @@
 import React, { useState, useMemo } from 'react';
 import { SHOP_ITEMS, QUESTS } from '../constants';
 import { Item, Player, NpcType, EquipmentSlot, SkillType } from '../types';
-import { Lock, Coins, Search, LayoutGrid, Sword, Crosshair, Sparkles, Scroll, ArrowUp, Shield, Shirt, Footprints, Gem, FlaskConical, Package, HardHat, Columns, ChevronsUp, Layers, ShieldAlert } from 'lucide-react';
+import { Lock, Coins, Search, LayoutGrid, Sword, Crosshair, Sparkles, Scroll, ArrowUp, Shield, Shirt, Footprints, Gem, FlaskConical, Package, HardHat, Columns, ChevronsUp, Layers, ShieldAlert, Landmark } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 import { ShopItem } from './ShopItem';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface ShopPanelProps {
   playerGold: number;
+  playerBankGold?: number; // Added
   playerLevel: number;
   playerEquipment: Player['equipment'];
   playerInventory: Player['inventory'];
-  playerUniqueInventory: Player['uniqueInventory']; // Added prop
+  playerUniqueInventory: Player['uniqueInventory'];
   playerQuests: Player['quests'];
   skippedLoot: string[];
   playerHasBlessing?: boolean;
@@ -25,17 +26,23 @@ interface ShopPanelProps {
 
 type ShopCategory = 'all' | 'melee' | 'distance' | 'magic_weapon' | 'ammunition' | 'armor' | 'helmet' | 'legs' | 'boots' | 'shield' | 'jewelry' | 'potion' | 'loot' | 'rune';
 
-export const ShopPanel: React.FC<ShopPanelProps> = ({ playerGold, playerLevel, playerInventory, playerUniqueInventory, playerQuests, skippedLoot, playerHasBlessing, isGm, onBuyItem, onSellItem, onToggleSkippedLoot, onBuyBlessing }) => {
+export const ShopPanel: React.FC<ShopPanelProps> = ({ 
+    playerGold, playerBankGold = 0, playerLevel, playerInventory, playerUniqueInventory, 
+    playerQuests, skippedLoot, playerHasBlessing, isGm, 
+    onBuyItem, onSellItem, onToggleSkippedLoot, onBuyBlessing 
+}) => {
   const { t } = useLanguage();
   const [activeNpc, setActiveNpc] = useState<NpcType>(NpcType.TRADER);
   const [mode, setMode] = useState<'buy' | 'sell'>('buy');
   const [category, setCategory] = useState<ShopCategory>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
-  const [isMaxMode, setIsMaxMode] = useState(false); // Toggle for MAX mode
+  const [isMaxMode, setIsMaxMode] = useState(false); 
   
   const [hoverItem, setHoverItem] = useState<Item | null>(null);
   const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
+
+  const totalFunds = playerGold + playerBankGold;
 
   const CATEGORIES: { id: ShopCategory, label: string, icon: React.ReactNode }[] = [
     { id: 'all', label: t('shop_cat_all'), icon: <LayoutGrid size={14} /> },
@@ -59,14 +66,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({ playerGold, playerLevel, p
 
     if (npc === NpcType.TRADER) return { locked: false, message: '' };
     
-    // Yasir Logic
-    if (npc === NpcType.YASIR) {
-        if (playerLevel < 50) {
-            return { locked: true, message: 'Level 50 Required' };
-        }
-        return { locked: false, message: '' };
-    }
-
+    // Check Quest for NPC Access
     const quest = QUESTS.find(q => q.rewardNpcAccess === npc);
     if (!quest) return { locked: false, message: '' };
 
@@ -219,9 +219,15 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({ playerGold, playerLevel, p
                 </button>
             </div>
             
-            <div className="text-yellow-500 font-bold text-sm flex items-center bg-[#111] px-3 py-1 border border-[#333] rounded">
-                <Coins size={14} className="mr-1.5"/>
-                {playerGold.toLocaleString()} gp
+            <div className="flex items-center gap-2">
+                <div className="text-yellow-500 font-bold text-xs flex items-center bg-[#111] px-2 py-1 border border-[#333] rounded" title="Inventory Gold">
+                    <Coins size={12} className="mr-1"/>
+                    {playerGold.toLocaleString()}
+                </div>
+                <div className="text-blue-400 font-bold text-xs flex items-center bg-[#111] px-2 py-1 border border-[#333] rounded" title="Bank Balance">
+                    <Landmark size={12} className="mr-1"/>
+                    {playerBankGold.toLocaleString()}
+                </div>
             </div>
          </div>
          
@@ -338,7 +344,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({ playerGold, playerLevel, p
                                     mode={'sell'} // Always sell
                                     quantity={1} // Unique items sold 1 by 1
                                     isMaxMode={false}
-                                    playerGold={playerGold}
+                                    playerGold={totalFunds} // Check against total funds for buying logic
                                     ownedQty={1}
                                     isSkipped={false}
                                     onBuy={() => {}}
@@ -356,7 +362,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({ playerGold, playerLevel, p
                                     mode={mode}
                                     quantity={quantity}
                                     isMaxMode={isMaxMode}
-                                    playerGold={playerGold}
+                                    playerGold={totalFunds} // Check against total funds
                                     ownedQty={getOwnedQuantity(item)}
                                     isSkipped={isSkipped(item.id)}
                                     onBuy={onBuyItem}

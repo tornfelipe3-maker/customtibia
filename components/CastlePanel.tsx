@@ -16,6 +16,7 @@ export const CastlePanel: React.FC<CastlePanelProps> = ({ player, onPromote, onB
   
   const canBePromoted = player.level >= PROMOTION_LEVEL && player.vocation !== Vocation.NONE;
   const isPromoted = player.promoted;
+  const totalFunds = player.gold + player.bankGold;
 
   // Blessing Logic
   const getBlessingCost = (level: number) => {
@@ -103,17 +104,17 @@ export const CastlePanel: React.FC<CastlePanelProps> = ({ player, onPromote, onB
                         <div className="space-y-2">
                             <div className="flex justify-between items-center bg-[#111] p-2 rounded border border-[#333] text-xs">
                                 <span className="text-gray-400">Cost</span>
-                                <span className={`font-bold ${player.gold >= PROMOTION_COST ? 'text-yellow-500' : 'text-red-500'}`}>
+                                <span className={`font-bold ${totalFunds >= PROMOTION_COST ? 'text-yellow-500' : 'text-red-500'}`}>
                                     {PROMOTION_COST.toLocaleString()} gp
                                 </span>
                             </div>
                             
                             <button 
                                 onClick={onPromote}
-                                disabled={!canBePromoted || player.gold < PROMOTION_COST}
+                                disabled={!canBePromoted || totalFunds < PROMOTION_COST}
                                 className={`
                                     w-full py-2.5 font-bold text-xs rounded shadow-md border transition-all flex items-center justify-center gap-2
-                                    ${!canBePromoted || player.gold < PROMOTION_COST
+                                    ${!canBePromoted || totalFunds < PROMOTION_COST
                                         ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
                                         : 'bg-yellow-900/30 hover:bg-yellow-900/50 border-yellow-700 text-yellow-200 hover:shadow-yellow-900/20'
                                     }
@@ -155,19 +156,19 @@ export const CastlePanel: React.FC<CastlePanelProps> = ({ player, onPromote, onB
                     <div className="space-y-2">
                         <div className="flex justify-between items-center bg-[#111] p-2 rounded border border-[#333] text-xs">
                             <span className="text-gray-400">Cost (Lvl {player.level})</span>
-                            <span className={`font-bold ${player.gold >= getBlessingCost(player.level) ? 'text-yellow-500' : 'text-red-500'}`}>
+                            <span className={`font-bold ${totalFunds >= getBlessingCost(player.level) ? 'text-yellow-500' : 'text-red-500'}`}>
                                 {getBlessingCost(player.level).toLocaleString()} gp
                             </span>
                         </div>
 
                         <button 
                             onClick={onBuyBlessing}
-                            disabled={player.hasBlessing || player.gold < getBlessingCost(player.level)}
+                            disabled={player.hasBlessing || totalFunds < getBlessingCost(player.level)}
                             className={`
                                 w-full py-2.5 font-bold text-xs rounded shadow-md border transition-all
                                 ${player.hasBlessing 
                                     ? 'bg-green-900/20 border-green-800 text-green-700 cursor-not-allowed' 
-                                    : player.gold >= getBlessingCost(player.level)
+                                    : totalFunds >= getBlessingCost(player.level)
                                         ? 'bg-yellow-900/30 hover:bg-yellow-900/50 border-yellow-700 text-yellow-200 hover:shadow-yellow-900/20'
                                         : 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
                                 }

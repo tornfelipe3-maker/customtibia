@@ -12,6 +12,7 @@ interface SpellPanelProps {
 
 export const SpellPanel: React.FC<SpellPanelProps> = ({ player, onBuySpell }) => {
   const playerMagicLevel = getEffectiveSkill(player, SkillType.MAGIC);
+  const totalFunds = player.gold + player.bankGold;
 
   // Filter spells for player vocation
   const relevantSpells = SPELLS.filter(spell => 
@@ -43,7 +44,7 @@ export const SpellPanel: React.FC<SpellPanelProps> = ({ player, onBuySpell }) =>
                 <div className="grid grid-cols-1 gap-2">
                     {relevantSpells.map(spell => {
                         const isPurchased = player.purchasedSpells.includes(spell.id);
-                        const canAfford = player.gold >= spell.price;
+                        const canAfford = totalFunds >= spell.price;
                         const levelReqMet = player.level >= spell.minLevel;
                         const mlReqMet = playerMagicLevel >= (spell.reqMagicLevel || 0);
                         const isLocked = !levelReqMet || !mlReqMet;

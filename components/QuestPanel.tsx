@@ -2,7 +2,7 @@
 import React from 'react';
 import { QUESTS, SHOP_ITEMS } from '../constants';
 import { Player, Quest } from '../types';
-import { Scroll, CheckCircle, Lock, Gift, Shield, Sword, Coins, Star } from 'lucide-react';
+import { Scroll, CheckCircle, Lock, Gift, Shield, Sword, Coins, Star, Skull } from 'lucide-react';
 
 interface QuestPanelProps {
   playerQuests: Player['quests'];
@@ -17,9 +17,12 @@ export const QuestPanel: React.FC<QuestPanelProps> = ({ playerQuests, onClaimQue
       const getStatusScore = (q: Quest) => {
           const prog = playerQuests[q.id] || { kills: 0, completed: false };
           const isCompleted = prog.completed;
-          const isReady = !isCompleted && 
-                          (q.requiredKills ? prog.kills >= q.requiredKills : false) &&
-                          (q.requiredLevel ? playerLevel >= q.requiredLevel : true);
+          
+          const killsDone = q.requiredKills ? prog.kills >= q.requiredKills : true;
+          const levelDone = q.requiredLevel ? playerLevel >= q.requiredLevel : true;
+          // Gold cost check is done at click time, treated as ready if other conditions met
+          
+          const isReady = !isCompleted && killsDone && levelDone;
           
           if (isReady) return 0; // Top priority
           if (!isCompleted) return 1; // In progress
@@ -46,7 +49,9 @@ export const QuestPanel: React.FC<QuestPanelProps> = ({ playerQuests, onClaimQue
             // Check requirements
             const killsDone = quest.requiredKills ? playerProgress.kills >= quest.requiredKills : true;
             const levelDone = quest.requiredLevel ? playerLevel >= quest.requiredLevel : true;
-            const canClaim = !playerProgress.completed && killsDone && levelDone;
+            
+            const isCompleted = playerProgress.completed;
+            const canClaim = !isCompleted && killsDone && levelDone;
 
             const progressPercent = quest.requiredKills 
                 ? Math.min(100, (playerProgress.kills / quest.requiredKills) * 100) 
@@ -56,14 +61,14 @@ export const QuestPanel: React.FC<QuestPanelProps> = ({ playerQuests, onClaimQue
               <div 
                 key={quest.id} 
                 className={`border rounded-lg p-4 transition-all
-                    ${playerProgress.completed ? 'bg-gray-800/50 border-gray-700 opacity-70' : 
+                    ${isCompleted ? 'bg-gray-800/50 border-gray-700 opacity-70' : 
                       canClaim ? 'bg-green-900/10 border-green-600 shadow-[0_0_10px_rgba(0,255,0,0.1)]' : 
                       'bg-gray-700/50 border-gray-600'}
                 `}
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className={`font-bold text-base ${canClaim ? 'text-green-400' : 'text-gray-200'}`}>{quest.name}</h3>
-                  {playerProgress.completed ? (
+                  {isCompleted ? (
                     <span className="text-gray-500 flex items-center text-xs font-bold bg-black/30 px-2 py-1 rounded border border-gray-700">
                       <CheckCircle size={12} className="mr-1" /> Done
                     </span>
@@ -84,21 +89,36 @@ export const QuestPanel: React.FC<QuestPanelProps> = ({ playerQuests, onClaimQue
                 <div className="space-y-1 mb-3">
                    {quest.requiredKills && (
                        <div className="flex justify-between text-xs font-mono text-gray-300">
-                          <span>Target: {quest.targetMonsterId} ({playerProgress.kills}/{quest.requiredKills})</span>
+                          <span className="flex items-center gap-1">
+                              {quest.targetMonsterId === 'ANY_RARE' 
+                                ? <><Skull size={10} className="text-purple-400"/> Any Rare Mob</>
+                                : <>Target: {quest.targetMonsterId}</>
+                              }
+                          </span>
+                          <span>({playerProgress.kills}/{quest.requiredKills})</span>
                        </div>
                    )}
                    {quest.requiredLevel && (
                        <div className="flex justify-between text-xs font-mono text-gray-300">
-                          <span>Required Level: {quest.requiredLevel} (Current: {playerLevel})</span>
+                          <span>Required Level: {quest.requiredLevel}</span>
+                          <span className={levelDone ? 'text-green-400' : 'text-gray-500'}>{playerLevel}</span>
+                       </div>
+                   )}
+                   {quest.costGold && !isCompleted && (
+                       <div className="flex justify-between text-xs font-mono text-yellow-500 bg-yellow-900/10 px-2 py-1 rounded border border-yellow-900/30">
+                           <span>Required Gold:</span>
+                           <span>{quest.costGold.toLocaleString()} gp</span>
                        </div>
                    )}
                    
-                   <div className="w-full bg-gray-800 rounded-full h-2 border border-gray-600 overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-500 ${canClaim ? 'bg-green-500' : 'bg-blue-500'}`} 
-                        style={{ width: `${progressPercent}%` }}
-                      ></div>
-                   </div>
+                   {!isCompleted && !quest.costGold && (
+                        <div className="w-full bg-gray-800 rounded-full h-2 border border-gray-600 overflow-hidden">
+                            <div 
+                                className={`h-full transition-all duration-500 ${canClaim ? 'bg-green-500' : 'bg-blue-500'}`} 
+                                style={{ width: `${progressPercent}%` }}
+                            ></div>
+                        </div>
+                   )}
                 </div>
                 
                 {/* Rewards Preview */}
@@ -137,7 +157,8 @@ export const QuestPanel: React.FC<QuestPanelProps> = ({ playerQuests, onClaimQue
                         onClick={() => onClaimQuest(quest.id)}
                         className="w-full mt-3 py-2 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded border border-green-500 shadow-lg flex items-center justify-center gap-2"
                     >
-                        <CheckCircle size={14} /> CLAIM REWARD
+                        <CheckCircle size={14} /> 
+                        {quest.costGold ? `PAY ${quest.costGold/1000}k & COMPLETE` : 'CLAIM REWARD'}
                     </button>
                 )}
               </div>

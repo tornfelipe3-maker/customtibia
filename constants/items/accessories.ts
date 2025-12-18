@@ -4,7 +4,7 @@ import { IMG_BASE } from '../config';
 
 export const ACCESSORIES_LIST: Item[] = [
   // ==========================================
-  // AMULETS (NECK) - EXATAMENTE 1 POR TIER (ARMOR 1-8)
+  // AMULETS (NECK) - 1 POR TIER (ARMOR 1-8)
   // ==========================================
   { id: 'scarf', name: 'Scarf', type: 'equipment', slot: EquipmentSlot.NECK, armor: 1, price: 15, sellPrice: 5, soldTo: [NpcType.TRADER], description: 'Tier 1 Amulet.', image: `${IMG_BASE}Scarf.gif` },
   { id: 'silver_amulet', name: 'Silver Amulet', type: 'equipment', slot: EquipmentSlot.NECK, armor: 2, price: 100, sellPrice: 50, soldTo: [NpcType.TRADER], description: 'Tier 2 Amulet.', image: `${IMG_BASE}Silver_Amulet.gif` },
@@ -16,7 +16,7 @@ export const ACCESSORIES_LIST: Item[] = [
   { id: 'falcon_amulet', name: 'Falcon Amulet', type: 'equipment', slot: EquipmentSlot.NECK, armor: 8, price: 0, sellPrice: 100000, soldTo: [NpcType.RASHID], description: 'Tier 8 Amulet.', image: `${IMG_BASE}Falcon_Amulet.gif` },
 
   // ==========================================
-  // RINGS - SISTEMA DE DEFESA (SKILL SCALING)
+  // RINGS - DEFENSE & UTILITY
   // ==========================================
   { id: 'life_ring', name: 'Life Ring', type: 'equipment', slot: EquipmentSlot.RING, armor: 0, defense: 2, price: 900, sellPrice: 100, soldTo: [NpcType.BLUE_DJINN, NpcType.TRADER], description: 'Anel da Vida (Def 2).', image: `${IMG_BASE}Life_Ring.gif` },
   { id: 'time_ring', name: 'Time Ring', type: 'equipment', slot: EquipmentSlot.RING, armor: 0, defense: 3, price: 2000, sellPrice: 300, soldTo: [NpcType.BLUE_DJINN], description: 'Anel do Tempo (Def 3).', image: `${IMG_BASE}Time_Ring.gif` },

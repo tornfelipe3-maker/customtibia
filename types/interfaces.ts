@@ -233,12 +233,14 @@ export interface Player {
   spellCooldowns: {
     [spellId: string]: number;
   };
-  healthPotionCooldown: number; // NEW: Individual Tracker
-  manaPotionCooldown: number;   // NEW: Individual Tracker
+  healthPotionCooldown: number;
+  manaPotionCooldown: number;
   magicShieldUntil: number;
   runeCooldown: number; 
   purchasedSpells: string[];
   globalCooldown: number;
+  attackCooldown: number;
+  healingCooldown: number;
   taskOptions: HuntingTask[];
   taskNextFreeReroll: number;
   skippedLoot: string[];

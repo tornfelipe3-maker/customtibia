@@ -10,8 +10,8 @@ export const MONSTERS: Monster[] = [
     { 
         id: 'rat', name: 'Rat', level: 1, hp: 35, maxHp: 35, exp: 5, minGold: 3, maxGold: 8, damageMin: 0, damageMax: 3, attackSpeedMs: 2000, image: `${IMG_BASE}Rat.gif`, 
         lootTable: [
-            { itemId: 'cheese', chance: 0.5, maxAmount: 2 },        // Increased chance & qty
-            { itemId: 'rat_tail', chance: 0.35, maxAmount: 1 },     // Easier to get product
+            { itemId: 'cheese', chance: 0.5, maxAmount: 2 },        
+            { itemId: 'rat_tail', chance: 0.35, maxAmount: 1 },     
             { itemId: 'coat', chance: 0.08, maxAmount: 1 },     
             { itemId: 'leather_boots', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'wooden_shield', chance: 0.06, maxAmount: 1 }, 
@@ -23,12 +23,12 @@ export const MONSTERS: Monster[] = [
         id: 'troll', name: 'Troll', level: 5, hp: 90, maxHp: 90, exp: 25, minGold: 8, maxGold: 18, damageMin: 5, damageMax: 12, attackSpeedMs: 2000, image: `${IMG_BASE}Troll.gif`,
         lootTable: [
             { itemId: 'meat', chance: 0.4, maxAmount: 2 },
-            { itemId: 'troll_hair', chance: 0.30, maxAmount: 1 },   // Good early gold source
-            { itemId: 'brass_helmet', chance: 0.05, maxAmount: 1 }, // Easier upgrades
+            { itemId: 'troll_hair', chance: 0.30, maxAmount: 1 },   
+            { itemId: 'brass_helmet', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'brass_armor', chance: 0.02, maxAmount: 1 },  
             { itemId: 'brass_legs', chance: 0.02, maxAmount: 1 },   
             { itemId: 'hand_axe', chance: 0.10, maxAmount: 1 }, 
-            { itemId: 'spear', chance: 0.25, maxAmount: 2 },        // Paladin ammo sustain
+            { itemId: 'spear', chance: 0.25, maxAmount: 2 },        
             { itemId: 'silver_amulet', chance: 0.01, maxAmount: 1 }
         ] 
     },
@@ -41,7 +41,7 @@ export const MONSTERS: Monster[] = [
         id: 'wolf', name: 'Wolf', level: 9, hp: 120, maxHp: 120, exp: 40, minGold: 10, maxGold: 20, damageMin: 8, damageMax: 20, attackSpeedMs: 1800, image: `${IMG_BASE}Wolf.gif`,
         lootTable: [
             { itemId: 'meat', chance: 0.5, maxAmount: 3 },
-            { itemId: 'wolf_paw', chance: 0.25, maxAmount: 1 },     // Valuable sellable
+            { itemId: 'wolf_paw', chance: 0.25, maxAmount: 1 },     
             { itemId: 'plate_shield', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'short_sword', chance: 0.08, maxAmount: 1 }
         ] 
@@ -60,7 +60,7 @@ export const MONSTERS: Monster[] = [
     { 
         id: 'orc', name: 'Orc', level: 15, hp: 220, maxHp: 220, exp: 90, minGold: 20, maxGold: 40, damageMin: 20, damageMax: 40, attackSpeedMs: 2000, image: `${IMG_BASE}Orc.gif`, 
         lootTable: [
-            { itemId: 'orc_tooth', chance: 0.30, maxAmount: 1 },    // Consistent profit
+            { itemId: 'orc_tooth', chance: 0.30, maxAmount: 1 },    
             { itemId: 'plate_legs', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'short_sword', chance: 0.10, maxAmount: 1 }, 
             { itemId: 'health_potion', chance: 0.15, maxAmount: 1 } 
@@ -69,7 +69,6 @@ export const MONSTERS: Monster[] = [
 
     // ========================================================================
     // TIER 3: LEVEL 20-40
-    // Set (Crown). Intro to Waste (Potions needed).
     // ========================================================================
     { 
         id: 'ghoul', name: 'Ghoul', level: 20, hp: 350, maxHp: 350, exp: 160, minGold: 35, maxGold: 80, damageMin: 30, damageMax: 60, attackSpeedMs: 1800, image: `${IMG_BASE}Ghoul.gif`, 
@@ -106,17 +105,14 @@ export const MONSTERS: Monster[] = [
             { itemId: 'cyclops_toe', chance: 0.50, maxAmount: 1 }, 
             { itemId: 'meat', chance: 0.6, maxAmount: 4 },
             { itemId: 'ham', chance: 0.3, maxAmount: 2 },
-            { itemId: 'club', chance: 0.25, maxAmount: 1 },
             { itemId: 'short_sword', chance: 0.15, maxAmount: 1 },
             { itemId: 'plate_shield', chance: 0.12, maxAmount: 1 },
-            { itemId: 'clerical_mace', chance: 0.02, maxAmount: 1 }, // Rare but accessible
             { itemId: 'health_potion', chance: 0.10, maxAmount: 1 }
         ] 
     },
 
     // ========================================================================
     // TIER 4: LEVEL 40-60
-    // Dragon Tier. Buffed Green Dragon Leather & Shields.
     // ========================================================================
     { 
         id: 'dragon_hatchling', name: 'Dragon Hatchling', level: 40, hp: 1200, maxHp: 1200, exp: 700, minGold: 90, maxGold: 180, damageMin: 90, damageMax: 160, attackSpeedMs: 1800, image: `${IMG_BASE}Dragon_Hatchling.gif`,
@@ -164,7 +160,6 @@ export const MONSTERS: Monster[] = [
 
     // ========================================================================
     // TIER 5: LEVEL 100-200
-    // Gold sinks. Players need to loot Gems/Products to profit.
     // ========================================================================
     { 
         id: 'hero', name: 'Hero', level: 100, hp: 4500, maxHp: 4500, exp: 3500, minGold: 220, maxGold: 550, damageMin: 220, damageMax: 350, attackSpeedMs: 1500, image: `${IMG_BASE}Hero.gif`,
@@ -213,7 +208,6 @@ export const MONSTERS: Monster[] = [
 
     // ========================================================================
     // TIER 6: LEVEL 200-300
-    // Gems are key here.
     // ========================================================================
     { 
         id: 'warlock', name: 'Warlock', level: 200, hp: 14000, maxHp: 14000, exp: 14000, minGold: 700, maxGold: 1400, damageMin: 550, damageMax: 900, attackSpeedMs: 2000, image: `${IMG_BASE}Warlock.gif`,
@@ -242,7 +236,6 @@ export const MONSTERS: Monster[] = [
 
     // ========================================================================
     // TIER 7: LEVEL 300-400
-    // High Waste, High Reward if rare drops.
     // ========================================================================
     { 
         id: 'hellhound', name: 'Hellhound', level: 300, hp: 30000, maxHp: 30000, exp: 30000, minGold: 1800, maxGold: 3000, damageMin: 1000, damageMax: 1600, attackSpeedMs: 1500, elements: { fire: 0, ice: 1.2 }, image: `${IMG_BASE}Hellhound.gif`,
@@ -267,7 +260,6 @@ export const MONSTERS: Monster[] = [
 
     // ========================================================================
     // TIER 8: LEVEL 400+
-    // Endgame. Huge HP sponges. Products + Gems sustain the hunt.
     // ========================================================================
     { 
         id: 'dawnfire_asura', name: 'Dawnfire Asura', level: 400, hp: 50000, maxHp: 50000, exp: 50000, minGold: 3000, maxGold: 5000, damageMin: 1500, damageMax: 2200, attackSpeedMs: 1200, elements: { fire: 0.5, death: 0.8, ice: 1.1 }, image: `${IMG_BASE}Dawnfire_Asura.gif`,

@@ -125,6 +125,8 @@ export const INITIAL_PLAYER_STATS: Player = {
     runeCooldown: 0,
     purchasedSpells: [],
     globalCooldown: 0,
+    attackCooldown: 0,
+    healingCooldown: 0,
     taskOptions: [],
     taskNextFreeReroll: 0,
     skippedLoot: [],

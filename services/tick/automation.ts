@@ -46,7 +46,7 @@ export const processAutomation = (
                     }
                     
                     log(`Usou ${item.name} (Health).`, 'info');
-                    p.healthPotionCooldown = now + 1000; // 1s Individual CD
+                    p.healthPotionCooldown = now + 1000; 
                 }
             }
         }
@@ -72,31 +72,34 @@ export const processAutomation = (
                         if (item.potionType === 'mana') {
                             p.mana = Math.min(p.maxMana, p.mana + item.restoreAmount);
                         } else if (item.potionType === 'spirit') {
-                            // Spirit handles mana as secondary or primary based on item def
-                            // If primary mana, use restoreAmount, else secondary
                             const manaHeal = item.restoreAmountSecondary || item.restoreAmount;
                             p.mana = Math.min(p.maxMana, p.mana + manaHeal);
                         }
                     }
                     
                     log(`Usou ${item.name} (Mana).`, 'info');
-                    p.manaPotionCooldown = now + 1000; // 1s Individual CD
+                    p.manaPotionCooldown = now + 1000;
                 }
             }
         }
     }
 
-    // --- 3. AUTO HEAL SPELL (Independent) ---
+    // --- 3. AUTO HEAL SPELL (Independent Healing Cooldown) ---
     if (p.settings.autoHealSpellThreshold > 0 && (p.hp / p.maxHp) * 100 <= p.settings.autoHealSpellThreshold) {
         if (p.settings.selectedHealSpellId) {
            const spell = SPELLS.find(s => s.id === p.settings.selectedHealSpellId);
-           if (spell && p.purchasedSpells.includes(spell.id) && p.level >= spell.minLevel && (p.skills[SkillType.MAGIC].level >= (spell.reqMagicLevel || 0)) && p.mana >= spell.manaCost && (p.spellCooldowns[spell.id] || 0) <= now && p.globalCooldown <= now) {
+           if (spell && p.purchasedSpells.includes(spell.id) && 
+               p.level >= spell.minLevel && 
+               (p.skills[SkillType.MAGIC].level >= (spell.reqMagicLevel || 0)) && 
+               p.mana >= spell.manaCost && 
+               (p.spellCooldowns[spell.id] || 0) <= now && 
+               (p.healingCooldown || 0) <= now) {
               
               const healAmt = calculateSpellHealing(p, spell);
               p.mana -= spell.manaCost;
               p.hp = Math.min(p.maxHp, p.hp + healAmt);
               p.spellCooldowns[spell.id] = now + (spell.cooldown || 1000);
-              p.globalCooldown = now + 1000;
+              p.healingCooldown = now + 1000; 
               
               const magicRes = processSkillTraining(p, SkillType.MAGIC, spell.manaCost);
               p = magicRes.player;
@@ -112,7 +115,7 @@ export const processAutomation = (
         }
     }
 
-    // --- 4. AUTO MAGIC SHIELD ---
+    // --- 4. AUTO MAGIC SHIELD (Support/Attack Cooldown) ---
     if (p.settings.autoMagicShield) {
         if (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID) {
             const spellId = 'utamo_vita';
@@ -122,12 +125,12 @@ export const processAutomation = (
                 p.level >= spell.minLevel && 
                 p.mana >= spell.manaCost && 
                 (p.spellCooldowns[spellId] || 0) <= now && 
-                p.globalCooldown <= now) {
+                (p.attackCooldown || 0) <= now) {
                 
                 p.mana -= spell.manaCost;
                 p.magicShieldUntil = now + 30000;
                 p.spellCooldowns[spellId] = now + spell.cooldown;
-                p.globalCooldown = now + 1000;
+                p.attackCooldown = now + 2000; 
 
                 const magicRes = processSkillTraining(p, SkillType.MAGIC, spell.manaCost);
                 p = magicRes.player;

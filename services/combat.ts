@@ -1,4 +1,3 @@
-
 import { Player, Spell, Item, EquipmentSlot, SkillType, Vocation } from "../types";
 import { getEffectiveSkill } from "./progression"; 
 import { getAscensionBonusValue } from "./mechanics";
@@ -9,29 +8,26 @@ const isPremium = (player: Player) => player.premiumUntil > Date.now();
 
 // Defense: How much of the Armor Value is effective per vocation
 const ARMOR_EFFICIENCY = {
-    [Vocation.KNIGHT]: 1.20,   // Buffed: 120% Armor Effectiveness (Tank Master)
-    [Vocation.PALADIN]: 0.85, // Buffed: 85% Armor Effectiveness
+    [Vocation.KNIGHT]: 1.20,   // 120% Armor Effectiveness (Tank Master)
+    [Vocation.PALADIN]: 0.85, 
     [Vocation.MONK]: 0.60,
-    [Vocation.SORCERER]: 0.40, // 40% (Squishy)
+    [Vocation.SORCERER]: 0.40, 
     [Vocation.DRUID]: 0.40,
     [Vocation.NONE]: 0.50
 };
 
-// Shielding: Multiplier for Skill * Defense
-const SHIELD_FACTOR = 0.05; 
-
 // Damage Scaling Factors
 const MELEE_FACTOR = {
-    [Vocation.KNIGHT]: 0.16,  // Buffed from 0.12 -> High scaling with Weapon/Skill
-    [Vocation.PALADIN]: 0.06,
-    [Vocation.MONK]: 0.10,
+    [Vocation.KNIGHT]: 0.28,  // BUFFED: High scaling with Weapon/Skill (Old: 0.16)
+    [Vocation.PALADIN]: 0.08,
+    [Vocation.MONK]: 0.12,
     [Vocation.SORCERER]: 0.03,
     [Vocation.DRUID]: 0.03,
-    [Vocation.NONE]: 0.04
+    [Vocation.NONE]: 0.05
 };
 
 const DIST_FACTOR = {
-    [Vocation.PALADIN]: 0.17, // Buffed from 0.14 -> High scaling for Distance
+    [Vocation.PALADIN]: 0.17, 
     [Vocation.KNIGHT]: 0.04,
     [Vocation.SORCERER]: 0.04,
     [Vocation.DRUID]: 0.04,
@@ -52,7 +48,9 @@ export const calculatePlayerDamage = (player: Player): number => {
   let attackValue = weapon?.attack || 1;
   let skillLevel = 10;
   let factor = 0.05;
-  let baseLevelDmg = player.level * 0.6; 
+  
+  // BUFF: Knights get more base damage from Level
+  let baseLevelDmg = player.vocation === Vocation.KNIGHT ? player.level * 1.0 : player.level * 0.6; 
   let damage = 0;
 
   if (!weapon) {
@@ -94,22 +92,32 @@ export const calculatePlayerDamage = (player: Player): number => {
         skillLevel = getEffectiveSkill(player, stat);
         factor = MELEE_FACTOR[player.vocation] || 0.04;
         const maxHit = baseLevelDmg + (skillLevel * attackValue * factor);
-        const minDmg = Math.floor(maxHit * 0.6);
+        const minDmg = Math.floor(maxHit * 0.7); // Knight min dmg slightly higher too
         const maxDmg = Math.floor(maxHit);
         damage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + minDmg;
     }
   }
 
+  // Knight "Berserk" Passive: More damage when HP is low
+  if (player.vocation === Vocation.KNIGHT) {
+      const hpPercent = (player.hp / player.maxHp);
+      if (hpPercent < 0.3) damage = Math.floor(damage * 1.15);
+      else if (hpPercent < 0.6) damage = Math.floor(damage * 1.05);
+  }
+
   if (player.promoted) damage = Math.floor(damage * 1.10);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
+  
   if (player.activeHuntId) {
       const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
       if (prey && prey.bonusType === 'damage') {
           damage = Math.floor(damage * (1 + (prey.bonusValue / 100)));
       }
   }
+  
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
+  
   return Math.max(1, damage);
 };
 
@@ -122,13 +130,17 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
       const weapon = (equippedWeapon && canUseItem(player, equippedWeapon)) ? equippedWeapon : undefined;
       const weaponSkill = getEffectiveSkill(player, weapon?.scalingStat || SkillType.SWORD);
       const atk = weapon?.attack || 10;
+      
+      // BUFFED Knight Spells
       let mult = 1.0;
-      if (spell.id === 'exori') mult = 1.2; 
-      if (spell.id === 'exori_gran') mult = 2.2; 
-      if (spell.id === 'exori_min') mult = 2.8; 
-      if (spell.id === 'exori_mas') mult = 1.8;
-      const dmg = (player.level * 0.5) + (weaponSkill * atk * 0.05 * mult);
-      damage = Math.floor(dmg * (0.85 + Math.random() * 0.3)); 
+      if (spell.id === 'exori') mult = 2.0; 
+      if (spell.id === 'exori_gran') mult = 3.8; 
+      if (spell.id === 'exori_min') mult = 4.5; 
+      if (spell.id === 'exori_mas') mult = 2.5;
+      if (spell.id === 'exori_hur') mult = 1.8;
+      
+      const dmg = (player.level * 0.8) + (weaponSkill * atk * 0.12 * mult);
+      damage = Math.floor(dmg * (0.9 + Math.random() * 0.2)); 
   } else if (player.vocation === Vocation.PALADIN && spell.damageType === 'holy') {
       const dist = getEffectiveSkill(player, SkillType.DISTANCE);
       let mlMult = 4.0; 
@@ -210,9 +222,6 @@ export const calculateSpellHealing = (player: Player, spell: Spell): number => {
       return Math.floor(heal * (0.9 + Math.random() * 0.2));
   }
 
-  // --- MAGE HEALING BALANCING (REDUCED BY ~30%) ---
-  // Old Multipliers: 8.0, 14.0, 22.0, 30.0
-  // Old Bases: 50, 120, 250, 400
   let multiplier = 5.5; 
   let base = 35;
   if (spell.id === 'exura_gran') { multiplier = 9.8; base = 84; }
@@ -240,6 +249,8 @@ export const calculatePlayerDefense = (player: Player): number => {
   const armEfficiency = ARMOR_EFFICIENCY[vocation] || 0.5;
   const avgArmor = totalArmor * 0.75; 
   const armorReduction = avgArmor * armEfficiency;
+  // Fix: Declare SHIELD_FACTOR before its usage to fix block-scoped variable error.
+  const SHIELD_FACTOR = 0.05; 
   const shieldReduction = (shieldDef * shieldingSkill) * SHIELD_FACTOR;
   let finalDef = Math.floor(armorReduction + shieldReduction);
   if (player.activeHuntId) {

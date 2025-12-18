@@ -29,36 +29,45 @@ const PRIMARY_SKILLS: Record<Vocation, SkillType[]> = {
 const getSkillStageMultiplier = (level: number, skillType: SkillType, vocation: Vocation): number => {
     
     // NO VOCATION BALANCING (Rookgaard Style)
-    // Limits progression significantly to prevent high skills before vocation.
     if (vocation === Vocation.NONE) {
-        if (level <= 10) return 5;  // Moderate start (vs 50x for main)
-        if (level <= 13) return 2;  // Slows down significantly
-        return 0.5;                 // Very slow ("Soft Cap" at 13)
+        if (level <= 10) return 5;  
+        if (level <= 13) return 2;  
+        return 0.5;                 
     }
 
     // Check if this skill is primary for the vocation
     const isPrimary = PRIMARY_SKILLS[vocation]?.includes(skillType);
 
-    // If it is NOT a primary skill (e.g. Knight training Magic Level), return base rate (1x)
-    // This respects the "proportion" - harder skills remain hard.
+    // If it is NOT a primary skill, return base rate (1x)
     if (!isPrimary) {
-        // Special case: Mages training shielding is slightly faster than weapon skills but still secondary
-        if ((vocation === Vocation.SORCERER || vocation === Vocation.DRUID) && skillType === SkillType.DEFENSE) {
-            return 1;
-        }
         return 1; 
     }
 
-    // PRIMARY SKILL STAGES (The user's requested curve for Main Characters)
-    if (level <= 25) return 50; // Super Fast
-    if (level <= 40) return 30; // Very Fast
-    if (level <= 60) return 15; // Fast
-    if (level <= 70) return 10; // Medium
-    if (level <= 80) return 5;  // Slowing down
-    if (level <= 90) return 3;  // Hard
-    if (level <= 100) return 2; // Very Hard
+    // Base Multiplier based on Skill Level
+    let mult = 1;
+    if (level <= 25) mult = 50; // Super Fast
+    else if (level <= 40) mult = 30; // Very Fast
+    else if (level <= 60) mult = 15; // Fast
+    else if (level <= 70) mult = 10; // Medium
+    else if (level <= 80) mult = 5;  // Slowing down
+    else if (level <= 90) mult = 3;  // Hard
+    else if (level <= 100) mult = 2; // Very Hard
+    else mult = 1;
+
+    // VOCATION SPECIFIC WEIGHTING
+    if (vocation === Vocation.PALADIN) {
+        // Paladins gain Distance 30% faster than the standard primary rate
+        if (skillType === SkillType.DISTANCE) mult *= 1.3;
+        // Paladins gain Shielding slower than Knights (0.6x effectiveness)
+        if (skillType === SkillType.DEFENSE) mult *= 0.6;
+    }
+
+    if (vocation === Vocation.KNIGHT) {
+        // Knights gain Shielding at full primary rate (1.0x)
+        // Weapon skills are already handled by the primary 'mult'
+    }
     
-    return 1;                   // Real Tibia (Level 100+)
+    return mult;
 };
 
 const isPremium = (player: Player) => player.premiumUntil > Date.now();

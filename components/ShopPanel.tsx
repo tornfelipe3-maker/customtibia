@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { SHOP_ITEMS, QUESTS } from '../constants';
 import { Item, Player, NpcType, EquipmentSlot, SkillType } from '../types';
-import { Lock, Coins, Search, LayoutGrid, Sword, Crosshair, Sparkles, Scroll, ArrowUp, Shield, Shirt, Footprints, Gem, FlaskConical, Package, HardHat, Columns, ChevronsUp, Layers, ShieldAlert, Landmark } from 'lucide-react';
+import { Lock, Coins, Search, LayoutGrid, Sword, Crosshair, Sparkles, Scroll, ArrowUp, Shield, Shirt, Footprints, Gem, FlaskConical, Package, HardHat, Columns, ChevronsUp, Layers, ShieldAlert, Landmark, TrendingUp } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 import { ShopItem } from './ShopItem';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -135,7 +135,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
 
   // 1. Standard Items (Stackable)
   const displayedStandardItems = useMemo(() => {
-      const items = SHOP_ITEMS.filter(item => {
+      let items = SHOP_ITEMS.filter(item => {
         const soldTo = item.soldTo.includes(activeNpc);
         let modePass = false;
         
@@ -159,7 +159,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
 
       // YASIR BONUS: 2x Sell Price
       if (activeNpc === NpcType.YASIR) {
-          return items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
+          items = items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
       }
       return items;
   }, [activeNpc, mode, category, searchTerm, isGm, playerInventory]);
@@ -170,7 +170,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
       
       const inventory = playerUniqueInventory || []; // Safe default
 
-      const items = inventory.filter(item => {
+      let items = inventory.filter(item => {
           // Check if NPC buys this base item type
           const soldTo = item.soldTo.includes(activeNpc);
           if (!soldTo) return false;
@@ -183,7 +183,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
 
       // YASIR BONUS: 2x Sell Price
       if (activeNpc === NpcType.YASIR) {
-          return items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
+          items = items.map(item => ({ ...item, sellPrice: item.sellPrice * 2 }));
       }
       return items;
   }, [mode, activeNpc, category, searchTerm, playerUniqueInventory]);
@@ -242,6 +242,14 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
                 </div>
             </div>
          </div>
+         
+         {/* Yasir Bonus Indicator */}
+         {activeNpc === NpcType.YASIR && (
+             <div className="bg-gradient-to-r from-yellow-900/40 to-yellow-800/10 border border-yellow-700/50 p-2 rounded flex items-center justify-center gap-2 animate-pulse">
+                 <TrendingUp size={14} className="text-yellow-400"/>
+                 <span className="text-[10px] font-bold text-yellow-200 uppercase tracking-widest">Yasir High Stakes: +100% Sell Price Active!</span>
+             </div>
+         )}
          
          {/* Quantity Selector with MAX and Slider */}
          <div className="flex flex-col gap-1">
@@ -351,7 +359,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
                             {/* Render Unique Items First (Sell Only) */}
                             {displayedUniqueItems.map((item) => (
                                 <ShopItem
-                                    key={item.uniqueId} // Use uniqueId
+                                    key={`${item.uniqueId}-${activeNpc}`} // FORCE RE-RENDER ON NPC CHANGE
                                     item={item}
                                     mode={'sell'} // Always sell
                                     quantity={1} // Unique items sold 1 by 1
@@ -369,7 +377,7 @@ export const ShopPanel: React.FC<ShopPanelProps> = ({
                             {/* Render Standard Items */}
                             {displayedStandardItems.map((item) => (
                                 <ShopItem
-                                    key={item.id}
+                                    key={`${item.id}-${activeNpc}`} // FORCE RE-RENDER ON NPC CHANGE
                                     item={item}
                                     mode={mode}
                                     quantity={quantity}

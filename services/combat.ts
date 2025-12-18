@@ -18,7 +18,7 @@ const ARMOR_EFFICIENCY = {
 
 // Damage Scaling Factors
 const MELEE_FACTOR = {
-    [Vocation.KNIGHT]: 0.22,  // ADJUSTED: Reduced from 0.28 to 0.22
+    [Vocation.KNIGHT]: 0.22,  // REDUZIDO: de 0.28 para 0.22
     [Vocation.PALADIN]: 0.08,
     [Vocation.MONK]: 0.12,
     [Vocation.SORCERER]: 0.03,
@@ -49,7 +49,7 @@ export const calculatePlayerDamage = (player: Player): number => {
   let skillLevel = 10;
   let factor = 0.05;
   
-  // ADJUSTED: Knight base level scaling reduced from 1.0 to 0.8
+  // REDUZIDO: Dano base por nível do Knight de 1.0 para 0.8
   let baseLevelDmg = player.vocation === Vocation.KNIGHT ? player.level * 0.8 : player.level * 0.6; 
   let damage = 0;
 
@@ -98,7 +98,7 @@ export const calculatePlayerDamage = (player: Player): number => {
     }
   }
 
-  // BERSERKER MECHANIC REMOVED AS REQUESTED
+  // MECÂNICA BERSERKER REMOVIDA
 
   if (player.promoted) damage = Math.floor(damage * 1.10);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
@@ -126,15 +126,16 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
       const weaponSkill = getEffectiveSkill(player, weapon?.scalingStat || SkillType.SWORD);
       const atk = weapon?.attack || 10;
       
-      // ADJUSTED: Knight Spell multipliers reduced
+      // AJUSTES DE MULTIPLICADORES DO KNIGHT
       let mult = 1.0;
       if (spell.id === 'exori') mult = 2.0; 
-      if (spell.id === 'exori_gran') mult = 3.1; // Reduced from 3.8 to 3.1
-      if (spell.id === 'exori_min') mult = 4.0;  // Slightly reduced for consistency
+      if (spell.id === 'exori_gran') mult = 3.1; // REDUZIDO: de 3.8 para 3.1
+      if (spell.id === 'exori_min') mult = 4.0;  
       if (spell.id === 'exori_mas') mult = 2.2;
       if (spell.id === 'exori_hur') mult = 1.5;
       
-      // ADJUSTED: Base factor reduced from 0.12 to 0.09
+      // REDUZIDO: Fator de skill para magias de 0.12 para 0.09
+      // REDUZIDO: Level base de 1.0 para 0.8
       const dmg = (player.level * 0.8) + (weaponSkill * atk * 0.09 * mult);
       damage = Math.floor(dmg * (0.9 + Math.random() * 0.2)); 
   } else if (player.vocation === Vocation.PALADIN && spell.damageType === 'holy') {

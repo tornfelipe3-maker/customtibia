@@ -30,63 +30,105 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const { language, setLanguage } = useLanguage();
 
     return (
-        <div className="w-48 bg-[#181818] border-r border-[#333] flex flex-col shadow-2xl z-30 shrink-0">
-            {/* Logo Area */}
-            <div className="h-14 flex items-center justify-center border-b border-[#333] bg-[#111]">
-                <h1 className="text-xl font-bold font-serif tracking-widest text-[#c0c0c0] drop-shadow-md">
-                    TIBIA<span className="text-yellow-600">IDLE</span>
-                </h1>
-            </div>
+        <div className="w-64 bg-[#0f0f0f] border-r border-[#333] flex flex-col shadow-[4px_0_15px_rgba(0,0,0,0.5)] z-40 shrink-0 relative">
+            
+            {/* Background Texture Overlay */}
+            <div className="absolute inset-0 bg-[url('https://tibia.fandom.com/wiki/Special:FilePath/Background_Artwork_Texture.jpg')] opacity-5 pointer-events-none mix-blend-overlay"></div>
 
-            {/* Language Toggle in Sidebar */}
-            <div className="mx-3 mt-4 mb-2 flex gap-1 bg-[#111] p-1 rounded border border-[#333] shadow-inner">
-                <button 
-                    onClick={() => setLanguage('en')}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-bold transition-all duration-200 ${language === 'en' ? 'bg-blue-900/60 text-blue-100 border border-blue-700 shadow-[0_0_10px_rgba(29,78,216,0.2)]' : 'text-gray-600 hover:text-gray-400 hover:bg-[#222] border border-transparent'}`}
-                    title="English"
-                >
-                    <span className="text-sm">🇺🇸</span> EN
-                </button>
-                <button 
-                    onClick={() => setLanguage('pt')}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-[10px] font-bold transition-all duration-200 ${language === 'pt' ? 'bg-green-900/60 text-green-100 border border-green-700 shadow-[0_0_10px_rgba(21,128,61,0.2)]' : 'text-gray-600 hover:text-gray-400 hover:bg-[#222] border border-transparent'}`}
-                    title="Português"
-                >
-                    <span className="text-sm">🇧🇷</span> PT
-                </button>
+            {/* Logo Area */}
+            <div className="h-20 flex flex-col items-center justify-center border-b border-[#333] bg-gradient-to-b from-[#1a1a1a] to-[#0f0f0f] relative z-10 shrink-0">
+                <h1 className="text-2xl font-bold font-serif tracking-[0.15em] text-[#e0e0e0] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] flex items-center">
+                    TIBIA<span className="text-yellow-600 ml-1">IDLE</span>
+                </h1>
+                <div className="text-[10px] text-[#666] uppercase tracking-[0.3em] mt-1 font-bold">RPG Clicker</div>
             </div>
 
             {/* Scrollable Menu Items */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-4">
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6 relative z-10">
                 {menuCategories.map((cat, idx) => (
-                    <div key={idx}>
-                        <h3 className="text-[9px] uppercase font-bold text-gray-600 tracking-widest mb-1.5 px-2">
+                    <div key={idx} className="animate-in fade-in slide-in-from-left-4 duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
+                        <h3 className="text-xs uppercase font-extrabold text-[#555] tracking-widest mb-3 px-3 flex items-center gap-2">
+                            <span className="w-1 h-1 rounded-full bg-[#444]"></span>
                             {cat.title}
                         </h3>
-                        <div className="space-y-0.5">
-                            {cat.items.map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => item.action ? item.action() : onMenuClick(item.id)}
-                                    className={`
-                                        w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-bold transition-all
-                                        ${activeTab === item.id && !item.action 
-                                            ? 'bg-[#2a2a2a] text-gray-100 border-l-2 border-yellow-500 shadow-sm' 
-                                            : 'text-gray-500 hover:bg-[#222] hover:text-gray-300 border-l-2 border-transparent'}
-                                    `}
-                                >
-                                    <item.icon size={16} className={`${activeTab === item.id && !item.action ? item.color : 'opacity-70 group-hover:opacity-100'} transition-opacity`} />
-                                    <span>{item.label}</span>
-                                </button>
-                            ))}
+                        <div className="space-y-1">
+                            {cat.items.map(item => {
+                                const isActive = activeTab === item.id && !item.action;
+                                const isAction = !!item.action;
+                                
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => item.action ? item.action() : onMenuClick(item.id)}
+                                        className={`
+                                            w-full flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden
+                                            ${isActive 
+                                                ? 'bg-gradient-to-r from-[#2a2a2a] to-transparent text-white shadow-md translate-x-1' 
+                                                : isAction
+                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/10'
+                                                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-200 hover:translate-x-1'
+                                            }
+                                        `}
+                                    >
+                                        {/* Active Indicator Bar */}
+                                        {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-600 shadow-[0_0_10px_#ca8a04]"></div>}
+                                        
+                                        <item.icon 
+                                            size={20} 
+                                            className={`
+                                                shrink-0 transition-all duration-300
+                                                ${isActive 
+                                                    ? `${item.color} drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] scale-110` 
+                                                    : 'opacity-60 group-hover:opacity-100 group-hover:scale-105'
+                                                }
+                                                ${isAction ? 'group-hover:text-red-400' : ''}
+                                            `} 
+                                        />
+                                        <span className={`tracking-wide ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                                        
+                                        {/* Action Arrow for non-active items */}
+                                        {!isActive && !isAction && (
+                                            <div className="absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 font-serif">
+                                                ›
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
             </div>
             
-            {/* Version Footer */}
-            <div className="p-2 text-[9px] text-center text-gray-700 border-t border-[#222]">
-                Alpha v2.3
+            {/* Footer Area: Language & Version */}
+            <div className="p-4 bg-[#0a0a0a] border-t border-[#333] relative z-10 shrink-0">
+                {/* Language Toggle */}
+                <div className="flex gap-2 mb-4">
+                    <button 
+                        onClick={() => setLanguage('en')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all duration-200 text-xs font-bold
+                            ${language === 'en' 
+                                ? 'bg-blue-900/40 text-blue-200 border-blue-800 shadow-[0_0_10px_rgba(30,58,138,0.3)]' 
+                                : 'bg-[#151515] text-gray-500 border-[#333] hover:bg-[#222] hover:text-gray-300'
+                            }`}
+                    >
+                        <span className="text-base leading-none">🇺🇸</span> EN
+                    </button>
+                    <button 
+                        onClick={() => setLanguage('pt')}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2 rounded border transition-all duration-200 text-xs font-bold
+                            ${language === 'pt' 
+                                ? 'bg-green-900/40 text-green-200 border-green-800 shadow-[0_0_10px_rgba(20,83,45,0.3)]' 
+                                : 'bg-[#151515] text-gray-500 border-[#333] hover:bg-[#222] hover:text-gray-300'
+                            }`}
+                    >
+                        <span className="text-base leading-none">🇧🇷</span> PT
+                    </button>
+                </div>
+
+                <div className="text-[10px] text-center text-gray-600 font-mono tracking-wider opacity-60">
+                    Alpha v2.4
+                </div>
             </div>
         </div>
     );

@@ -1,4 +1,3 @@
-
 import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
@@ -256,6 +255,7 @@ export const processGameTick = (
                                 let hpLoss = 5; let manaLoss = 5;
                                 if (p.vocation === Vocation.KNIGHT) { hpLoss = 15; manaLoss = 5; }
                                 else if (p.vocation === Vocation.PALADIN) { hpLoss = 10; manaLoss = 15; }
+                                // Fix typo: use hpLoss and manaLoss instead of non-existent hpGain and manaGain
                                 else if (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID) { hpLoss = 5; manaLoss = 30; }
                                 else if (p.vocation === Vocation.MONK) { hpLoss = 10; manaLoss = 10; }
 
@@ -351,18 +351,20 @@ export const processGameTick = (
                 p = skillRes.player;
                 if (skillRes.leveledUp) log(`Skill ${usedSkill} up: ${p.skills[usedSkill].level}!`, 'gain');
 
+                // --- AMMO CONSUMPTION ---
                 if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
                     const ammo = p.equipment[EquipmentSlot.AMMO];
-                    if (ammo && autoAttackDamage > 0) {
-                        if (ammo.count && ammo.count > 0) {
-                            stats.waste += ammo.price || 0;
-                            ammo.count--;
-                            if (ammo.count <= 0) {
-                                delete p.equipment[EquipmentSlot.AMMO];
-                                log(`You ran out of ${ammo.name}!`, 'danger');
-                            }
-                        } else if (!ammo.count && (ammo.ammoType === 'arrow' || ammo.ammoType === 'bolt')) {
+                    // Se o player deu dano (ou tentou atirar), consome munição
+                    if (ammo) {
+                        const currentQty = ammo.count || 1;
+                        stats.waste += ammo.price || 0;
+                        if (currentQty > 1) {
+                            p.equipment[EquipmentSlot.AMMO] = { ...ammo, count: currentQty - 1 };
+                        } else {
                             delete p.equipment[EquipmentSlot.AMMO];
+                            log(`You ran out of ${ammo.name}!`, 'danger');
+                            // Se acabou a munição no meio do turno, o dano atual é invalidado para os próximos ticks
+                            autoAttackDamage = 0; 
                         }
                     }
                 }

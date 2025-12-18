@@ -248,6 +248,33 @@ export const useGameActions = (
                     return prev;
                 }
 
+                // --- SPECIAL AMMO STACKING LOGIC ---
+                if (item.slot === EquipmentSlot.AMMO) {
+                    const currentAmmo = prev.equipment[EquipmentSlot.AMMO];
+                    const invQty = prev.inventory[item.id] || 0;
+                    if (invQty <= 0 && !item.uniqueId) return prev;
+
+                    let newInv = { ...prev.inventory };
+                    let newEquip = { ...prev.equipment };
+                    
+                    if (currentAmmo && currentAmmo.id === item.id) {
+                        // Stacking same ammo
+                        const combinedCount = (currentAmmo.count || 1) + invQty;
+                        newEquip[EquipmentSlot.AMMO] = { ...currentAmmo, count: combinedCount };
+                        delete newInv[item.id];
+                        addLog(`Stacked ${invQty}x ${item.name}.`, 'info');
+                    } else {
+                        // Swapping or first equip
+                        if (currentAmmo) {
+                            newInv[currentAmmo.id] = (newInv[currentAmmo.id] || 0) + (currentAmmo.count || 1);
+                        }
+                        newEquip[EquipmentSlot.AMMO] = { ...item, count: invQty };
+                        delete newInv[item.id];
+                        addLog(`Equipped ${invQty}x ${item.name}.`, 'info');
+                    }
+                    return { ...prev, inventory: newInv, equipment: newEquip };
+                }
+
                 let slotsUsed = getSlotCount(prev);
                 
                 // Simulate removal
@@ -307,8 +334,12 @@ export const useGameActions = (
                 let newInv = { ...prev.inventory };
                 let newUniqueInv = [...(prev.uniqueInventory || [])];
 
-                if (item.uniqueId) newUniqueInv.push(item);
-                else newInv[item.id] = (newInv[item.id] || 0) + 1;
+                if (item.uniqueId) {
+                    newUniqueInv.push(item);
+                } else {
+                    const countToReturn = item.count || 1;
+                    newInv[item.id] = (newInv[item.id] || 0) + countToReturn;
+                }
 
                 return { ...prev, equipment: newEquip, inventory: newInv, uniqueInventory: newUniqueInv };
             });

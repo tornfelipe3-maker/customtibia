@@ -5,7 +5,6 @@ import { IMG_BASE } from './config';
 export const MONSTERS: Monster[] = [
     // ========================================================================
     // TIER 1: LEVEL 1-8
-    // Buffed starter loot for better early game flow.
     // ========================================================================
     { 
         id: 'rat', name: 'Rat', level: 1, hp: 35, maxHp: 35, exp: 5, minGold: 3, maxGold: 8, damageMin: 0, damageMax: 3, attackSpeedMs: 2000, image: `${IMG_BASE}Rat.gif`, 
@@ -15,8 +14,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'coat', chance: 0.08, maxAmount: 1 },     
             { itemId: 'leather_boots', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'wooden_shield', chance: 0.06, maxAmount: 1 }, 
-            { itemId: 'dagger', chance: 0.08, maxAmount: 1 },        
-            { itemId: 'small_amethyst', chance: 0.002, maxAmount: 1 } 
+            { itemId: 'dagger', chance: 0.08, maxAmount: 1 }
         ] 
     },
     { 
@@ -28,14 +26,12 @@ export const MONSTERS: Monster[] = [
             { itemId: 'brass_armor', chance: 0.02, maxAmount: 1 },  
             { itemId: 'brass_legs', chance: 0.02, maxAmount: 1 },   
             { itemId: 'hand_axe', chance: 0.10, maxAmount: 1 }, 
-            { itemId: 'spear', chance: 0.25, maxAmount: 2 },        
-            { itemId: 'silver_amulet', chance: 0.01, maxAmount: 1 }
+            { itemId: 'spear', chance: 0.25, maxAmount: 2 }
         ] 
     },
 
     // ========================================================================
     // TIER 2: LEVEL 9-20
-    // Moderate drops. Increased product drops for profit.
     // ========================================================================
     { 
         id: 'wolf', name: 'Wolf', level: 9, hp: 120, maxHp: 120, exp: 40, minGold: 10, maxGold: 20, damageMin: 8, damageMax: 20, attackSpeedMs: 1800, image: `${IMG_BASE}Wolf.gif`,
@@ -43,7 +39,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'meat', chance: 0.5, maxAmount: 3 },
             { itemId: 'wolf_paw', chance: 0.25, maxAmount: 1 },     
             { itemId: 'plate_shield', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'short_sword', chance: 0.08, maxAmount: 1 }
+            { itemId: 'short_sword', chance: 0.08, maxAmount: 1 },
+            { itemId: 'steel_boots', chance: 0.01, maxAmount: 1 }
         ] 
     },
     { 
@@ -53,8 +50,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'plate_helmet', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'plate_armor', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'axe', chance: 0.05, maxAmount: 1 },
-            { itemId: 'bone_club', chance: 0.10, maxAmount: 1 },
-            { itemId: 'small_topaz', chance: 0.01, maxAmount: 1 }
+            { itemId: 'bone_club', chance: 0.10, maxAmount: 1 }
         ] 
     },
     { 
@@ -75,7 +71,7 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'rotten_piece_of_cloth', chance: 0.25, maxAmount: 1 }, 
             { itemId: 'ghoul_snack', chance: 0.30, maxAmount: 1 }, 
-            { itemId: 'crown_helmet', chance: 0.005, maxAmount: 1 }, 
+            { itemId: 'crown_helmet', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'life_ring', chance: 0.01, maxAmount: 1 }
         ] 
     },
@@ -83,20 +79,19 @@ export const MONSTERS: Monster[] = [
         id: 'orc_berserker', name: 'Orc Berserker', level: 25, hp: 500, maxHp: 500, exp: 240, minGold: 50, maxGold: 100, damageMin: 50, damageMax: 100, attackSpeedMs: 1500, image: `${IMG_BASE}Orc_Berserker.gif`,
         lootTable: [
             { itemId: 'orc_leather', chance: 0.30, maxAmount: 1 },
-            { itemId: 'crown_legs', chance: 0.005, maxAmount: 1 },
+            { itemId: 'crown_legs', chance: 0.01, maxAmount: 1 },
             { itemId: 'crimson_sword', chance: 0.04, maxAmount: 1 }, 
-            { itemId: 'orcish_axe', chance: 0.04, maxAmount: 1 }, 
-            { itemId: 'health_potion', chance: 0.20, maxAmount: 2 } 
+            { itemId: 'orcish_axe', chance: 0.04, maxAmount: 1 },
+            { itemId: 'boh', chance: 0.005, maxAmount: 1 }
         ] 
     },
     { 
         id: 'minotaur_guard', name: 'Minotaur Guard', level: 30, hp: 650, maxHp: 650, exp: 320, minGold: 60, maxGold: 120, damageMin: 60, damageMax: 110, attackSpeedMs: 2000, image: `${IMG_BASE}Minotaur_Guard.gif`,
         lootTable: [
             { itemId: 'minotaur_leather', chance: 0.35, maxAmount: 1 },
-            { itemId: 'crown_armor', chance: 0.004, maxAmount: 1 }, 
-            { itemId: 'crown_shield', chance: 0.01, maxAmount: 1 },
-            { itemId: 'wand_draconia', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'mana_potion', chance: 0.20, maxAmount: 2 }
+            { itemId: 'crown_armor', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'crown_shield', chance: 0.02, maxAmount: 1 },
+            { itemId: 'wand_draconia', chance: 0.02, maxAmount: 1 }
         ] 
     },
     { 
@@ -105,8 +100,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'cyclops_toe', chance: 0.50, maxAmount: 1 }, 
             { itemId: 'meat', chance: 0.6, maxAmount: 4 },
             { itemId: 'ham', chance: 0.3, maxAmount: 2 },
-            { itemId: 'short_sword', chance: 0.15, maxAmount: 1 },
-            { itemId: 'plate_shield', chance: 0.12, maxAmount: 1 },
+            { itemId: 'crimson_sword', chance: 0.01, maxAmount: 1 },
+            { itemId: 'crown_shield', chance: 0.005, maxAmount: 1 },
             { itemId: 'health_potion', chance: 0.10, maxAmount: 1 }
         ] 
     },
@@ -119,7 +114,7 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'dragon_ham', chance: 0.6, maxAmount: 2 }, 
             { itemId: 'small_emerald', chance: 0.12, maxAmount: 1 }, 
-            { itemId: 'dragon_shield', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'dragon_shield', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'elvish_bow', chance: 0.04, maxAmount: 1 }
         ] 
     },
@@ -127,21 +122,19 @@ export const MONSTERS: Monster[] = [
         id: 'necromancer', name: 'Necromancer', level: 45, hp: 1500, maxHp: 1500, exp: 1000, minGold: 100, maxGold: 220, damageMin: 100, damageMax: 180, attackSpeedMs: 2000, elements: { holy: 1.2 }, image: `${IMG_BASE}Necromancer.gif`,
         lootTable: [
             { itemId: 'eyedrops', chance: 0.30, maxAmount: 1 }, 
-            { itemId: 'dragon_legs', chance: 0.002, maxAmount: 1 }, 
-            { itemId: 'boh', chance: 0.01, maxAmount: 1 },         
+            { itemId: 'dragon_legs', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'knight_boots', chance: 0.01, maxAmount: 1 },         
             { itemId: 'wand_inferno', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'mana_potion', chance: 0.30, maxAmount: 2 },
-            { itemId: 'strong_mana_potion', chance: 0.05, maxAmount: 1 }
+            { itemId: 'mana_potion', chance: 0.30, maxAmount: 2 }
         ] 
     },
     { 
         id: 'giant_spider', name: 'Giant Spider', level: 50, hp: 2000, maxHp: 2000, exp: 1600, minGold: 140, maxGold: 300, damageMin: 140, damageMax: 240, attackSpeedMs: 1200, image: `${IMG_BASE}Giant_Spider.gif`,
         lootTable: [
             { itemId: 'spider_silk', chance: 0.12, maxAmount: 1 }, 
-            { itemId: 'knight_boots', chance: 0.03, maxAmount: 1 }, 
+            { itemId: 'knight_boots', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 },
-            { itemId: 'strong_health_potion', chance: 0.15, maxAmount: 1 },
-            { itemId: 'strong_mana_potion', chance: 0.10, maxAmount: 1 }
+            { itemId: 'strong_health_potion', chance: 0.15, maxAmount: 1 }
         ] 
     },
     { 
@@ -149,12 +142,9 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'green_dragon_leather', chance: 0.25, maxAmount: 1 }, 
             { itemId: 'dragon_scale', chance: 0.15, maxAmount: 1 },
-            { itemId: 'dsm', chance: 0.002, maxAmount: 1 },       
             { itemId: 'dragon_shield', chance: 0.05, maxAmount: 1 }, 
-            { itemId: 'fire_axe', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'fire_sword', chance: 0.02, maxAmount: 1 },
-            { itemId: 'strong_health_potion', chance: 0.20, maxAmount: 2 },
-            { itemId: 'strong_mana_potion', chance: 0.10, maxAmount: 2 }
+            { itemId: 'fire_axe', chance: 0.03, maxAmount: 1 }, 
+            { itemId: 'fire_sword', chance: 0.03, maxAmount: 1 }
         ] 
     },
 
@@ -166,11 +156,9 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'warrior_sweat', chance: 0.20, maxAmount: 1 }, 
             { itemId: 'red_piece_of_cloth', chance: 0.15, maxAmount: 1 },
-            { itemId: 'zaoan_helmet', chance: 0.01, maxAmount: 1 }, 
-            { itemId: 'crown_armor', chance: 0.03, maxAmount: 1 },
-            { itemId: 'relic_sword', chance: 0.02, maxAmount: 1 },  
-            { itemId: 'great_health_potion', chance: 0.25, maxAmount: 2 },
-            { itemId: 'great_mana_potion', chance: 0.25, maxAmount: 2 }
+            { itemId: 'zaoan_helmet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'mpa', chance: 0.01, maxAmount: 1 },
+            { itemId: 'relic_sword', chance: 0.03, maxAmount: 1 }
         ] 
     },
     { 
@@ -178,10 +166,9 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'vampire_dust', chance: 0.25, maxAmount: 1 }, 
             { itemId: 'vampire_teeth', chance: 0.4, maxAmount: 2 },
-            { itemId: 'zaoan_legs', chance: 0.01, maxAmount: 1 },   
+            { itemId: 'zaoan_legs', chance: 0.02, maxAmount: 1 },   
             { itemId: 'guardian_boots', chance: 0.02, maxAmount: 1 }, 
-            { itemId: 'wand_starstorm', chance: 0.02, maxAmount: 1 },
-            { itemId: 'skull', chance: 0.6, maxAmount: 3 }
+            { itemId: 'wand_starstorm', chance: 0.02, maxAmount: 1 }
         ] 
     },
     { 
@@ -189,20 +176,18 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'red_dragon_leather', chance: 0.3, maxAmount: 1 },
             { itemId: 'dragon_claw_common', chance: 0.08, maxAmount: 1 }, 
-            { itemId: 'mpa', chance: 0.001, maxAmount: 1 },              
-            { itemId: 'dsm', chance: 0.01, maxAmount: 1 },
-            { itemId: 'royal_spear', chance: 0.3, maxAmount: 3 },
-            { itemId: 'great_health_potion', chance: 0.3, maxAmount: 2 }
+            { itemId: 'mpa', chance: 0.01, maxAmount: 1 },              
+            { itemId: 'dsm', chance: 0.03, maxAmount: 1 },
+            { itemId: 'royal_spear', chance: 0.3, maxAmount: 3 }
         ] 
     },
     { 
         id: 'behemoth', name: 'Behemoth', level: 180, hp: 11000, maxHp: 11000, exp: 10000, minGold: 500, maxGold: 1000, damageMin: 450, damageMax: 800, attackSpeedMs: 2500, image: `${IMG_BASE}Behemoth.gif`,
         lootTable: [
             { itemId: 'behemoth_claw', chance: 0.35, maxAmount: 1 },  
-            { itemId: 'noble_axe', chance: 0.02, maxAmount: 1 },     
-            { itemId: 'guardian_shield', chance: 0.05, maxAmount: 1 },
-            { itemId: 'giant_sword', chance: 0.02, maxAmount: 1 },
-            { itemId: 'ultimate_health_potion', chance: 0.20, maxAmount: 2 }
+            { itemId: 'noble_axe', chance: 0.04, maxAmount: 1 },     
+            { itemId: 'mastermind_shield', chance: 0.02, maxAmount: 1 },
+            { itemId: 'shadow_sceptre', chance: 0.03, maxAmount: 1 }
         ] 
     },
 
@@ -212,13 +197,11 @@ export const MONSTERS: Monster[] = [
     { 
         id: 'warlock', name: 'Warlock', level: 200, hp: 14000, maxHp: 14000, exp: 14000, minGold: 700, maxGold: 1400, damageMin: 550, damageMax: 900, attackSpeedMs: 2000, image: `${IMG_BASE}Warlock.gif`,
         lootTable: [
-            { itemId: 'skull', chance: 0.7, maxAmount: 5 },
             { itemId: 'old_parchment', chance: 0.35, maxAmount: 1 }, 
-            { itemId: 'ruby', chance: 0.20, maxAmount: 1 },         
             { itemId: 'blue_gem', chance: 0.08, maxAmount: 1 },
-            { itemId: 'rift_helmet', chance: 0.004, maxAmount: 1 },  
-            { itemId: 'wand_defiance', chance: 0.01, maxAmount: 1 },
-            { itemId: 'great_mana_potion', chance: 0.5, maxAmount: 3 }
+            { itemId: 'rift_helmet', chance: 0.01, maxAmount: 1 },  
+            { itemId: 'wand_defiance', chance: 0.02, maxAmount: 1 },
+            { itemId: 'depth_calcei', chance: 0.005, maxAmount: 1 }
         ] 
     },
     { 
@@ -226,11 +209,9 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'demon_horn', chance: 0.40, maxAmount: 2 },    
             { itemId: 'demon_dust', chance: 0.25, maxAmount: 1 },
-            { itemId: 'ornate_chestplate', chance: 0.002, maxAmount: 1 }, 
-            { itemId: 'mpa', chance: 0.004, maxAmount: 1 }, 
-            { itemId: 'giant_sword', chance: 0.05, maxAmount: 1 },
-            { itemId: 'ultimate_health_potion', chance: 0.30, maxAmount: 3 },
-            { itemId: 'ultimate_mana_potion', chance: 0.30, maxAmount: 3 }
+            { itemId: 'ornate_chestplate', chance: 0.005, maxAmount: 1 }, 
+            { itemId: 'mpa', chance: 0.05, maxAmount: 1 }, 
+            { itemId: 'depth_calcei', chance: 0.02, maxAmount: 1 }
         ] 
     },
 
@@ -241,10 +222,8 @@ export const MONSTERS: Monster[] = [
         id: 'hellhound', name: 'Hellhound', level: 300, hp: 30000, maxHp: 30000, exp: 30000, minGold: 1800, maxGold: 3000, damageMin: 1000, damageMax: 1600, attackSpeedMs: 1500, elements: { fire: 0, ice: 1.2 }, image: `${IMG_BASE}Hellhound.gif`,
         lootTable: [
             { itemId: 'hellhound_slobber', chance: 0.40, maxAmount: 2 }, 
-            { itemId: 'opal', chance: 0.15, maxAmount: 1 },             
-            { itemId: 'prismatic_boots', chance: 0.004, maxAmount: 1 },  
-            { itemId: 'umbral_bow', chance: 0.004, maxAmount: 1 },
-            { itemId: 'hardened_bone', chance: 0.6, maxAmount: 3 }
+            { itemId: 'prismatic_boots', chance: 0.01, maxAmount: 1 },  
+            { itemId: 'umbral_bow', chance: 0.01, maxAmount: 1 }
         ] 
     },
     { 
@@ -252,9 +231,8 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'vial_of_poison', chance: 0.40, maxAmount: 2 },    
             { itemId: 'piece_of_iron', chance: 0.50, maxAmount: 3 },
-            { itemId: 'prismatic_armor', chance: 0.004, maxAmount: 1 }, 
-            { itemId: 'demonwing_axe', chance: 0.005, maxAmount: 1 },
-            { itemId: 'steel_boots', chance: 0.20, maxAmount: 1 } 
+            { itemId: 'prismatic_armor', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'demonwing_axe', chance: 0.01, maxAmount: 1 }
         ] 
     },
 
@@ -265,21 +243,17 @@ export const MONSTERS: Monster[] = [
         id: 'dawnfire_asura', name: 'Dawnfire Asura', level: 400, hp: 50000, maxHp: 50000, exp: 50000, minGold: 3000, maxGold: 5000, damageMin: 1500, damageMax: 2200, attackSpeedMs: 1200, elements: { fire: 0.5, death: 0.8, ice: 1.1 }, image: `${IMG_BASE}Dawnfire_Asura.gif`,
         lootTable: [
             { itemId: 'asura_hair', chance: 0.50, maxAmount: 2 },        
-            { itemId: 'diamond', chance: 0.20, maxAmount: 1 },          
-            { itemId: 'ruby', chance: 0.30, maxAmount: 2 },
-            { itemId: 'falcon_boots', chance: 0.001, maxAmount: 1 },    
-            { itemId: 'falcon_wand', chance: 0.001, maxAmount: 1 },
-            { itemId: 'ultimate_spirit_potion', chance: 0.40, maxAmount: 3 }
+            { itemId: 'falcon_boots', chance: 0.005, maxAmount: 1 },    
+            { itemId: 'falcon_wand', chance: 0.005, maxAmount: 1 }
         ] 
     },
     { 
         id: 'hellgorak', name: 'Hellgorak', level: 600, hp: 75000, maxHp: 75000, exp: 80000, minGold: 5000, maxGold: 8000, damageMin: 2000, damageMax: 3500, attackSpeedMs: 2000, elements: { physical: 0.6, ice: 1.05 }, image: `${IMG_BASE}Hellgorak.gif`,
         lootTable: [
             { itemId: 'demonic_blood', chance: 0.5, maxAmount: 2 },     
-            { itemId: 'gold_ingot', chance: 0.30, maxAmount: 1 },
-            { itemId: 'falcon_greaves', chance: 0.001, maxAmount: 1 },  
-            { itemId: 'falcon_longsword', chance: 0.002, maxAmount: 1 },
-            { itemId: 'great_shield', chance: 0.0005, maxAmount: 1 }
+            { itemId: 'falcon_greaves', chance: 0.005, maxAmount: 1 },  
+            { itemId: 'falcon_longsword', chance: 0.005, maxAmount: 1 },
+            { itemId: 'great_shield', chance: 0.005, maxAmount: 1 }
         ] 
     },
 ];

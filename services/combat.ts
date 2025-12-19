@@ -1,14 +1,14 @@
+
 import { Player, Spell, Item, EquipmentSlot, SkillType, Vocation, DamageType } from "../types";
 import { getEffectiveSkill } from "./progression"; 
-import { getAscensionBonusValue } from "./mechanics";
+import { getAscensionBonusValue, getPlayerModifier } from "./mechanics";
 
 const isPremium = (player: Player) => player.premiumUntil > Date.now();
 
 // --- BALANCE CONSTANTS ---
 
-// Defense: How much of the Armor Value is effective per vocation
 const ARMOR_EFFICIENCY = {
-    [Vocation.KNIGHT]: 1.20,   // 120% Armor Effectiveness (Tank Master)
+    [Vocation.KNIGHT]: 1.20,
     [Vocation.PALADIN]: 0.85, 
     [Vocation.MONK]: 0.60,
     [Vocation.SORCERER]: 0.40, 
@@ -16,9 +16,8 @@ const ARMOR_EFFICIENCY = {
     [Vocation.NONE]: 0.50
 };
 
-// Damage Scaling Factors
 const MELEE_FACTOR = {
-    [Vocation.KNIGHT]: 0.22,  // REDUZIDO: de 0.28 para 0.22
+    [Vocation.KNIGHT]: 0.22,
     [Vocation.PALADIN]: 0.08,
     [Vocation.MONK]: 0.12,
     [Vocation.SORCERER]: 0.03,
@@ -35,7 +34,6 @@ const DIST_FACTOR = {
     [Vocation.NONE]: 0.05
 };
 
-// HELPER: Checks if player meets requirement to use item stats
 const canUseItem = (player: Player, item: Item): boolean => {
     if (item.requiredLevel && player.level < item.requiredLevel) return false;
     return true;
@@ -49,7 +47,6 @@ export const calculatePlayerDamage = (player: Player): number => {
   let skillLevel = 10;
   let factor = 0.05;
   
-  // REDUZIDO: Dano base por nível do Knight de 1.0 para 0.8
   let baseLevelDmg = player.vocation === Vocation.KNIGHT ? player.level * 0.8 : player.level * 0.6; 
   let damage = 0;
 
@@ -98,8 +95,6 @@ export const calculatePlayerDamage = (player: Player): number => {
     }
   }
 
-  // MECÂNICA BERSERKER REMOVIDA
-
   if (player.promoted) damage = Math.floor(damage * 1.10);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
   
@@ -126,16 +121,13 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
       const weaponSkill = getEffectiveSkill(player, weapon?.scalingStat || SkillType.SWORD);
       const atk = weapon?.attack || 10;
       
-      // AJUSTES DE MULTIPLICADORES DO KNIGHT
       let mult = 1.0;
       if (spell.id === 'exori') mult = 2.0; 
-      if (spell.id === 'exori_gran') mult = 3.1; // REDUZIDO: de 3.8 para 3.1
+      if (spell.id === 'exori_gran') mult = 3.1; 
       if (spell.id === 'exori_min') mult = 4.0;  
       if (spell.id === 'exori_mas') mult = 2.2;
       if (spell.id === 'exori_hur') mult = 1.5;
       
-      // REDUZIDO: Fator de skill para magias de 0.12 para 0.09
-      // REDUZIDO: Level base de 1.0 para 0.8
       const dmg = (player.level * 0.8) + (weaponSkill * atk * 0.09 * mult);
       damage = Math.floor(dmg * (0.9 + Math.random() * 0.2)); 
   } else if (player.vocation === Vocation.PALADIN && spell.damageType === 'holy') {
@@ -160,17 +152,23 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
       damage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + Math.floor(minDmg);
   }
 
+  // APLICAR BÔNUS DE ITEM NAS MAGIAS (XP/LOOT tratado no Loop, aqui tratamos Dano Situacional)
   if (player.promoted) damage = Math.floor(damage * 1.1);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
+
+  // Prey Damage Bonus para Magias
   if (player.activeHuntId) {
       const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
       if (prey && prey.bonusType === 'damage') {
           damage = Math.floor(damage * (1 + (prey.bonusValue / 100)));
       }
   }
+
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
+  
   if (spell.isAoe) damage = Math.floor(damage * 1.20);
+
   return damage;
 };
 
@@ -194,8 +192,10 @@ export const calculateRuneDamage = (player: Player, item: Item): number => {
   let damage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + Math.floor(minDmg);
   if (player.promoted) damage = Math.floor(damage * 1.1);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
+  
   const ascBonus = getAscensionBonusValue(player, 'damage_boost');
   if (ascBonus > 0) damage = Math.floor(damage * (1 + (ascBonus / 100)));
+  
   if (item.runeType === 'area') damage = Math.floor(damage * 1.20);
   return damage;
 };
@@ -250,6 +250,9 @@ export const calculatePlayerDefense = (player: Player): number => {
   const SHIELD_FACTOR = 0.05; 
   const shieldReduction = (shieldDef * shieldingSkill) * SHIELD_FACTOR;
   let finalDef = Math.floor(armorReduction + shieldReduction);
+  
+  // APLICAR BÔNUS DE ITEM DEFENSIVO (Dodge é verificado no Loop, aqui tratamos Redução Fixa se houver)
+  
   if (player.activeHuntId) {
       const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
       if (prey && prey.bonusType === 'defense') {

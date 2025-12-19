@@ -17,6 +17,17 @@ export const getXpStageMultiplier = (level: number): number => {
   return 1;                    
 };
 
+// HELPER: Soma bônus de equipamentos para um atributo específico
+export const getPlayerModifier = (player: Player, key: string): number => {
+    let total = 0;
+    Object.values(player.equipment).forEach(item => {
+        if (item && item.modifiers && item.modifiers[key]) {
+            total += item.modifiers[key]!;
+        }
+    });
+    return total;
+};
+
 // --- REFORGE MECHANICS ---
 export const getReforgeCost = (rarity?: Rarity): number => {
     switch (rarity) {
@@ -122,17 +133,16 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
 
 // --- HELPERS ---
 export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
-    // 70% de chance de vir criatura do nível atual ou acima
     const rollSelection = Math.random();
     let monster;
     
+    // 70% de chance de vir monstros do seu nível ATUAL ou ACIMA (Desafio e XP garantidos)
     if (rollSelection < 0.70) {
-        // Busca monstros entre -30 níveis e +80 níveis do atual para garantir desafio e relevância
-        const suitable = MONSTERS.filter(m => m.level >= playerLevel - 30 && m.level <= playerLevel + 80);
+        const suitable = MONSTERS.filter(m => m.level >= playerLevel - 15);
         const pool = suitable.length > 0 ? suitable : MONSTERS;
         monster = pool[Math.floor(Math.random() * pool.length)];
     } else {
-        // 30% totalmente aleatório (podendo vir monstros fracos de Rookgaard)
+        // 30% Chance Totalmente Aleatório
         monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
     }
 
@@ -166,10 +176,11 @@ export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
 };
 
 export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'collect'): HuntingTask => {
+    // Filtrar monstros adequados ao nível para a Task não vir de Rat no level 200
     const suitableMonsters = MONSTERS.filter(m => {
         if (playerLevel < 10) return m.level <= 10;
-        if (playerLevel < 30) return m.level <= 35;
-        return m.level >= playerLevel - 50 && m.level <= playerLevel + 60;
+        if (playerLevel < 40) return m.level >= 10 && m.level <= 50;
+        return m.level >= playerLevel - 40 && m.level <= playerLevel + 100;
     });
 
     const pool = suitableMonsters.length > 0 ? suitableMonsters : MONSTERS;
@@ -185,6 +196,7 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
     let targetName = monster.name;
     let amount = 0;
     
+    // Escalonamento de quantidade por nível (Mais level = Mata mais rápido = Pede mais)
     let baseMinKills = 150; 
     let baseMaxKills = 400;
 
@@ -192,10 +204,10 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
         baseMinKills = 30; baseMaxKills = 80;
     } else if (playerLevel < 100) {
         baseMinKills = 150; baseMaxKills = 450;
-    } else if (playerLevel < 250) {
-        baseMinKills = 500; baseMaxKills = 1000;
+    } else if (playerLevel < 300) {
+        baseMinKills = 500; baseMaxKills = 1200;
     } else {
-        baseMinKills = 1000; baseMaxKills = 2500;
+        baseMinKills = 1500; baseMaxKills = 3500;
     }
 
     const killTarget = Math.floor(Math.random() * (baseMaxKills - baseMinKills + 1)) + baseMinKills;
@@ -216,7 +228,7 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
             const avgYield = (1 + (chosenLoot.maxAmount || 1)) / 2;
             const dropChance = chosenLoot.chance;
             
-            amount = Math.max(15, Math.floor(killTarget * dropChance * avgYield * 0.5));
+            amount = Math.max(20, Math.floor(killTarget * dropChance * avgYield * 0.6));
             effortMetric = Math.ceil(amount / (dropChance * avgYield));
         } else {
             amount = killTarget;
@@ -228,19 +240,21 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
 
     const stageMult = getXpStageMultiplier(playerLevel);
     
-    // XP: 5x o ganho normal da hunt (Aumentado de 3x para 5x)
-    let xpReward = Math.floor(monster.exp * effortMetric * stageMult * 5.0);
+    // --- RECOMPENSA MASSIVA DE IDLE ---
+    // Aumentado multiplicador de 5x para 40x o ganho base da hunt
+    // Isso compensa o tempo gasto sem ganhar os bônus de Prey/Hazard na recompensa final
+    let xpReward = Math.floor(monster.exp * effortMetric * stageMult * 40.0);
     
-    // Piso de Segurança: Garante que a task dê pelo menos 60% de um nível (ou 85% se for coleta)
+    // PISO DE SEGURANÇA: Garante que a task dê pelo menos 2 a 3 NÍVEIS de experiência
     const xpNeededForNextLevel = getXpForLevel(playerLevel + 1) - getXpForLevel(playerLevel);
-    const minXpPercentage = taskType === 'collect' ? 0.85 : 0.60;
-    const minSafeXp = Math.floor(xpNeededForNextLevel * minXpPercentage);
+    const minXpLevels = taskType === 'collect' ? 3.0 : 2.0;
+    const minSafeXp = Math.floor(xpNeededForNextLevel * minXpLevels);
 
     xpReward = Math.max(xpReward, minSafeXp);
 
-    // OURO: 8x o lucro médio da hunt + bônus fixo por nível (Aumentado para ser fonte primária de profit)
+    // OURO: 25x o lucro médio da hunt + bônus fixo alto por nível
     const avgGoldPerKill = (monster.minGold + monster.maxGold) / 2;
-    const goldReward = Math.floor(avgGoldPerKill * effortMetric * 8.0) + (playerLevel * 8000); 
+    const goldReward = Math.floor(avgGoldPerKill * effortMetric * 25.0) + (playerLevel * 25000); 
 
     return {
         uuid: Math.random().toString(36).substr(2, 9),

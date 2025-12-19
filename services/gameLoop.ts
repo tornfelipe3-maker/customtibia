@@ -1,8 +1,9 @@
+
 import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
 import { processSkillTraining, checkForLevelUp, getEffectiveSkill } from './progression';
-import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue } from './mechanics';
+import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue, getPlayerModifier } from './mechanics';
 import { generateLootWithRarity, calculateLootValue } from './loot'; 
 
 import { processRegeneration } from './tick/regeneration';
@@ -141,11 +142,8 @@ export const processGameTick = (
                 const forcedType = p.gmExtra?.forceRarity;
                 const baseSpawnChance = 0.03;
                 const countBonus = Math.min(0.04, (settingsHuntCount - 1) * 0.0057);
-                const getMod = (pl: Player, k: string) => {
-                    let t = 0; Object.values(pl.equipment).forEach(i => { if(i?.modifiers?.[k]) t += i.modifiers[k]!; }); return t;
-                };
                 
-                const blessedChanceBonus = getMod(p, 'blessedChance');
+                const blessedChanceBonus = getPlayerModifier(p, 'blessedChance');
                 const totalChance = baseSpawnChance + countBonus + (blessedChanceBonus / 100);
 
                 const isBoss = !!(baseMonster as Boss).cooldownSeconds;
@@ -172,10 +170,6 @@ export const processGameTick = (
         if (monster && !isSpawning) {
             const effectiveHuntCount = monster.isInfluenced ? 1 : settingsHuntCount;
 
-            const getMod = (pl: Player, k: string) => {
-                let t = 0; Object.values(pl.equipment).forEach(i => { if(i?.modifiers?.[k]) t += i.modifiers[k]!; }); return t;
-            };
-
             if (now >= lastMonsterAttackTime + (monster.attackSpeedMs || 2000)) {
                 lastMonsterAttackTime = now;
                 const rawDmgBase = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
@@ -192,7 +186,7 @@ export const processGameTick = (
                 const mitigation = calculatePlayerDefense(p);
                 let actualDmg = Math.max(0, Math.floor(totalIncomingRaw - mitigation));
                 
-                const dodgeChance = getMod(p, 'dodgeChance');
+                const dodgeChance = getPlayerModifier(p, 'dodgeChance');
                 if (dodgeChance > 0 && Math.random() < (dodgeChance / 100)) {
                     actualDmg = 0;
                     hit('DODGED', 'speech', 'player');
@@ -223,7 +217,7 @@ export const processGameTick = (
                     if (Math.random() > 0.8) log(`You lost ${actualDmg} hitpoints due to an attack by ${monster.name}.`, 'combat');
                     hit(actualDmg, 'damage', 'player');
 
-                    const reflection = getMod(p, 'reflection');
+                    const reflection = getPlayerModifier(p, 'reflection');
                     if (reflection > 0) {
                         const reflectedDmg = Math.floor(actualDmg * (reflection / 100));
                         if (reflectedDmg > 0) {
@@ -255,7 +249,6 @@ export const processGameTick = (
                                 let hpLoss = 5; let manaLoss = 5;
                                 if (p.vocation === Vocation.KNIGHT) { hpLoss = 15; manaLoss = 5; }
                                 else if (p.vocation === Vocation.PALADIN) { hpLoss = 10; manaLoss = 15; }
-                                // Fix typo: use hpLoss and manaLoss instead of non-existent hpGain and manaGain
                                 else if (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID) { hpLoss = 5; manaLoss = 30; }
                                 else if (p.vocation === Vocation.MONK) { hpLoss = 10; manaLoss = 10; }
 
@@ -315,24 +308,24 @@ export const processGameTick = (
             
             if (hasSufficientMana) {
                 if ((monster as Boss).cooldownSeconds) {
-                    const bossBonus = getMod(p, 'bossSlayer');
+                    const bossBonus = getPlayerModifier(p, 'bossSlayer');
                     if (bossBonus > 0) autoAttackDamage = Math.floor(autoAttackDamage * (1 + (bossBonus / 100)));
                 }
 
-                const critChance = getMod(p, 'critChance');
+                const critChance = getPlayerModifier(p, 'critChance');
                 if (autoAttackDamage > 0 && Math.random() < (critChance / 100)) {
                     autoAttackDamage = Math.floor(autoAttackDamage * 1.5);
                     hit('CRIT!', 'speech', 'player');
                 }
 
-                const attackSpeed = getMod(p, 'attackSpeed');
+                const attackSpeed = getPlayerModifier(p, 'attackSpeed');
                 if (autoAttackDamage > 0 && Math.random() < (attackSpeed / 100)) {
                     const extraDmg = Math.floor(autoAttackDamage * 0.7); 
                     autoAttackDamage += extraDmg;
                     hit('Double Hit!', 'speech', 'player');
                 }
 
-                const executionerChance = getMod(p, 'executioner');
+                const executionerChance = getPlayerModifier(p, 'executioner');
                 const executionerThreshold = monster.maxHp * effectiveHuntCount * 0.20; 
                 if (monsterHp < executionerThreshold && executionerChance > 0) {
                     if (Math.random() < (executionerChance / 100)) {
@@ -351,10 +344,8 @@ export const processGameTick = (
                 p = skillRes.player;
                 if (skillRes.leveledUp) log(`Skill ${usedSkill} up: ${p.skills[usedSkill].level}!`, 'gain');
 
-                // --- AMMO CONSUMPTION ---
                 if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
                     const ammo = p.equipment[EquipmentSlot.AMMO];
-                    // Se o player deu dano (ou tentou atirar), consome munição
                     if (ammo) {
                         const currentQty = ammo.count || 1;
                         stats.waste += ammo.price || 0;
@@ -363,7 +354,6 @@ export const processGameTick = (
                         } else {
                             delete p.equipment[EquipmentSlot.AMMO];
                             log(`You ran out of ${ammo.name}!`, 'danger');
-                            // Se acabou a munição no meio do turno, o dano atual é invalidado para os próximos ticks
                             autoAttackDamage = 0; 
                         }
                     }
@@ -391,7 +381,14 @@ export const processGameTick = (
                         (p.spellCooldowns[spell.id] || 0) <= now) {
                         
                         const spellName = spell.name.match(/\((.*?)\)/)?.[1] || spell.name;
-                        const spellDmg = calculateSpellDamage(p, spell);
+                        let spellDmg = calculateSpellDamage(p, spell);
+                        
+                        // VERIFICAÇÃO DE BOSS SLAYER PARA MAGIAS
+                        if ((monster as Boss).cooldownSeconds) {
+                            const bossBonus = getPlayerModifier(p, 'bossSlayer');
+                            if (bossBonus > 0) spellDmg = Math.floor(spellDmg * (1 + (bossBonus / 100)));
+                        }
+
                         const finalSpellDmg = spell.isAoe ? spellDmg * effectiveHuntCount : spellDmg; 
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) {
@@ -419,7 +416,14 @@ export const processGameTick = (
                 const runeItem = SHOP_ITEMS.find(i => i.id === p.settings.selectedRuneId);
                 if (runeItem && (p.inventory[runeItem.id] || 0) > 0) {
                     if (p.level >= (runeItem.requiredLevel || 0) && getEffectiveSkill(p, SkillType.MAGIC) >= (runeItem.reqMagicLevel || 0)) {
-                        const runeDmg = calculateRuneDamage(p, runeItem);
+                        let runeDmg = calculateRuneDamage(p, runeItem);
+                        
+                        // VERIFICAÇÃO DE BOSS SLAYER PARA RUNAS
+                        if ((monster as Boss).cooldownSeconds) {
+                            const bossBonus = getPlayerModifier(p, 'bossSlayer');
+                            if (bossBonus > 0) runeDmg = Math.floor(runeDmg * (1 + (bossBonus / 100)));
+                        }
+
                         let finalRuneDmg = runeDmg;
                         if (runeItem.runeType === 'area') finalRuneDmg = runeDmg * effectiveHuntCount;
                         
@@ -450,7 +454,7 @@ export const processGameTick = (
                 const activePrey = p.prey.slots.find(s => s.monsterId === monster.id && s.active);
                 if (activePrey && activePrey.bonusType === 'xp') preyXpMult = 1 + (activePrey.bonusValue / 100);
                 
-                const equipXpBonus = getMod(p, 'xpBoost');
+                const equipXpBonus = getPlayerModifier(p, 'xpBoost');
                 preyXpMult += (equipXpBonus / 100);
                 if (p.premiumUntil > now) preyXpMult += 1.0; 
                 if (p.xpBoostUntil > now) preyXpMult += 2.0; 
@@ -470,7 +474,7 @@ export const processGameTick = (
                 }
 
                 const ascGoldBonus = 1 + (getAscensionBonusValue(p, 'gold_boost') / 100);
-                const goldFindBonus = 1 + (getMod(p, 'goldFind') / 100); 
+                const goldFindBonus = 1 + (getPlayerModifier(p, 'goldFind') / 100); 
                 const finalGold = Math.floor(goldDrop * ascGoldBonus * goldFindBonus);
                 p.gold += finalGold;
                 stats.goldGained += finalGold;
@@ -479,7 +483,7 @@ export const processGameTick = (
                 let lootBonus = 0;
                 if (activePrey && activePrey.bonusType === 'loot') lootBonus += activePrey.bonusValue;
                 lootBonus += getAscensionBonusValue(p, 'loot_boost');
-                lootBonus += getMod(p, 'lootBoost');
+                lootBonus += getPlayerModifier(p, 'lootBoost');
                 if (p.premiumUntil > now) lootBonus += 20; 
                 lootBonus += hazardLootBonus;
 
@@ -541,8 +545,8 @@ export const processGameTick = (
                 p.taskOptions.forEach(task => {
                     if (task.status === 'active' && !task.isComplete) {
                         if (task.type === 'kill' && task.monsterId === monster.id) {
-                            task.killsCurrent += effectiveHuntCount;
-                            if (task.killsCurrent >= task.killsRequired) { task.isComplete = true; }
+                            task.killsCurrent = (task.killsCurrent || 0) + effectiveHuntCount;
+                            if (task.killsCurrent >= (task.killsRequired || task.amountRequired)) { task.isComplete = true; }
                         }
                     }
                 });

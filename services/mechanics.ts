@@ -17,7 +17,6 @@ export const getXpStageMultiplier = (level: number): number => {
   return 1;                    
 };
 
-// HELPER: Soma bônus de equipamentos para um atributo específico
 export const getPlayerModifier = (player: Player, key: string): number => {
     let total = 0;
     Object.values(player.equipment).forEach(item => {
@@ -28,7 +27,6 @@ export const getPlayerModifier = (player: Player, key: string): number => {
     return total;
 };
 
-// --- REFORGE MECHANICS ---
 export const getReforgeCost = (rarity?: Rarity): number => {
     switch (rarity) {
         case 'uncommon': return 3;
@@ -63,7 +61,6 @@ export const reforgeItemStats = (item: Item): Item => {
     };
 };
 
-// --- MONSTER VARIANTS (THE FEAR FACTOR) ---
 export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enraged'|'blessed'|'corrupted'|null): Monster => {
     let variant: Monster = { ...baseMonster, isInfluenced: true };
     const roll = Math.random();
@@ -109,7 +106,6 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
     return variant;
 };
 
-// --- ASCENSION HELPERS ---
 export const calculateSoulPointsToGain = (player: Player): number => {
     if (player.level < 30) return 0;
     const base = (1 + Math.floor((player.level - 30) / 10)) * 10;
@@ -131,18 +127,15 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
     return level * 5; 
 };
 
-// --- HELPERS ---
 export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
     const rollSelection = Math.random();
     let monster;
     
-    // 70% de chance de vir monstros do seu nível ATUAL ou ACIMA (Desafio e XP garantidos)
     if (rollSelection < 0.70) {
         const suitable = MONSTERS.filter(m => m.level >= playerLevel - 15);
         const pool = suitable.length > 0 ? suitable : MONSTERS;
         monster = pool[Math.floor(Math.random() * pool.length)];
     } else {
-        // 30% Chance Totalmente Aleatório
         monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
     }
 
@@ -176,7 +169,6 @@ export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
 };
 
 export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'collect'): HuntingTask => {
-    // Filtrar monstros adequados ao nível para a Task não vir de Rat no level 200
     const suitableMonsters = MONSTERS.filter(m => {
         if (playerLevel < 10) return m.level <= 10;
         if (playerLevel < 40) return m.level >= 10 && m.level <= 50;
@@ -196,7 +188,6 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
     let targetName = monster.name;
     let amount = 0;
     
-    // Escalonamento de quantidade por nível (Mais level = Mata mais rápido = Pede mais)
     let baseMinKills = 150; 
     let baseMaxKills = 400;
 
@@ -240,19 +231,12 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
 
     const stageMult = getXpStageMultiplier(playerLevel);
     
-    // --- RECOMPENSA MASSIVA DE IDLE ---
-    // Aumentado multiplicador de 5x para 40x o ganho base da hunt
-    // Isso compensa o tempo gasto sem ganhar os bônus de Prey/Hazard na recompensa final
     let xpReward = Math.floor(monster.exp * effortMetric * stageMult * 40.0);
-    
-    // PISO DE SEGURANÇA: Garante que a task dê pelo menos 2 a 3 NÍVEIS de experiência
     const xpNeededForNextLevel = getXpForLevel(playerLevel + 1) - getXpForLevel(playerLevel);
     const minXpLevels = taskType === 'collect' ? 3.0 : 2.0;
     const minSafeXp = Math.floor(xpNeededForNextLevel * minXpLevels);
-
     xpReward = Math.max(xpReward, minSafeXp);
 
-    // OURO: 25x o lucro médio da hunt + bônus fixo alto por nível
     const avgGoldPerKill = (monster.minGold + monster.maxGold) / 2;
     const goldReward = Math.floor(avgGoldPerKill * effortMetric * 25.0) + (playerLevel * 25000); 
 
@@ -284,7 +268,6 @@ export const generateTaskOptions = (playerLevel: number): HuntingTask[] => {
   return tasks;
 };
 
-// --- PRECISE OFFLINE CALCULATOR ---
 export interface HuntEstimates {
     xpPerHour: number;
     rawGoldPerHour: number;
@@ -303,6 +286,7 @@ export interface HuntEstimates {
 export const estimateHuntStats = (player: Player, monster: Monster, huntCount: number = 1): HuntEstimates => {
   const weapon = player.equipment[EquipmentSlot.HAND_RIGHT];
   let avgDmg = 5 + (player.level / 3); 
+  const now = Date.now();
   
   if (weapon) {
       let attackValue = weapon.attack || 1;
@@ -329,7 +313,7 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   }
   const ascDmgBonus = getAscensionBonusValue(player, 'damage_boost');
   avgDmg *= (1 + (ascDmgBonus / 100));
-  if (player.premiumUntil > Date.now()) avgDmg *= 1.5;
+  if (player.premiumUntil > now) avgDmg *= 1.5;
 
   avgDmg = Math.max(5, avgDmg);
 
@@ -347,22 +331,37 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   const finalAvgGoldPerMob = avgGoldPerMob * (1 + (ascGoldBonus / 100)) * (1 + (goldFindBonus / 100));
   const rawGoldPerCycle = finalAvgGoldPerMob * huntCount;
 
-  const stageMult = getXpStageMultiplier(player.level);
-  const staminaMult = player.stamina > 0 ? 1.5 : 1.0;
-  let xpMult = 1;
-  if (activePrey && activePrey.bonusType === 'xp') xpMult = 1 + (activePrey.bonusValue / 100);
-  const ascXpBonus = getAscensionBonusValue(player, 'xp_boost');
+  // --- MULTIPLICATIVE XP CALCULATION (MATCHING GAMELOOP) ---
+  let finalXpMultiplier = 1.0;
+  
+  // 1. Stage Mult
+  finalXpMultiplier *= getXpStageMultiplier(player.level);
+  
+  // 2. Stamina
+  if (player.stamina > 0) finalXpMultiplier *= 1.5;
+  
+  // 3. Prey XP
+  if (activePrey && activePrey.bonusType === 'xp') {
+      finalXpMultiplier *= (1 + (activePrey.bonusValue / 100));
+  }
+  
+  // 4. Ascension XP
+  finalXpMultiplier *= (1 + (getAscensionBonusValue(player, 'xp_boost') / 100));
+  
+  // 5. Gear XP
   const equipXpBonus = getPlayerModifier(player, 'xpBoost');
-  xpMult += (ascXpBonus / 100);
-  xpMult += (equipXpBonus / 100);
-  if (player.premiumUntil > Date.now()) xpMult += 1.0; 
-  if (player.xpBoostUntil > Date.now()) xpMult += 2.0; 
-
+  if (equipXpBonus > 0) finalXpMultiplier *= (1 + (equipXpBonus / 100));
+  
+  // 6. Store Buffs
+  if (player.premiumUntil > now) finalXpMultiplier *= 2.0; // +100% (2.0x)
+  if (player.xpBoostUntil > now) finalXpMultiplier *= 3.0; // +200% (3.0x)
+  
+  // 7. Hazard XP
   const isBoss = !!(monster as Boss).cooldownSeconds;
-  const hazardXp = isBoss ? 1 : (1 + ((player.activeHazardLevel || 0) * 0.02));
-  xpMult += (hazardXp - 1);
+  const hazardXpMult = isBoss ? 1.0 : (1 + ((player.activeHazardLevel || 0) * 0.02));
+  finalXpMultiplier *= hazardXpMult;
 
-  const xpPerCycle = monster.exp * huntCount * stageMult * xpMult * staminaMult;
+  const xpPerCycle = monster.exp * huntCount * finalXpMultiplier;
 
   let ammoId: string | undefined;
   let ammoUsagePerHour = 0;

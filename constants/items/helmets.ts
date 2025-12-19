@@ -1,6 +1,6 @@
 
 import { Item, EquipmentSlot, NpcType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const HELMETS_LIST: Item[] = [
   // STARTER
@@ -16,13 +16,13 @@ export const HELMETS_LIST: Item[] = [
   { id: 'crown_helmet', name: 'Crown Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 3, price: 0, sellPrice: 2500, soldTo: [NpcType.BLUE_DJINN, NpcType.GREEN_DJINN, NpcType.RASHID], description: 'Elmo real (Tier 3).', image: `${IMG_BASE}Crown_Helmet.gif`, requiredLevel: 20 },
 
   // TIER 4
-  { id: 'dragon_helmet', name: 'Dragon Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 4, price: 0, sellPrice: 12000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Capacete de dragão (Tier 4).', image: `${IMG_BASE}Dragon_Helmet.gif`, requiredLevel: 40 },
+  { id: 'dragon_helmet', name: 'Dragon Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 4, price: 0, sellPrice: 12000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Capacete de dragão (Tier 4).', image: `${OUT_BASE}Bonelord_Helmet.gif`, requiredLevel: 40 },
 
   // TIER 5
   { id: 'zaoan_helmet', name: 'Zaoan Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 5, price: 0, sellPrice: 45000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo de Zao (Tier 5).', image: `${IMG_BASE}Zaoan_Helmet.gif`, requiredLevel: 100 },
 
   // TIER 6
-  { id: 'rift_helmet', name: 'Rift Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 6, price: 0, sellPrice: 60000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo da fenda (Tier 6).', image: `${IMG_BASE}Rift_Helmet.gif`, requiredLevel: 200 },
+  { id: 'rift_helmet', name: 'Rift Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 6, price: 0, sellPrice: 60000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo da fenda (Tier 6).', image: `${OUT_BASE}Green_Demon_Helmet.gif`, requiredLevel: 200 },
 
   // TIER 7
   { id: 'prismatic_helmet', name: 'Prismatic Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 7, price: 0, sellPrice: 80000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo prismático (Tier 7).', image: `${IMG_BASE}Prismatic_Helmet.gif`, requiredLevel: 300 },

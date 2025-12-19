@@ -169,7 +169,8 @@ const App = () => {
                         isGm={player.isGm} 
                         onBuyItem={actions.buyItem} 
                         onSellItem={actions.sellItem} 
-                        onToggleSkippedLoot={actions.handleToggleSkippedLoot} 
+                        /* FIXED: Corrected handleToggleSkippedLoot to toggleSkippedLoot to match useGameActions definition */
+                        onToggleSkippedLoot={actions.toggleSkippedLoot} 
                         onBuyBlessing={actions.handleBuyBlessing}
                     />
                 )}

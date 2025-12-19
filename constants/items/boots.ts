@@ -1,6 +1,6 @@
 
 import { Item, EquipmentSlot, NpcType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const BOOTS_LIST: Item[] = [
   // STARTER / TIER 1
@@ -13,10 +13,10 @@ export const BOOTS_LIST: Item[] = [
   { id: 'boh', name: 'Boots of Haste', type: 'equipment', slot: EquipmentSlot.FEET, armor: 3, price: 0, sellPrice: 2500, soldTo: [NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Botas da velocidade (Tier 3).', image: `${IMG_BASE}Boots_of_Haste.gif`, requiredLevel: 20 },
 
   // TIER 4
-  { id: 'knight_boots', name: 'Knight Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 4, price: 0, sellPrice: 10000, soldTo: [NpcType.GREEN_DJINN, NpcType.RASHID], description: 'Botas de cavaleiro (Tier 4).', image: `${IMG_BASE}Knight_Boots.gif`, requiredLevel: 40 },
+  { id: 'knight_boots', name: 'Knight Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 4, price: 0, sellPrice: 10000, soldTo: [NpcType.GREEN_DJINN, NpcType.RASHID], description: 'Botas de cavaleiro (Tier 4).', image: `${OUT_BASE}Metal_Spats.gif`, requiredLevel: 40 },
 
   // TIER 5
-  { id: 'guardian_boots', name: 'Guardian Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 5, price: 0, sellPrice: 30000, soldTo: [NpcType.RASHID], description: 'Botas guardiãs (Tier 5).', image: `${IMG_BASE}Guardian_Boots.gif`, requiredLevel: 100 },
+  { id: 'guardian_boots', name: 'Guardian Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 5, price: 0, sellPrice: 3000, soldTo: [NpcType.RASHID], description: 'Botas guardiãs (Tier 5).', image: `${IMG_BASE}Guardian_Boots.gif`, requiredLevel: 100 },
 
   // TIER 6
   { id: 'depth_calcei', name: 'Depth Calcei', type: 'equipment', slot: EquipmentSlot.FEET, armor: 6, price: 0, sellPrice: 60000, soldTo: [NpcType.RASHID], description: 'Botas das profundezas (Tier 6).', image: `${IMG_BASE}Depth_Calcei.gif`, requiredLevel: 200 },

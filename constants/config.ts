@@ -1,5 +1,5 @@
 
-import { Player, EquipmentSlot, SkillType, Vocation } from '../types';
+import { Player, EquipmentSlot, SkillType, Vocation, ImbuType } from '../types';
 
 // URLs mais estáveis e diretas
 export const IMG_BASE = 'https://tibia.fandom.com/wiki/Special:FilePath/';
@@ -133,6 +133,12 @@ export const INITIAL_PLAYER_STATS: Player = {
         nextFreeReroll: 0,
         rerollsAvailable: 3
     },
+    imbuements: {
+        [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
+        [ImbuType.MANA_LEECH]: { tier: 0, timeRemaining: 0 },
+        [ImbuType.STRIKE]: { tier: 0, timeRemaining: 0 }
+    },
+    imbuActive: true,
     soulPoints: 0,
     ascension: {
         gold_boost: 0,

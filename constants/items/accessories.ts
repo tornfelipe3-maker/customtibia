@@ -1,6 +1,6 @@
 
 import { Item, EquipmentSlot, NpcType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const ACCESSORIES_LIST: Item[] = [
   // ==========================================
@@ -39,12 +39,12 @@ export const ACCESSORIES_LIST: Item[] = [
   { 
     id: 'cobra_amulet', name: 'Cobra Amulet', type: 'equipment', slot: EquipmentSlot.NECK, 
     armor: 7, price: 0, sellPrice: 50000, soldTo: [NpcType.RASHID], 
-    description: 'Tier 7: Amuleto das areias de Hyaena.', image: `${IMG_BASE}Cobra_Amulet.gif` 
+    description: 'Tier 7: Amuleto das areias de Hyaena.', image: `${OUT_BASE}The_Cobra_Amulet.gif` 
   },
   { 
     id: 'falcon_amulet', name: 'Falcon Amulet', type: 'equipment', slot: EquipmentSlot.NECK, 
     armor: 8, price: 0, sellPrice: 100000, soldTo: [NpcType.RASHID], 
-    description: 'Tier 8: A relíquia suprema da ordem do Falcão.', image: `${IMG_BASE}Falcon_Amulet.gif` 
+    description: 'Tier 8: A relíquia suprema da ordem do Falcão.', image: `${OUT_BASE}Demonbone_Amulet.gif` 
   },
 
   // ==========================================

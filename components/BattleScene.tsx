@@ -40,6 +40,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       switch(type) {
           case 'damage': return 'text-[#b90000]';
           case 'heal': return 'text-[#00c000]'; 
+          case 'mana': return 'text-[#00aaff]'; // Azul claro vibrante
           case 'speech': return 'text-yellow-400 text-[10px] font-normal';
           default: return 'text-gray-400';
       }
@@ -59,9 +60,37 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       return hits.filter(h => h.target === target).map(hit => {
          const randomX = (hit.id % 20) - 10;
          const randomY = (hit.id % 10) - 5;
+         
          if (hit.type === 'miss') return <div key={hit.id} className="hit-miss" style={{ top: `calc(40% + ${randomY}px)`, left: `calc(50% + ${randomX}px)` }}></div>;
+         
          if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-10% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
-         return <div key={hit.id} className={`damage-float ${getHitColor(hit.type)}`} style={{ top: `calc(20% + ${randomY}px)`, left: `calc(50% + ${randomX}px)` }}>{hit.value}</div>;
+         
+         // Posicionamento: Vida longe na esquerda, Mana longe na direita
+         let leftPos = '50%';
+         let displayValue = String(hit.value);
+
+         if (target === 'player') {
+             if (hit.type === 'heal') {
+                 leftPos = '0%'; // Extremidade esquerda do container do player
+                 displayValue = `+${hit.value} HP`;
+             } else if (hit.type === 'mana') {
+                 leftPos = '100%'; // Extremidade direita do container do player
+                 displayValue = `+${hit.value} MP`;
+             }
+         }
+
+         return (
+            <div 
+                key={hit.id} 
+                className={`damage-float ${getHitColor(hit.type)}`} 
+                style={{ 
+                    top: `calc(10% + ${randomY}px)`, 
+                    left: `calc(${leftPos} + ${randomX}px)` 
+                }}
+            >
+                {displayValue}
+            </div>
+         );
       });
   };
 
@@ -71,9 +100,14 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${!activeMonster ? 'border-black' : activeMonster.isInfluenced ? `border-${activeMonster.influencedType}` : 'border-black'}`}>
          
          {activeMonster ? (
-            <div className="relative w-full max-w-[500px] h-full flex items-center justify-center space-x-32 z-10">
+            // Aumentado space-x de 32 para 48 para empurrar o mob mais para a direita
+            <div className="relative w-full max-w-[600px] h-full flex items-center justify-center space-x-48 z-10">
                <div className="flex flex-col items-center animate-[pulse_2s_infinite] relative">
-                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center">{renderHits('player')}</div>
+                  {/* Container de Hits do Jogador */}
+                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center -mx-20 w-[calc(100%+160px)]">
+                    {renderHits('player')}
+                  </div>
+                  
                   <div className="relative z-10 w-20 h-20 flex items-center justify-center drop-shadow-[4px_4px_0_rgba(0,0,0,0.5)]">
                      <Sprite src={VOCATION_SPRITES[player.vocation]} type="outfit" className="scale-[2]" size={40} />
                   </div>

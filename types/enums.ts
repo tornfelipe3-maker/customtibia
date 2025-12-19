@@ -37,6 +37,7 @@ export enum NpcType {
   RASHID = 'Rashid',
   YASIR = 'Yasir',
   ABENCOADO = 'Abençoado',
+  IMBU = 'Imbu',
 }
 
 export enum DamageType {
@@ -47,4 +48,10 @@ export enum DamageType {
     EARTH = 'earth',
     HOLY = 'holy',
     DEATH = 'death'
+}
+
+export enum ImbuType {
+    LIFE_STEAL = 'life_steal',
+    MANA_LEECH = 'mana_leech',
+    STRIKE = 'strike'
 }

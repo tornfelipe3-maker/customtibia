@@ -1,5 +1,5 @@
 
-import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity } from '../types';
+import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
 import { processSkillTraining, checkForLevelUp, getEffectiveSkill } from './progression';
@@ -71,6 +71,45 @@ export const processGameTick = (
     let stopTrain = false;
     let bossDefeatedId: string | undefined = undefined;
     let monsterHp = currentMonsterHp;
+
+    // --- IMBUEMENT TIMER TICK ---
+    if (p.imbuActive) {
+        Object.keys(p.imbuements).forEach(key => {
+            const imbu = p.imbuements[key as ImbuType];
+            if (imbu.tier > 0 && imbu.timeRemaining > 0) {
+                imbu.timeRemaining = Math.max(0, imbu.timeRemaining - 1);
+                if (imbu.timeRemaining === 0) {
+                    imbu.tier = 0;
+                    log(`Your ${key.replace('_', ' ')} imbuement has expired!`, 'danger');
+                }
+            }
+        });
+    }
+
+    // --- HELPER: APPLY IMBUEMENT LEECH (CORRIGIDO PARA SER INSTANTÂNEO EM CADA HIT) ---
+    const applyLeech = (dmg: number) => {
+        if (!p.imbuActive || dmg <= 0) return;
+
+        // Life Steal (Vampirism)
+        const ls = p.imbuements[ImbuType.LIFE_STEAL];
+        if (ls.tier > 0 && ls.timeRemaining > 0) {
+            const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
+            if (heal > 0) {
+                p.hp = Math.min(p.maxHp, p.hp + heal);
+                hit(heal, 'heal', 'player'); 
+            }
+        }
+
+        // Mana Leech (Void)
+        const ml = p.imbuements[ImbuType.MANA_LEECH];
+        if (ml.tier > 0 && ml.timeRemaining > 0) {
+            const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
+            if (manaGain > 0) {
+                p.mana = Math.min(p.maxMana, p.mana + manaGain);
+                hit(manaGain, 'mana', 'player');
+            }
+        }
+    };
 
     const huntId = activeHuntId;
     const settingsHuntCount = p.activeHuntCount || 1;
@@ -186,7 +225,6 @@ export const processGameTick = (
                 const mitigation = calculatePlayerDefense(p);
                 let actualDmg = Math.max(0, Math.floor(totalIncomingRaw - mitigation));
                 
-                // --- PREY DEFENSE (REDUÇÃO DIRETA DE DANO) ---
                 const activePreyDef = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'defense');
                 if (activePreyDef && actualDmg > 0) {
                     actualDmg = Math.floor(actualDmg * (1 - (activePreyDef.bonusValue / 100)));
@@ -318,7 +356,14 @@ export const processGameTick = (
                     if (bossBonus > 0) autoAttackDamage = Math.floor(autoAttackDamage * (1 + (bossBonus / 100)));
                 }
 
-                const critChance = getPlayerModifier(p, 'critChance');
+                // --- IMBUEMENT: STRIKE (CRIT) ---
+                let imbuCritChance = 0;
+                const strikeImbu = p.imbuements[ImbuType.STRIKE];
+                if (p.imbuActive && strikeImbu.tier > 0 && strikeImbu.timeRemaining > 0) {
+                    imbuCritChance = strikeImbu.tier * 5; // 5, 10, 15
+                }
+
+                const critChance = getPlayerModifier(p, 'critChance') + imbuCritChance;
                 if (autoAttackDamage > 0 && Math.random() < (critChance / 100)) {
                     autoAttackDamage = Math.floor(autoAttackDamage * 1.5);
                     hit('CRIT!', 'speech', 'player');
@@ -369,9 +414,10 @@ export const processGameTick = (
             if (autoAttackDamage > 0) {
                 monsterHp -= autoAttackDamage;
                 hit(autoAttackDamage, 'damage', 'monster');
+                // Aplica imbuement de recuperação no auto attack (INSTANTÂNEO)
+                applyLeech(autoAttackDamage);
             }
 
-            // --- SPELL ATTACK PHASE (Independent Attack Cooldown) ---
             if (p.settings.autoAttackSpell && (p.attackCooldown || 0) <= now) {
                 const rotation = p.settings.attackSpellRotation || [];
                 if (rotation.length === 0 && p.settings.selectedAttackSpellId) {
@@ -402,6 +448,8 @@ export const processGameTick = (
                             monsterHp -= finalSpellDmg;
                             hit(finalSpellDmg, 'damage', 'monster');
                             hit(spellName, 'speech', 'player');
+                            // Aplica imbuement de recuperação na magia (INSTANTÂNEO)
+                            applyLeech(finalSpellDmg);
                         }
 
                         p.mana -= spell.manaCost;
@@ -436,6 +484,8 @@ export const processGameTick = (
                         } else {
                             monsterHp -= finalRuneDmg;
                             hit(finalRuneDmg, 'damage', 'monster');
+                            // Aplica imbuement de recuperação na runa (INSTANTÂNEO)
+                            applyLeech(finalRuneDmg);
                         }
 
                         p.inventory[runeItem.id]--;
@@ -451,22 +501,21 @@ export const processGameTick = (
                 killedMonsters.push({ name: monster.name, count: effectiveHuntCount });
                 const goldDropBase = Math.floor(Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold;
                 const goldDrop = goldDropBase * effectiveHuntCount;
-                const staminaMultiplier = p.stamina > 0 ? 1.5 : 1.0;
-                const stageMult = getXpStageMultiplier(p.level);
                 
-                let preyXpMult = 1;
+                // --- XP LOGIC ---
+                let finalXpMultiplier = 1.0;
+                finalXpMultiplier *= getXpStageMultiplier(p.level);
+                if (p.stamina > 0) finalXpMultiplier *= 1.5;
                 const activePreyXp = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'xp');
-                if (activePreyXp) preyXpMult = 1 + (activePreyXp.bonusValue / 100);
-                
+                if (activePreyXp) finalXpMultiplier *= (1 + (activePreyXp.bonusValue / 100));
+                finalXpMultiplier *= (1 + (getAscensionBonusValue(p, 'xp_boost') / 100));
                 const equipXpBonus = getPlayerModifier(p, 'xpBoost');
-                preyXpMult += (equipXpBonus / 100);
-                if (p.premiumUntil > now) preyXpMult += 1.0; 
-                if (p.xpBoostUntil > now) preyXpMult += 2.0; 
-                const ascXpBonus = getAscensionBonusValue(p, 'xp_boost');
-                preyXpMult += (ascXpBonus / 100);
-                preyXpMult += (hazardXpBonus - 1); 
+                if (equipXpBonus > 0) finalXpMultiplier *= (1 + (equipXpBonus / 100));
+                if (p.premiumUntil > now) finalXpMultiplier *= 2.0; 
+                if (p.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
+                finalXpMultiplier *= hazardXpBonus;
 
-                const xpGained = Math.floor(monster.exp * stageMult * staminaMultiplier * effectiveHuntCount * preyXpMult);
+                const xpGained = Math.floor(monster.exp * effectiveHuntCount * finalXpMultiplier);
                 p.currentXp += xpGained;
                 stats.xpGained += xpGained;
 
@@ -494,6 +543,15 @@ export const processGameTick = (
                 lootBonus += hazardLootBonus;
 
                 let combinedStandardLoot: {[key:string]: number} = {};
+                
+                // --- BOSS SPECIAL DROP: GOLD TOKEN (0-2) ---
+                if ((monster as Boss).cooldownSeconds) {
+                    const tokenRoll = Math.floor(Math.random() * 3); // 0, 1, 2
+                    if (tokenRoll > 0) {
+                        combinedStandardLoot['gold_token'] = tokenRoll;
+                    }
+                }
+
                 if (monster.isInfluenced) {
                     let minTokens = 1; let maxTokens = 2;
                     if (monster.influencedType === 'enraged') { minTokens = 2; maxTokens = 4; }

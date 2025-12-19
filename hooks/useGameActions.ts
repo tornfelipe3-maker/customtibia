@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport } from '../types';
+import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport, ImbuType } from '../types';
 import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp } from '../services';
 import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS } from '../constants';
 
@@ -20,28 +20,19 @@ export const useGameActions = (
     setOfflineReport: React.Dispatch<React.SetStateAction<OfflineReport | null>>
 ) => {
 
-    // CORE UPDATE LOGIC:
-    // 1. Read latest state from Ref (which is updated by Worker constantly)
-    // 2. Apply changes
-    // 3. Write back to Ref IMMEDIATELY
-    // 4. Notify React to re-render asynchronously
     const updatePlayerState = (fn: (p: Player) => Player | null) => {
         const currentPlayer = playerRef.current;
         if (!currentPlayer) return;
 
         const newVal = fn(currentPlayer);
         if (newVal) {
-            playerRef.current = newVal; // Sync update for Worker
-            setPlayer(newVal);          // Async update for UI
+            playerRef.current = newVal;
+            setPlayer(newVal);
         }
     };
 
     const getSlotCount = (p: Player) => {
         return Object.keys(p.inventory).length + (p.uniqueInventory?.length || 0);
-    };
-
-    const getDepotCount = (p: Player) => {
-        return Object.keys(p.depot).length + (p.uniqueDepot?.length || 0);
     };
 
     return {
@@ -56,7 +47,7 @@ export const useGameActions = (
         },
         closeOfflineModal: () => {
             setOfflineReport(null);
-            setIsPaused(false); // Unpause game loop
+            setIsPaused(false);
         },
         setActiveHazardLevel: (level: number) => {
             updatePlayerState(p => ({
@@ -64,18 +55,44 @@ export const useGameActions = (
                 activeHazardLevel: Math.max(0, Math.min(level, p.hazardLevel))
             }));
         },
+        // --- IMBUEMENT ACTIONS ---
+        handleImbu: (type: ImbuType, tier: number) => {
+            updatePlayerState(p => {
+                const costs = [0, 1, 3, 5];
+                const cost = costs[tier];
+                const tokenCount = p.inventory['gold_token'] || 0;
+
+                if (tokenCount < cost) {
+                    addLog("Not enough Gold Tokens.", "danger");
+                    return p;
+                }
+
+                const newInv = { ...p.inventory };
+                newInv['gold_token'] -= cost;
+                if (newInv['gold_token'] === 0) delete newInv['gold_token'];
+
+                const newImbuements = { ...p.imbuements };
+                newImbuements[type] = {
+                    tier,
+                    timeRemaining: 3 * 3600 // 3 Hours
+                };
+
+                addLog(`Success! Imbued with ${type.replace('_', ' ')} Tier ${tier}.`, "magic");
+                return { ...p, inventory: newInv, imbuements: newImbuements };
+            });
+        },
+        handleToggleImbuActive: () => {
+            updatePlayerState(p => ({ ...p, imbuActive: !p.imbuActive }));
+        },
         removeGold: (amount: number) => {
             updatePlayerState(p => {
                 if (p.gold + p.bankGold < amount) {
                     addLog(`Insufficient gold (Need ${amount}).`, 'danger');
                     return p;
                 }
-                
                 let remainingCost = amount;
                 let newGold = p.gold;
                 let newBank = p.bankGold;
-
-                // Deduct from Inventory first
                 if (newGold >= remainingCost) {
                     newGold -= remainingCost;
                     remainingCost = 0;
@@ -83,12 +100,9 @@ export const useGameActions = (
                     remainingCost -= newGold;
                     newGold = 0;
                 }
-
-                // Deduct remaining from Bank
                 if (remainingCost > 0) {
                     newBank -= remainingCost;
                 }
-
                 return { ...p, gold: newGold, bankGold: newBank };
             });
             addLog(`Paid ${amount.toLocaleString()} gold.`, 'info');
@@ -96,15 +110,12 @@ export const useGameActions = (
         startHunt: (monsterId: string, _name: string, isBoss: boolean, count: number = 1) => {
             updatePlayerState(p => {
                 const newCooldowns = { ...p.bossCooldowns };
-                
-                // Apply Cooldown IMMEDIATELY on start for Bosses
                 if (isBoss) {
                     const boss = BOSSES.find(b => b.id === monsterId);
                     if (boss && boss.cooldownSeconds) {
                         newCooldowns[monsterId] = Date.now() + (boss.cooldownSeconds * 1000);
                     }
                 }
-
                 return {
                     ...p,
                     activeHuntId: monsterId,
@@ -115,10 +126,8 @@ export const useGameActions = (
                     bossCooldowns: newCooldowns
                 };
             });
-            
-            // RESET ENGINE STATE to fix first spawn bug and ensure new timers
             resetCombatState(); 
-            monsterHpRef.current = 0; // Trigger spawn logic in next tick
+            monsterHpRef.current = 0; 
             setCurrentMonsterHp(0);
             setActiveMonster(undefined);
             addLog(`Started hunting ${monsterId}.`, 'info');
@@ -147,7 +156,6 @@ export const useGameActions = (
         },
         buyItem: (item: Item, quantity: number = 1) => {
             updatePlayerState(prev => {
-                // Check Capacity for New Items
                 const isStacking = prev.inventory[item.id] !== undefined;
                 if (!isStacking) {
                     if (getSlotCount(prev) >= MAX_BACKPACK_SLOTS) {
@@ -155,20 +163,15 @@ export const useGameActions = (
                         return prev;
                     }
                 }
-
                 const totalCost = item.price * quantity;
                 const totalFunds = prev.gold + prev.bankGold;
-
                 if (totalFunds < totalCost) {
                     addLog(`Insufficient gold (Need ${totalCost}).`, 'danger');
                     return prev;
                 }
-
                 let remainingCost = totalCost;
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
-                // 1. Deduct from Inventory
                 if (newGold >= remainingCost) {
                     newGold -= remainingCost;
                     remainingCost = 0;
@@ -176,12 +179,9 @@ export const useGameActions = (
                     remainingCost -= newGold;
                     newGold = 0;
                 }
-
-                // 2. Deduct from Bank
                 if (remainingCost > 0) {
                     newBank -= remainingCost;
                 }
-
                 const newInv = { ...prev.inventory };
                 newInv[item.id] = (newInv[item.id] || 0) + quantity;
                 addLog(`Bought ${quantity}x ${item.name}.`, 'gain');
@@ -206,65 +206,35 @@ export const useGameActions = (
                     if ((prev.inventory[item.id] || 0) < quantity) return prev;
                     const newInv = { ...prev.inventory };
                     newInv[item.id] -= quantity;
-                    if (newInv[item.id] <= 0) delete newInv[item.id]; // Remove empty key
+                    if (newInv[item.id] <= 0) delete newInv[item.id];
                     return { ...prev, gold: prev.gold + (item.sellPrice * quantity), inventory: newInv };
                 });
                 addLog(`Sold ${quantity}x ${item.name}.`, 'info');
             }
         },
-        sellManyItems: (itemsToSell: { itemId: string, quantity: number, unitPrice: number }[]) => {
-            updatePlayerState(prev => {
-                let totalGain = 0;
-                const newInv = { ...prev.inventory };
-                
-                itemsToSell.forEach(({ itemId, quantity, unitPrice }) => {
-                    if (newInv[itemId] && newInv[itemId] >= quantity) {
-                        newInv[itemId] -= quantity;
-                        if (newInv[itemId] <= 0) delete newInv[itemId];
-                        totalGain += quantity * unitPrice;
-                    }
-                });
-
-                if (totalGain === 0) return prev; // Nothing sold
-
-                return { ...prev, gold: prev.gold + totalGain, inventory: newInv };
-            });
-            const totalCount = itemsToSell.reduce((acc, i) => acc + i.quantity, 0);
-            addLog(`Bulk sold ${totalCount} items.`, 'gain');
-        },
         equipItem: (item: Item) => {
             updatePlayerState(prev => {
                 if (!item.slot) return prev;
-
-                // CHECK VOCATION REQUIREMENT
                 if (item.requiredVocation && prev.vocation !== Vocation.NONE && !item.requiredVocation.includes(prev.vocation)) {
                     addLog(`Only ${item.requiredVocation.join(' or ')} can equip this.`, 'danger');
                     return prev;
                 }
-
-                // CHECK LEVEL REQUIREMENT
                 if (item.requiredLevel && prev.level < item.requiredLevel) {
                     addLog(`You need level ${item.requiredLevel} to equip ${item.name}.`, 'danger');
                     return prev;
                 }
-
-                // --- SPECIAL AMMO STACKING LOGIC ---
                 if (item.slot === EquipmentSlot.AMMO) {
                     const currentAmmo = prev.equipment[EquipmentSlot.AMMO];
                     const invQty = prev.inventory[item.id] || 0;
                     if (invQty <= 0 && !item.uniqueId) return prev;
-
                     let newInv = { ...prev.inventory };
                     let newEquip = { ...prev.equipment };
-                    
                     if (currentAmmo && currentAmmo.id === item.id) {
-                        // Stacking same ammo
                         const combinedCount = (currentAmmo.count || 1) + invQty;
                         newEquip[EquipmentSlot.AMMO] = { ...currentAmmo, count: combinedCount };
                         delete newInv[item.id];
                         addLog(`Stacked ${invQty}x ${item.name}.`, 'info');
                     } else {
-                        // Swapping or first equip
                         if (currentAmmo) {
                             newInv[currentAmmo.id] = (newInv[currentAmmo.id] || 0) + (currentAmmo.count || 1);
                         }
@@ -274,29 +244,21 @@ export const useGameActions = (
                     }
                     return { ...prev, inventory: newInv, equipment: newEquip };
                 }
-
                 let slotsUsed = getSlotCount(prev);
-                
-                // Simulate removal
                 let simulatedSlots = slotsUsed;
                 if (item.uniqueId) simulatedSlots--; 
-                else if ((prev.inventory[item.id] || 0) === 1) simulatedSlots--; // If it was stack of 1, slot frees up
-
-                // Simulate addition of currently equipped item
+                else if ((prev.inventory[item.id] || 0) === 1) simulatedSlots--;
                 const currentEquipped = prev.equipment[item.slot];
                 if (currentEquipped) {
                     if (currentEquipped.uniqueId) simulatedSlots++;
-                    else if (!prev.inventory[currentEquipped.id]) simulatedSlots++; // New stack
+                    else if (!prev.inventory[currentEquipped.id]) simulatedSlots++;
                 }
-
                 if (simulatedSlots > MAX_BACKPACK_SLOTS) {
                     addLog("Not enough room to swap items.", 'danger');
                     return prev;
                 }
-
                 let newInv = { ...prev.inventory };
                 let newUniqueInv = [...(prev.uniqueInventory || [])];
-                
                 if (item.uniqueId) {
                     newUniqueInv = newUniqueInv.filter(i => i.uniqueId !== item.uniqueId);
                 } else {
@@ -304,12 +266,10 @@ export const useGameActions = (
                     newInv[item.id]--;
                     if (newInv[item.id] <= 0) delete newInv[item.id];
                 }
-
                 if (currentEquipped) {
                     if (currentEquipped.uniqueId) newUniqueInv.push(currentEquipped);
                     else newInv[currentEquipped.id] = (newInv[currentEquipped.id] || 0) + 1;
                 }
-
                 const newEquip = { ...prev.equipment, [item.slot]: item };
                 return { ...prev, inventory: newInv, uniqueInventory: newUniqueInv, equipment: newEquip };
             });
@@ -318,8 +278,6 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 const item = prev.equipment[slot];
                 if (!item) return prev;
-                
-                // Check Capacity
                 const isStacking = !item.uniqueId && prev.inventory[item.id] !== undefined;
                 if (!isStacking) {
                     if (getSlotCount(prev) >= MAX_BACKPACK_SLOTS) {
@@ -327,66 +285,44 @@ export const useGameActions = (
                         return prev;
                     }
                 }
-
                 const newEquip = { ...prev.equipment };
                 delete newEquip[slot];
-
                 let newInv = { ...prev.inventory };
                 let newUniqueInv = [...(prev.uniqueInventory || [])];
-
                 if (item.uniqueId) {
                     newUniqueInv.push(item);
                 } else {
                     const countToReturn = item.count || 1;
                     newInv[item.id] = (newInv[item.id] || 0) + countToReturn;
                 }
-
                 return { ...prev, equipment: newEquip, inventory: newInv, uniqueInventory: newUniqueInv };
             });
         },
         depositItem: (item: Item) => {
             updatePlayerState(prev => {
-                // CHECK DEPOT LIMIT
                 const isStackingDepot = !item.uniqueId && prev.depot[item.id] !== undefined;
                 if (!isStackingDepot) {
-                    if (getDepotCount(prev) >= MAX_DEPOT_SLOTS) {
+                    if (Object.keys(prev.depot).length + (prev.uniqueDepot?.length || 0) >= MAX_DEPOT_SLOTS) {
                         addLog("Depot Chest is full!", 'danger');
                         return prev;
                     }
                 }
-
                 if (item.uniqueId) {
-                    // UNIQUE ITEM DEPOSIT
                     const uniqueInv = prev.uniqueInventory || [];
                     const exists = uniqueInv.find(i => i.uniqueId === item.uniqueId);
-                    
                     if (!exists) return prev;
-                    
-                    // Remove from inventory
                     const newUniqueInv = uniqueInv.filter(i => i.uniqueId !== item.uniqueId);
-                    
-                    // Add to depot
                     const currentDepot = (prev.uniqueDepot && Array.isArray(prev.uniqueDepot)) ? prev.uniqueDepot : [];
                     const newUniqueDepot = [...currentDepot, item];
-                    
                     addLog(`Deposited ${item.name} (${item.rarity}) to depot.`, 'info');
-                    
-                    return { 
-                        ...prev, 
-                        uniqueInventory: newUniqueInv, 
-                        uniqueDepot: newUniqueDepot 
-                    };
+                    return { ...prev, uniqueInventory: newUniqueInv, uniqueDepot: newUniqueDepot };
                 } else {
-                    // STANDARD ITEM DEPOSIT
                     const amount = prev.inventory[item.id] || 0;
                     if (amount <= 0) return prev;
-                    
                     const newInv = { ...prev.inventory };
                     delete newInv[item.id]; 
-                    
                     const newDepot = { ...prev.depot };
                     newDepot[item.id] = (newDepot[item.id] || 0) + amount;
-                    
                     addLog(`Deposited all ${item.name} to depot.`, 'info');
                     return { ...prev, inventory: newInv, depot: newDepot };
                 }
@@ -394,7 +330,6 @@ export const useGameActions = (
         },
         withdrawItem: (item: Item) => {
             updatePlayerState(prev => {
-                // CHECK BACKPACK LIMIT
                 const isStackingBP = !item.uniqueId && prev.inventory[item.id] !== undefined;
                 if (!isStackingBP) {
                     if (getSlotCount(prev) >= MAX_BACKPACK_SLOTS) {
@@ -402,35 +337,21 @@ export const useGameActions = (
                         return prev;
                     }
                 }
-
                 if (item.uniqueId) {
-                    // UNIQUE ITEM WITHDRAW
                     const currentDepot = (prev.uniqueDepot && Array.isArray(prev.uniqueDepot)) ? prev.uniqueDepot : [];
                     const exists = currentDepot.find(i => i.uniqueId === item.uniqueId);
-                    
                     if (!exists) return prev;
-
                     const newUniqueDepot = currentDepot.filter(i => i.uniqueId !== item.uniqueId);
-                    
                     const currentInv = prev.uniqueInventory || [];
                     const newUniqueInv = [...currentInv, item];
-                    
-                    return { 
-                        ...prev, 
-                        uniqueDepot: newUniqueDepot, 
-                        uniqueInventory: newUniqueInv 
-                    };
+                    return { ...prev, uniqueDepot: newUniqueDepot, uniqueInventory: newUniqueInv };
                 } else {
-                    // STANDARD ITEM WITHDRAW
                     if ((prev.depot[item.id] || 0) <= 0) return prev;
-                    
                     const newDepot = { ...prev.depot };
                     newDepot[item.id]--;
                     if (newDepot[item.id] <= 0) delete newDepot[item.id];
-
                     const newInv = { ...prev.inventory };
                     newInv[item.id] = (newInv[item.id] || 0) + 1;
-                    
                     return { ...prev, depot: newDepot, inventory: newInv };
                 }
             });
@@ -457,28 +378,22 @@ export const useGameActions = (
                 if (!item.uniqueId) return prev; 
                 const TOKEN_ID = 'forge_token';
                 const cost = getReforgeCost(item.rarity);
-                
                 const tokenCount = prev.inventory[TOKEN_ID] || 0;
                 if (tokenCount < cost) {
                     addLog(`Not enough Forge Tokens (Need ${cost}).`, 'danger');
                     return prev;
                 }
-                
                 const newInv = { ...prev.inventory };
                 newInv[TOKEN_ID] -= cost;
                 if (newInv[TOKEN_ID] <= 0) delete newInv[TOKEN_ID];
-                
                 const oldItem = { ...item };
                 const newItem = reforgeItemStats({ ...item });
-                
                 const newUniqueInv = prev.uniqueInventory.map(i => i.uniqueId === item.uniqueId ? newItem : i);
                 const newEquipment = { ...prev.equipment };
                 if (item.slot && newEquipment[item.slot]?.uniqueId === item.uniqueId) {
                     newEquipment[item.slot] = newItem;
                 }
-
                 addLog(`Reforged ${item.name}. Stats updated!`, 'magic');
-                
                 setReforgeResult({ oldItem, newItem });
                 return { ...prev, inventory: newInv, uniqueInventory: newUniqueInv, equipment: newEquipment };
             });
@@ -493,29 +408,18 @@ export const useGameActions = (
                 return { ...prev, skippedLoot: newSkipped };
             });
         },
-        handleToggleSkippedLoot: (itemId: string) => {
-            updatePlayerState(prev => {
-                const isSkipped = prev.skippedLoot.includes(itemId);
-                const newSkipped = isSkipped ? prev.skippedLoot.filter(id => id !== itemId) : [...prev.skippedLoot, itemId];
-                return { ...prev, skippedLoot: newSkipped };
-            });
-        },
         handleBuyBlessing: () => {
             updatePlayerState(prev => {
                 const cost = prev.level <= 30 ? 2000 : prev.level >= 120 ? 20000 : 2000 + (prev.level - 30) * 200;
                 if (prev.hasBlessing) return prev;
-
                 const totalFunds = prev.gold + prev.bankGold;
                 if (totalFunds < cost) {
                     addLog(`Insufficient gold (Need ${cost}).`, 'danger');
                     return prev;
                 }
-
-                // Deduct
                 let remaining = cost;
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
                 if (newGold >= remaining) {
                     newGold -= remaining;
                     remaining = 0;
@@ -524,7 +428,6 @@ export const useGameActions = (
                     newGold = 0;
                 }
                 if (remaining > 0) newBank -= remaining;
-
                 addLog("Received the blessing of Henricus.", 'gain');
                 return { ...prev, gold: newGold, bankGold: newBank, hasBlessing: true };
             });
@@ -534,16 +437,13 @@ export const useGameActions = (
                 if (prev.promoted) return prev;
                 const cost = 20000;
                 const totalFunds = prev.gold + prev.bankGold;
-                
                 if (totalFunds < cost) {
                     addLog(`Insufficient gold (Need ${cost}).`, 'danger');
                     return prev;
                 }
-
                 let remaining = cost;
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
                 if (newGold >= remaining) {
                     newGold -= remaining;
                     remaining = 0;
@@ -552,7 +452,6 @@ export const useGameActions = (
                     newGold = 0;
                 }
                 if (remaining > 0) newBank -= remaining;
-
                 addLog("You have been promoted by King Tibianus!", 'gain');
                 return { ...prev, gold: newGold, bankGold: newBank, promoted: true };
             });
@@ -561,16 +460,13 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 if (prev.purchasedSpells.includes(spell.id)) return prev;
                 const totalFunds = prev.gold + prev.bankGold;
-                
                 if (totalFunds < spell.price) {
                     addLog(`Insufficient gold (Need ${spell.price}).`, 'danger');
                     return prev;
                 }
-
                 let remaining = spell.price;
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
                 if (newGold >= remaining) {
                     newGold -= remaining;
                     remaining = 0;
@@ -579,7 +475,6 @@ export const useGameActions = (
                     newGold = 0;
                 }
                 if (remaining > 0) newBank -= remaining;
-
                 addLog(`Learned spell: ${spell.name}.`, 'magic');
                 return { ...prev, gold: newGold, bankGold: newBank, purchasedSpells: [...prev.purchasedSpells, spell.id] };
             });
@@ -653,13 +548,10 @@ export const useGameActions = (
                 const isFree = now > (prev.taskNextFreeReroll || 0);
                 const cost = prev.level * 800;
                 const totalFunds = prev.gold + prev.bankGold;
-                
                 if (!isFree && totalFunds < cost) {
                     addLog(`Insufficient gold (Need ${cost}).`, 'danger');
                     return prev;
                 }
-                
-                // Deduct
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
                 if (!isFree) {
@@ -673,15 +565,12 @@ export const useGameActions = (
                     }
                     if (remaining > 0) newBank -= remaining;
                 }
-
                 const nextFree = isFree ? now + (20 * 60 * 60 * 1000) : prev.taskNextFreeReroll;
-
                 const newTaskOptions = prev.taskOptions.map((task, index) => {
                     if (task.status === 'active') return task;
                     const type = index < 4 ? 'kill' : 'collect';
                     return generateSingleTask(prev.level, type);
                 });
-
                 return { 
                     ...prev, 
                     gold: newGold, 
@@ -695,16 +584,13 @@ export const useGameActions = (
             updatePlayerState(prev => {
                 const cost = prev.level * 100;
                 const totalFunds = prev.gold + prev.bankGold;
-
                 if (totalFunds < cost) {
                     addLog("Not enough gold to reroll this contract.", 'danger');
                     return prev;
                 }
-
                 let remaining = cost;
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
                 if (newGold >= remaining) {
                     newGold -= remaining;
                     remaining = 0;
@@ -713,88 +599,52 @@ export const useGameActions = (
                     newGold = 0;
                 }
                 if (remaining > 0) newBank -= remaining;
-
                 const newOptions = [...prev.taskOptions];
                 const forcedType = index < 4 ? 'kill' : 'collect';
                 newOptions[index] = generateSingleTask(prev.level, forcedType);
-                return {
-                    ...prev,
-                    gold: newGold,
-                    bankGold: newBank,
-                    taskOptions: newOptions
-                };
+                return { ...prev, gold: newGold, bankGold: newBank, taskOptions: newOptions };
             });
         },
         claimTaskReward: (taskUuid: string) => {
             updatePlayerState(prev => {
                 const taskIndex = prev.taskOptions.findIndex(t => t.uuid === taskUuid);
                 if (taskIndex === -1) return prev;
-
                 const task = prev.taskOptions[taskIndex];
                 let isReady = false;
-
-                if (task.type === 'kill') {
-                    isReady = !!task.isComplete;
-                } else {
-                    // Collect
-                    const amount = prev.inventory[task.targetId] || 0;
-                    isReady = amount >= task.amountRequired;
-                }
-
+                if (task.type === 'kill') isReady = !!task.isComplete;
+                else isReady = (prev.inventory[task.targetId] || 0) >= task.amountRequired;
                 if (!isReady) {
                     addLog("Requirements not met.", 'danger');
                     return prev;
                 }
-
-                // Apply Rewards
                 const newGold = prev.gold + task.rewardGold;
                 const newXp = prev.currentXp + task.rewardXp;
-                
-                // Deduct items if collect
                 const newInv = { ...prev.inventory };
                 if (task.type === 'collect') {
                     newInv[task.targetId] = (newInv[task.targetId] || 0) - task.amountRequired;
                     if (newInv[task.targetId] <= 0) delete newInv[task.targetId];
                 }
-
-                // Regenerate Slot
                 const newOptions = [...prev.taskOptions];
-                // Preserve category (kill vs collect) for that slot
-                const category = task.category || task.type;
-                newOptions[taskIndex] = generateSingleTask(prev.level, category);
-
+                newOptions[taskIndex] = generateSingleTask(prev.level, task.category || task.type);
                 addLog(`Claimed: ${task.rewardGold}g, ${task.rewardXp}xp.`, 'gain');
-
-                // Level Up Check
                 const tempPlayer = { ...prev, gold: newGold, currentXp: newXp };
                 const lvlResult = checkForLevelUp(tempPlayer);
-                if (lvlResult.leveledUp) {
-                    addLog(`Level Up! ${lvlResult.player.level}. HP+${lvlResult.hpGain}, MP+${lvlResult.manaGain}.`, 'gain');
-                }
-
-                return {
-                    ...lvlResult.player,
-                    inventory: newInv,
-                    taskOptions: newOptions
-                };
+                if (lvlResult.leveledUp) addLog(`Level Up! ${lvlResult.player.level}.`, 'gain');
+                return { ...lvlResult.player, inventory: newInv, taskOptions: newOptions };
             });
         },
         claimQuest: (questId: string) => {
             updatePlayerState(prev => {
                 const q = QUESTS.find(q => q.id === questId);
                 if (!q || prev.quests[questId]?.completed) return prev;
-                
-                // CHECK GOLD COST (FOR YASIR)
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-                
                 if (q.costGold) {
                     const totalFunds = newGold + newBank;
                     if (totalFunds < q.costGold) {
                         addLog(`Need ${q.costGold} gold to complete this quest.`, 'danger');
                         return prev;
                     }
-                    
                     let remaining = q.costGold;
                     if (newGold >= remaining) {
                         newGold -= remaining;
@@ -805,30 +655,14 @@ export const useGameActions = (
                     }
                     if (remaining > 0) newBank -= remaining;
                 }
-
                 newGold += (q.rewardGold || 0);
                 let newXp = prev.currentXp + (q.rewardExp || 0);
                 let newInv = { ...prev.inventory };
-                if (q.rewardItems) {
-                    q.rewardItems.forEach(ri => {
-                        newInv[ri.itemId] = (newInv[ri.itemId] || 0) + ri.count;
-                    });
-                }
-                
+                if (q.rewardItems) q.rewardItems.forEach(ri => { newInv[ri.itemId] = (newInv[ri.itemId] || 0) + ri.count; });
                 addLog(`Quest Completed: ${q.name}!`, 'gain');
-
-                // Level Up Check
                 const tempPlayer = { ...prev, gold: newGold, bankGold: newBank, currentXp: newXp };
                 const lvlResult = checkForLevelUp(tempPlayer);
-                if (lvlResult.leveledUp) {
-                    addLog(`Level Up! ${lvlResult.player.level}. HP+${lvlResult.hpGain}, MP+${lvlResult.manaGain}.`, 'gain');
-                }
-
-                return { 
-                    ...lvlResult.player, 
-                    inventory: newInv, 
-                    quests: { ...prev.quests, [questId]: { ...prev.quests[questId], completed: true } } 
-                };
+                return { ...lvlResult.player, inventory: newInv, quests: { ...prev.quests, [questId]: { ...prev.quests[questId], completed: true } } };
             });
         },
         ascend: () => {
@@ -836,69 +670,40 @@ export const useGameActions = (
             monsterHpRef.current = 0;
             setCurrentMonsterHp(0);
             setActiveMonster(undefined);
-
             updatePlayerState(prev => {
-                if (prev.level < 30) return prev; // CHANGED FROM 50 to 30
+                if (prev.level < 30) return prev;
                 const points = calculateSoulPointsToGain(prev);
-                
                 const recoveredUnique: Item[] = [...prev.uniqueInventory];
-                Object.values(prev.equipment).forEach(item => {
-                    if (item && item.uniqueId) recoveredUnique.push(item);
-                });
-
+                Object.values(prev.equipment).forEach(item => { if (item && item.uniqueId) recoveredUnique.push(item); });
                 const newLevel = 8;
                 const keptVocation = prev.vocation;
                 let newHp = 150;
                 let newMana = 35;
                 const levelsToGain = newLevel - 1;
-
                 if (keptVocation === Vocation.KNIGHT) { newHp += levelsToGain * 15; newMana += levelsToGain * 5; }
                 else if (keptVocation === Vocation.PALADIN) { newHp += levelsToGain * 10; newMana += levelsToGain * 15; }
                 else if (keptVocation === Vocation.SORCERER || keptVocation === Vocation.DRUID) { newHp += levelsToGain * 5; newMana += levelsToGain * 30; }
                 else { newHp += levelsToGain * 5; newMana += levelsToGain * 5; }
-
                 const xpForNext = getXpForLevel(newLevel + 1) - getXpForLevel(newLevel);
-
-                // RESET TASKS FOR LEVEL 8
                 const newTasks = generateTaskOptions(newLevel);
-
                 return {
                     ...INITIAL_PLAYER_STATS, 
-                    name: prev.name,
-                    level: newLevel,
-                    vocation: keptVocation,
-                    isNameChosen: true,
-                    promoted: false,
-                    hp: newHp, maxHp: newHp,
-                    mana: newMana, maxMana: newMana,
-                    currentXp: 0,
-                    maxXp: xpForNext,
-                    skills: prev.skills, // CRITICAL FIX: Keep skills on Reset/Ascension
-                    relics: prev.relics,
-                    ascension: prev.ascension,
-                    tibiaCoins: prev.tibiaCoins,
-                    premiumUntil: prev.premiumUntil,
-                    xpBoostUntil: prev.xpBoostUntil,
-                    soulPoints: prev.soulPoints + points,
-                    uniqueInventory: recoveredUnique, 
-                    uniqueDepot: prev.uniqueDepot,
-                    tutorials: prev.tutorials,
-                    taskOptions: newTasks, // NEW: Generate tasks for new level
-                    taskNextFreeReroll: 0, // NEW: Reset free reroll immediately
+                    name: prev.name, level: newLevel, vocation: keptVocation, isNameChosen: true,
+                    hp: newHp, maxHp: newHp, mana: newMana, maxMana: newMana, currentXp: 0, maxXp: xpForNext,
+                    skills: prev.skills, relics: prev.relics, ascension: prev.ascension, tibiaCoins: prev.tibiaCoins,
+                    premiumUntil: prev.premiumUntil, xpBoostUntil: prev.xpBoostUntil, soulPoints: prev.soulPoints + points,
+                    uniqueInventory: recoveredUnique, uniqueDepot: prev.uniqueDepot, tutorials: prev.tutorials,
+                    taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive
                 };
             });
-            addLog("ASCENSION! Reborn at Lvl 8. Vocation, Skills and Rare items preserved.", 'gain');
+            addLog("ASCENSION! Preserve your vocation and skills.", 'gain');
         },
         upgradeAscension: (perk: AscensionPerk) => {
             updatePlayerState(prev => {
                 const currentLvl = prev.ascension[perk];
                 const cost = getAscensionUpgradeCost(perk, currentLvl);
                 if (prev.soulPoints < cost) return prev;
-                return {
-                    ...prev,
-                    soulPoints: prev.soulPoints - cost,
-                    ascension: { ...prev.ascension, [perk]: currentLvl + 1 }
-                };
+                return { ...prev, soulPoints: prev.soulPoints - cost, ascension: { ...prev.ascension, [perk]: currentLvl + 1 } };
             });
             addLog("Soul Power upgraded.", 'magic');
         },
@@ -929,32 +734,20 @@ export const useGameActions = (
                 const hasFreeReroll = prev.prey.rerollsAvailable > 0;
                 const cost = hasFreeReroll ? 0 : prev.level * 100;
                 const totalFunds = prev.gold + prev.bankGold;
-
                 if (!hasFreeReroll && totalFunds < cost) {
                     addLog(`Insufficient gold (Need ${cost}).`, 'danger');
                     return prev;
                 }
-
                 let newGold = prev.gold;
                 let newBank = prev.bankGold;
-
                 if (!hasFreeReroll) {
                     let remaining = cost;
-                    if (newGold >= remaining) {
-                        newGold -= remaining;
-                        remaining = 0;
-                    } else {
-                        remaining -= newGold;
-                        newGold = 0;
-                    }
+                    if (newGold >= remaining) { newGold -= remaining; remaining = 0; } else { remaining -= newGold; newGold = 0; }
                     if (remaining > 0) newBank -= remaining;
                 }
-
                 const newSlots = [...prev.prey.slots];
-                // Passado o nível atual do jogador para o filtro de monstros
                 newSlots[slotIndex] = generatePreyCard(prev.level);
                 const newRerollCount = hasFreeReroll ? prev.prey.rerollsAvailable - 1 : prev.prey.rerollsAvailable;
-                
                 return { ...prev, gold: newGold, bankGold: newBank, prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } };
             });
             addLog("Prey slot rerolled.", 'info');
@@ -966,6 +759,12 @@ export const useGameActions = (
             return { ...p, skills: newSkills };
         }),
         gmAddGold: () => updatePlayerState(p => ({ ...p, gold: p.gold + 1000000 })),
+        gmAddGoldTokens: () => updatePlayerState(p => {
+            const newInv = { ...p.inventory };
+            newInv['gold_token'] = (newInv['gold_token'] || 0) + 10;
+            addLog("GM: Added 10 Gold Tokens.", "gain");
+            return { ...p, inventory: newInv };
+        }),
         gmAddSoulPoints: () => updatePlayerState(p => ({ ...p, soulPoints: p.soulPoints + 1000 })),
         gmSetHazardLevel: (val: number) => updatePlayerState(p => ({ ...p, hazardLevel: val })),
         gmSetRarity: (rarity: GmFlags['forceRarity']) => updatePlayerState(p => ({ ...p, gmExtra: { ...p.gmExtra, forceRarity: rarity } })),

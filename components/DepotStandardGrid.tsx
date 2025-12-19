@@ -10,7 +10,8 @@ interface DepotStandardGridProps {
 }
 
 export const DepotStandardGrid: React.FC<DepotStandardGridProps> = ({ items, onWithdraw }) => {
-  const hasItems = Object.keys(items).length > 0 && Object.values(items).some(q => q > 0);
+  /* FIXED: Added type assertion to handle unknown type inference in Object.values(items) */
+  const hasItems = Object.keys(items).length > 0 && Object.values(items).some((q) => (q as number) > 0);
 
   if (!hasItems) {
       return (
@@ -37,7 +38,8 @@ export const DepotStandardGrid: React.FC<DepotStandardGridProps> = ({ items, onW
                         </div>
                         <div>
                             <div className="text-xs font-bold text-gray-300 group-hover:text-white">{item.name}</div>
-                            <div className="text-[9px] text-gray-500">Value: {(item.sellPrice * qty).toLocaleString()} gp</div>
+                            {/* FIXED: Cast qty as number to resolve type error during multiplication with sellPrice */}
+                            <div className="text-[9px] text-gray-500">Value: {(item.sellPrice * (qty as number)).toLocaleString()} gp</div>
                         </div>
                     </div>
                     <button 

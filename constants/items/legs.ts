@@ -1,6 +1,6 @@
 
 import { Item, EquipmentSlot, NpcType, SkillType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const LEGS_LIST: Item[] = [
   // STARTER
@@ -22,7 +22,7 @@ export const LEGS_LIST: Item[] = [
   { id: 'zaoan_legs', name: 'Zaoan Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 8, price: 0, sellPrice: 14000, soldTo: [NpcType.RASHID], description: 'Calças de Zao (Tier 5).', image: `${IMG_BASE}Zaoan_Legs.gif`, requiredLevel: 100 },
 
   // TIER 6
-  { id: 'rift_legs', name: 'Rift Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 10, price: 0, sellPrice: 50000, soldTo: [NpcType.RASHID], description: 'Calças da fenda (Tier 6).', image: `${IMG_BASE}Rift_Legs.gif`, requiredLevel: 200 },
+  { id: 'rift_legs', name: 'Rift Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 10, price: 0, sellPrice: 50000, soldTo: [NpcType.RASHID], description: 'Calças da fenda (Tier 6).', image: `${OUT_BASE}Jade_Legs.gif`, requiredLevel: 200 },
 
   // TIER 7
   { id: 'prismatic_legs', name: 'Prismatic Legs', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 12, price: 0, sellPrice: 80000, soldTo: [NpcType.RASHID], description: 'Calças prismáticas (Tier 7).', skillBonus: { [SkillType.DISTANCE]: 1 }, image: `${IMG_BASE}Prismatic_Legs.gif`, requiredLevel: 300 },

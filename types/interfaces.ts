@@ -1,5 +1,5 @@
 
-import { EquipmentSlot, Vocation, SkillType, NpcType, DamageType } from './enums';
+import { EquipmentSlot, Vocation, SkillType, NpcType, DamageType, ImbuType } from './enums';
 
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
@@ -181,6 +181,11 @@ export interface OfflineReport {
     waste: number;
 }
 
+export interface PlayerImbuement {
+    tier: number; // 0, 1, 2, 3
+    timeRemaining: number; // seconds
+}
+
 export interface Player {
   name: string;
   isNameChosen?: boolean;
@@ -259,6 +264,11 @@ export interface Player {
   ascension: {
       [key in AscensionPerk]: number;
   };
+  imbuements: {
+      [key in ImbuType]: PlayerImbuement;
+  };
+  imbuActive: boolean; // Global toggle to pause/resume all
+  tibiaCoinsUsed?: number;
   tutorials: {
       introCompleted: boolean;
       seenRareMob: boolean;
@@ -280,7 +290,7 @@ export interface LogEntry {
 export interface HitSplat {
   id: number;
   value: number | string;
-  type: 'damage' | 'heal' | 'miss' | 'speech';
+  type: 'damage' | 'heal' | 'mana' | 'miss' | 'speech';
   target: 'player' | 'monster';
 }
 

@@ -10,10 +10,10 @@ export const POTION_LIST: Item[] = [
   // Mid Tier - More expensive
   { id: 'strong_health_potion', name: 'Strong Health Potion', type: 'potion', potionType: 'health', restoreAmount: 300, price: 100, sellPrice: 10, soldTo: [NpcType.TRADER], description: 'Restores ~300 HP. (Lvl 50)', requiredLevel: 50, image: `${IMG_BASE}Strong_Health_Potion.gif` },
   // REGRAS ALTERADAS: Liberado para todas as vocações (incluindo Knights)
-  { id: 'strong_mana_potion', name: 'Strong Mana Potion', type: 'potion', potionType: 'mana', restoreAmount: 150, price: 80, sellPrice: 8, soldTo: [NpcType.TRADER], description: 'Restores ~150 MP. (Lvl 50)', requiredLevel: 50, image: `${IMG_BASE}Strong_Mana_Potion.gif` },
+  { id: 'strong_mana_potion', name: 'Strong Mana Potion', type: 'potion', potionType: 'mana', restoreAmount: 200, price: 80, sellPrice: 8, soldTo: [NpcType.TRADER], description: 'Restores ~200 MP. (Lvl 50)', requiredLevel: 50, image: `${IMG_BASE}Strong_Mana_Potion.gif` },
 
   { id: 'great_health_potion', name: 'Great Health Potion', type: 'potion', potionType: 'health', restoreAmount: 500, price: 190, sellPrice: 20, soldTo: [NpcType.TRADER], description: 'Restores ~500 HP. (Lvl 80, Knight)', requiredLevel: 80, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Great_Health_Potion.gif` },
-  { id: 'great_mana_potion', name: 'Great Mana Potion', type: 'potion', potionType: 'mana', restoreAmount: 200, price: 120, sellPrice: 15, soldTo: [NpcType.TRADER], description: 'Restores ~200 MP. (Lvl 80, Mage)', requiredLevel: 80, requiredVocation: [Vocation.SORCERER, Vocation.DRUID], image: `${IMG_BASE}Great_Mana_Potion.gif` },
+  { id: 'great_mana_potion', name: 'Great Mana Potion', type: 'potion', potionType: 'mana', restoreAmount: 300, price: 120, sellPrice: 15, soldTo: [NpcType.TRADER], description: 'Restores ~300 MP. (Lvl 80, Mage)', requiredLevel: 80, requiredVocation: [Vocation.SORCERER, Vocation.DRUID], image: `${IMG_BASE}Great_Mana_Potion.gif` },
   { id: 'great_spirit_potion', name: 'Great Spirit Potion', type: 'potion', potionType: 'spirit', restoreAmount: 350, restoreAmountSecondary: 150, price: 190, sellPrice: 20, soldTo: [NpcType.TRADER], description: 'Restores ~350 HP & ~150 MP. (Lvl 80, Paladin)', requiredLevel: 80, requiredVocation: [Vocation.PALADIN], image: `${IMG_BASE}Great_Spirit_Potion.gif` },
 
   // High Tier - Expensive (The Waste Makers)

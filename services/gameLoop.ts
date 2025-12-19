@@ -186,6 +186,12 @@ export const processGameTick = (
                 const mitigation = calculatePlayerDefense(p);
                 let actualDmg = Math.max(0, Math.floor(totalIncomingRaw - mitigation));
                 
+                // --- PREY DEFENSE (REDUÇÃO DIRETA DE DANO) ---
+                const activePreyDef = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'defense');
+                if (activePreyDef && actualDmg > 0) {
+                    actualDmg = Math.floor(actualDmg * (1 - (activePreyDef.bonusValue / 100)));
+                }
+
                 const dodgeChance = getPlayerModifier(p, 'dodgeChance');
                 if (dodgeChance > 0 && Math.random() < (dodgeChance / 100)) {
                     actualDmg = 0;
@@ -383,7 +389,6 @@ export const processGameTick = (
                         const spellName = spell.name.match(/\((.*?)\)/)?.[1] || spell.name;
                         let spellDmg = calculateSpellDamage(p, spell);
                         
-                        // VERIFICAÇÃO DE BOSS SLAYER PARA MAGIAS
                         if ((monster as Boss).cooldownSeconds) {
                             const bossBonus = getPlayerModifier(p, 'bossSlayer');
                             if (bossBonus > 0) spellDmg = Math.floor(spellDmg * (1 + (bossBonus / 100)));
@@ -418,7 +423,6 @@ export const processGameTick = (
                     if (p.level >= (runeItem.requiredLevel || 0) && getEffectiveSkill(p, SkillType.MAGIC) >= (runeItem.reqMagicLevel || 0)) {
                         let runeDmg = calculateRuneDamage(p, runeItem);
                         
-                        // VERIFICAÇÃO DE BOSS SLAYER PARA RUNAS
                         if ((monster as Boss).cooldownSeconds) {
                             const bossBonus = getPlayerModifier(p, 'bossSlayer');
                             if (bossBonus > 0) runeDmg = Math.floor(runeDmg * (1 + (bossBonus / 100)));
@@ -451,8 +455,8 @@ export const processGameTick = (
                 const stageMult = getXpStageMultiplier(p.level);
                 
                 let preyXpMult = 1;
-                const activePrey = p.prey.slots.find(s => s.monsterId === monster.id && s.active);
-                if (activePrey && activePrey.bonusType === 'xp') preyXpMult = 1 + (activePrey.bonusValue / 100);
+                const activePreyXp = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'xp');
+                if (activePreyXp) preyXpMult = 1 + (activePreyXp.bonusValue / 100);
                 
                 const equipXpBonus = getPlayerModifier(p, 'xpBoost');
                 preyXpMult += (equipXpBonus / 100);
@@ -481,7 +485,9 @@ export const processGameTick = (
                 stats.profitGained += finalGold;
 
                 let lootBonus = 0;
-                if (activePrey && activePrey.bonusType === 'loot') lootBonus += activePrey.bonusValue;
+                const activePreyLoot = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'loot');
+                if (activePreyLoot) lootBonus += activePreyLoot.bonusValue;
+                
                 lootBonus += getAscensionBonusValue(p, 'loot_boost');
                 lootBonus += getPlayerModifier(p, 'lootBoost');
                 if (p.premiumUntil > now) lootBonus += 20; 
@@ -540,7 +546,8 @@ export const processGameTick = (
                     }
                 });
 
-                if (lootMsg) log(`Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (${xpGained} xp)`, 'loot');
+                const preyFlag = (activePreyXp || activePreyLoot) ? "[PREY] " : "";
+                if (lootMsg) log(`${preyFlag}Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (${xpGained} xp)`, 'loot');
 
                 p.taskOptions.forEach(task => {
                     if (task.status === 'active' && !task.isComplete) {

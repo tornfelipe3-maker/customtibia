@@ -152,11 +152,9 @@ export const calculateSpellDamage = (player: Player, spell: Spell): number => {
       damage = Math.floor(Math.random() * (maxDmg - minDmg + 1)) + Math.floor(minDmg);
   }
 
-  // APLICAR BÔNUS DE ITEM NAS MAGIAS (XP/LOOT tratado no Loop, aqui tratamos Dano Situacional)
   if (player.promoted) damage = Math.floor(damage * 1.1);
   if (isPremium(player)) damage = Math.floor(damage * 1.50);
 
-  // Prey Damage Bonus para Magias
   if (player.activeHuntId) {
       const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
       if (prey && prey.bonusType === 'damage') {
@@ -249,15 +247,5 @@ export const calculatePlayerDefense = (player: Player): number => {
   
   const SHIELD_FACTOR = 0.05; 
   const shieldReduction = (shieldDef * shieldingSkill) * SHIELD_FACTOR;
-  let finalDef = Math.floor(armorReduction + shieldReduction);
-  
-  // APLICAR BÔNUS DE ITEM DEFENSIVO (Dodge é verificado no Loop, aqui tratamos Redução Fixa se houver)
-  
-  if (player.activeHuntId) {
-      const prey = player.prey.slots.find(p => p.monsterId === player.activeHuntId && p.active);
-      if (prey && prey.bonusType === 'defense') {
-          finalDef = Math.floor(finalDef * (1 + (prey.bonusValue / 100)));
-      }
-  }
-  return Math.max(0, finalDef);
+  return Math.floor(armorReduction + shieldReduction);
 };

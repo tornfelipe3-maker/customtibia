@@ -343,7 +343,8 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   const avgGoldPerMob = (monster.minGold + monster.maxGold) / 2;
   const ascGoldBonus = getAscensionBonusValue(player, 'gold_boost');
-  const finalAvgGoldPerMob = avgGoldPerMob * (1 + (ascGoldBonus / 100));
+  const goldFindBonus = getPlayerModifier(player, 'goldFind');
+  const finalAvgGoldPerMob = avgGoldPerMob * (1 + (ascGoldBonus / 100)) * (1 + (goldFindBonus / 100));
   const rawGoldPerCycle = finalAvgGoldPerMob * huntCount;
 
   const stageMult = getXpStageMultiplier(player.level);
@@ -351,7 +352,9 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   let xpMult = 1;
   if (activePrey && activePrey.bonusType === 'xp') xpMult = 1 + (activePrey.bonusValue / 100);
   const ascXpBonus = getAscensionBonusValue(player, 'xp_boost');
+  const equipXpBonus = getPlayerModifier(player, 'xpBoost');
   xpMult += (ascXpBonus / 100);
+  xpMult += (equipXpBonus / 100);
   if (player.premiumUntil > Date.now()) xpMult += 1.0; 
   if (player.xpBoostUntil > Date.now()) xpMult += 2.0; 
 

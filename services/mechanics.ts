@@ -1,6 +1,6 @@
 
 import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss, Vocation } from "../types";
-import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES } from "../constants";
+import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES, getXpForLevel } from "../constants";
 import { getEffectiveSkill } from "./progression";
 import { GENERATE_MODIFIERS } from "./loot"; 
 
@@ -100,15 +100,8 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
 
 // --- ASCENSION HELPERS ---
 export const calculateSoulPointsToGain = (player: Player): number => {
-    // New Threshold: Level 30
     if (player.level < 30) return 0;
-    
-    // Formula: 10 points at lvl 30. +10 points every 10 levels after.
-    // Lvl 30 = 10 SP
-    // Lvl 40 = 20 SP
-    // Lvl 50 = 30 SP
     const base = (1 + Math.floor((player.level - 30) / 10)) * 10;
-    
     const multiplier = 1 + ((player.ascension?.soul_gain || 0) / 20); 
     return Math.floor(base * multiplier);
 };
@@ -128,29 +121,42 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
 };
 
 // --- HELPERS ---
-export const generatePreyCard = (): PreySlot => {
-    const randomMonster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
+    // 70% de chance de vir criatura do nível atual ou acima
+    const rollSelection = Math.random();
+    let monster;
+    
+    if (rollSelection < 0.70) {
+        // Busca monstros entre -30 níveis e +80 níveis do atual para garantir desafio e relevância
+        const suitable = MONSTERS.filter(m => m.level >= playerLevel - 30 && m.level <= playerLevel + 80);
+        const pool = suitable.length > 0 ? suitable : MONSTERS;
+        monster = pool[Math.floor(Math.random() * pool.length)];
+    } else {
+        // 30% totalmente aleatório (podendo vir monstros fracos de Rookgaard)
+        monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+    }
+
     const types: PreyBonusType[] = ['xp', 'damage', 'defense', 'loot'];
     const type = types[Math.floor(Math.random() * types.length)];
     let value = 0;
-    const roll = Math.random(); 
+    const rollValue = Math.random(); 
 
     if (type === 'xp' || type === 'loot') {
-        if (roll < 0.50) { value = Math.floor(Math.random() * 15) + 1; } 
-        else if (roll < 0.80) { value = Math.floor(Math.random() * 15) + 16; } 
-        else if (roll < 0.95) { value = Math.floor(Math.random() * 10) + 31; } 
-        else if (roll < 0.99) { value = Math.floor(Math.random() * 9) + 41; } 
+        if (rollValue < 0.50) { value = Math.floor(Math.random() * 15) + 1; } 
+        else if (rollValue < 0.80) { value = Math.floor(Math.random() * 15) + 16; } 
+        else if (rollValue < 0.95) { value = Math.floor(Math.random() * 10) + 31; } 
+        else if (rollValue < 0.99) { value = Math.floor(Math.random() * 9) + 41; } 
         else { value = 50; }
     } else {
-        if (roll < 0.50) { value = Math.floor(Math.random() * 8) + 1; } 
-        else if (roll < 0.80) { value = Math.floor(Math.random() * 7) + 9; } 
-        else if (roll < 0.95) { value = Math.floor(Math.random() * 5) + 16; } 
-        else if (roll < 0.99) { value = Math.floor(Math.random() * 4) + 21; } 
+        if (rollValue < 0.50) { value = Math.floor(Math.random() * 8) + 1; } 
+        else if (rollValue < 0.80) { value = Math.floor(Math.random() * 7) + 9; } 
+        else if (rollValue < 0.95) { value = Math.floor(Math.random() * 5) + 16; } 
+        else if (rollValue < 0.99) { value = Math.floor(Math.random() * 4) + 21; } 
         else { value = 25; }
     }
 
     return {
-        monsterId: randomMonster.id,
+        monsterId: monster.id,
         bonusType: type,
         bonusValue: value,
         active: false,
@@ -160,16 +166,16 @@ export const generatePreyCard = (): PreySlot => {
 };
 
 export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'collect'): HuntingTask => {
-    const pool = [...MONSTERS];
-    const randomIndex = Math.floor(Math.random() * pool.length);
-    const monster = pool[randomIndex];
+    const suitableMonsters = MONSTERS.filter(m => {
+        if (playerLevel < 10) return m.level <= 10;
+        if (playerLevel < 30) return m.level <= 35;
+        return m.level >= playerLevel - 50 && m.level <= playerLevel + 60;
+    });
 
-    let taskType: 'kill' | 'collect' = 'kill';
-    if (forcedType) {
-        taskType = forcedType;
-    } else {
-        taskType = Math.random() < 0.5 ? 'kill' : 'collect';
-    }
+    const pool = suitableMonsters.length > 0 ? suitableMonsters : MONSTERS;
+    const monster = pool[Math.floor(Math.random() * pool.length)];
+
+    let taskType: 'kill' | 'collect' = forcedType || (Math.random() < 0.5 ? 'kill' : 'collect');
 
     if (taskType === 'collect' && (!monster.lootTable || monster.lootTable.filter(l => SHOP_ITEMS.find(i=>i.id===l.itemId)?.type === 'loot').length === 0)) {
         taskType = 'kill';
@@ -179,19 +185,20 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
     let targetName = monster.name;
     let amount = 0;
     
-    // --- SCALING KILL REQUIREMENTS ---
-    let minKills = 300; 
-    let maxKills = 600;
+    let baseMinKills = 150; 
+    let baseMaxKills = 400;
 
     if (playerLevel < 20) {
-        minKills = 50; maxKills = 150;
-    } else if (playerLevel < 50) {
-        minKills = 150; maxKills = 300;
-    } else if (playerLevel >= 100) {
-        minKills = 600; maxKills = 1200;
+        baseMinKills = 30; baseMaxKills = 80;
+    } else if (playerLevel < 100) {
+        baseMinKills = 150; baseMaxKills = 450;
+    } else if (playerLevel < 250) {
+        baseMinKills = 500; baseMaxKills = 1000;
+    } else {
+        baseMinKills = 1000; baseMaxKills = 2500;
     }
 
-    const killTarget = Math.floor(Math.random() * (maxKills - minKills + 1)) + minKills;
+    const killTarget = Math.floor(Math.random() * (baseMaxKills - baseMinKills + 1)) + baseMinKills;
     let effortMetric = killTarget; 
 
     if (taskType === 'collect' && monster.lootTable) {
@@ -209,12 +216,8 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
             const avgYield = (1 + (chosenLoot.maxAmount || 1)) / 2;
             const dropChance = chosenLoot.chance;
             
-            let itemTarget = Math.floor(killTarget * dropChance * avgYield);
-            itemTarget = Math.max(5, itemTarget);
-            let expectedKills = Math.ceil(itemTarget / (dropChance * avgYield));
-            
-            amount = itemTarget;
-            effortMetric = expectedKills;
+            amount = Math.max(15, Math.floor(killTarget * dropChance * avgYield * 0.5));
+            effortMetric = Math.ceil(amount / (dropChance * avgYield));
         } else {
             amount = killTarget;
             taskType = 'kill';
@@ -225,20 +228,19 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
 
     const stageMult = getXpStageMultiplier(playerLevel);
     
-    const sizeRatio = Math.min(1.5, Math.max(0, (effortMetric - minKills) / (maxKills - minKills))); 
-    let bonusMultiplier = 0.3 + (sizeRatio * 0.40); 
+    // XP: 5x o ganho normal da hunt (Aumentado de 3x para 5x)
+    let xpReward = Math.floor(monster.exp * effortMetric * stageMult * 5.0);
     
-    if (taskType === 'collect') {
-        bonusMultiplier += 0.25; 
-    }
+    // Piso de Segurança: Garante que a task dê pelo menos 60% de um nível (ou 85% se for coleta)
+    const xpNeededForNextLevel = getXpForLevel(playerLevel + 1) - getXpForLevel(playerLevel);
+    const minXpPercentage = taskType === 'collect' ? 0.85 : 0.60;
+    const minSafeXp = Math.floor(xpNeededForNextLevel * minXpPercentage);
 
-    const totalHuntXp = monster.exp * effortMetric * stageMult;
-    const xpReward = Math.floor(totalHuntXp * bonusMultiplier);
-    
-    const rawAvgGold = (monster.minGold + monster.maxGold) / 2;
-    const bountyBase = Math.max(rawAvgGold, 20);
-    const totalHuntGold = bountyBase * effortMetric;
-    const goldReward = Math.floor(totalHuntGold * (bonusMultiplier + 0.5));
+    xpReward = Math.max(xpReward, minSafeXp);
+
+    // OURO: 8x o lucro médio da hunt + bônus fixo por nível (Aumentado para ser fonte primária de profit)
+    const avgGoldPerKill = (monster.minGold + monster.maxGold) / 2;
+    const goldReward = Math.floor(avgGoldPerKill * effortMetric * 8.0) + (playerLevel * 8000); 
 
     return {
         uuid: Math.random().toString(36).substr(2, 9),
@@ -250,7 +252,7 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
         monsterId: monster.id,
         amountRequired: amount,
         amountCurrent: 0,
-        killsRequired: amount, 
+        killsRequired: taskType === 'kill' ? amount : effortMetric, 
         killsCurrent: 0, 
         rewardXp: xpReward,
         rewardGold: goldReward,
@@ -273,32 +275,24 @@ export interface HuntEstimates {
     xpPerHour: number;
     rawGoldPerHour: number;
     cyclesPerHour: number;
-    wastePerHour: number; // Rough gold value fallback
-    
-    // New exact usage tracking
+    wastePerHour: number; 
     ammoId?: string;
     ammoUsagePerHour: number;
-    
     runeId?: string;
     runeUsagePerHour: number;
-    
     healthPotionId?: string;
     healthPotionUsagePerHour: number;
-    
     manaPotionId?: string;
     manaPotionUsagePerHour: number;
 }
 
 export const estimateHuntStats = (player: Player, monster: Monster, huntCount: number = 1): HuntEstimates => {
   const weapon = player.equipment[EquipmentSlot.HAND_RIGHT];
-  
-  // 1. Calculate Average Damage (Simplified)
   let avgDmg = 5 + (player.level / 3); 
   
   if (weapon) {
       let attackValue = weapon.attack || 1;
       let skill = getEffectiveSkill(player, weapon.scalingStat || SkillType.SWORD);
-      
       let factor = 0.06;
 
       if (weapon.scalingStat === SkillType.MAGIC) {
@@ -306,7 +300,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
           skill = getEffectiveSkill(player, SkillType.MAGIC);
           avgDmg = (player.level * 0.2) + (skill * 3.5) + (attackValue * 1.5);
       } else {
-          // Physical
           if (weapon.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
              const ammo = player.equipment[EquipmentSlot.AMMO];
              if (ammo && ammo.attack) attackValue += ammo.attack;
@@ -316,43 +309,37 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
       }
   }
 
-  // Modifiers
   const activePrey = player.prey.slots.find(s => s.monsterId === monster.id && s.active);
   if (activePrey && activePrey.bonusType === 'damage') {
       avgDmg *= (1 + (activePrey.bonusValue / 100));
   }
   const ascDmgBonus = getAscensionBonusValue(player, 'damage_boost');
   avgDmg *= (1 + (ascDmgBonus / 100));
-  if (player.premiumUntil > Date.now()) avgDmg *= 1.5; // +50%
+  if (player.premiumUntil > Date.now()) avgDmg *= 1.5;
 
   avgDmg = Math.max(5, avgDmg);
 
-  // Time & Cycles
   const totalHp = monster.hp * huntCount;
   const turnsToKill = Math.ceil(totalHp / avgDmg);
   const attackSpeedSeconds = 2.0; 
   const secondsToKill = turnsToKill * attackSpeedSeconds;
   const respawnTime = 2; 
-  
-  // Cycles (Kills) Per Hour
   const cycleTime = secondsToKill + respawnTime;
   const cyclesPerHour = 3600 / cycleTime;
 
-  // Rewards Per Cycle
   const avgGoldPerMob = (monster.minGold + monster.maxGold) / 2;
   const ascGoldBonus = getAscensionBonusValue(player, 'gold_boost');
   const finalAvgGoldPerMob = avgGoldPerMob * (1 + (ascGoldBonus / 100));
   const rawGoldPerCycle = finalAvgGoldPerMob * huntCount;
 
-  // XP Per Cycle
   const stageMult = getXpStageMultiplier(player.level);
   const staminaMult = player.stamina > 0 ? 1.5 : 1.0;
   let xpMult = 1;
   if (activePrey && activePrey.bonusType === 'xp') xpMult = 1 + (activePrey.bonusValue / 100);
   const ascXpBonus = getAscensionBonusValue(player, 'xp_boost');
   xpMult += (ascXpBonus / 100);
-  if (player.premiumUntil > Date.now()) xpMult += 1.0; // +100%
-  if (player.xpBoostUntil > Date.now()) xpMult += 2.0; // +200%
+  if (player.premiumUntil > Date.now()) xpMult += 1.0; 
+  if (player.xpBoostUntil > Date.now()) xpMult += 2.0; 
 
   const isBoss = !!(monster as Boss).cooldownSeconds;
   const hazardXp = isBoss ? 1 : (1 + ((player.activeHazardLevel || 0) * 0.02));
@@ -360,8 +347,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   const xpPerCycle = monster.exp * huntCount * stageMult * xpMult * staminaMult;
 
-  // --- SUPPLY USAGE CALCULATION ---
-  
   let ammoId: string | undefined;
   let ammoUsagePerHour = 0;
   let runeId: string | undefined;
@@ -371,7 +356,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   let manaPotionId: string | undefined;
   let manaPotionUsagePerHour = 0;
 
-  // 1. AMMO
   if (weapon?.scalingStat === SkillType.DISTANCE && weapon.weaponType) {
       const ammo = player.equipment[EquipmentSlot.AMMO];
       if (ammo) {
@@ -380,26 +364,19 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
       }
   }
 
-  // 2. RUNES (Auto Attack Rune)
   if (player.settings.autoAttackRune && player.settings.selectedRuneId) {
       runeId = player.settings.selectedRuneId;
-      // Assume 1 rune every 2 turns max (cooldown)
       runeUsagePerHour = cyclesPerHour * (turnsToKill / 2); 
   }
 
-  // 3. HEALTH POTIONS (Incoming DPS vs Mitigation)
   const monsterDPS = ((monster.damageMin + monster.damageMax) / 2) * huntCount / (monster.attackSpeedMs / 1000);
-  
-  // Mitigation
   let mitigation = 0;
   Object.values(player.equipment).forEach(i => { if (i && i.armor) mitigation += i.armor; });
   const netIncomingDPS = Math.max(0, monsterDPS - (mitigation * 0.8));
   
-  // Natural Regen
   const baseRegen = REGEN_RATES[player.vocation] || REGEN_RATES[Vocation.NONE];
   const regenMultiplier = player.promoted ? 1.8 : 1.0;
   const hpRegenPerSec = baseRegen.hp * regenMultiplier;
-
   const hpDeficitPerSec = Math.max(0, netIncomingDPS - hpRegenPerSec);
   
   if (hpDeficitPerSec > 0 && player.settings.autoHealthPotionThreshold > 0 && player.settings.selectedHealthPotionId) {
@@ -411,29 +388,15 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
       }
   }
 
-  // 4. MANA POTIONS (Spell Usage + Heal Spells)
   let manaDeficitPerSec = 0;
   const manaRegenPerSec = baseRegen.mana * regenMultiplier;
-  
-  // Cost from Attack Spells
   if (player.settings.autoAttackSpell && player.settings.attackSpellRotation?.length > 0) {
-      // Simplified: Assume average cost of rotation every 2 seconds
-      // Ideally we check specific spells, but avg 40 mana every 2s is a safe baseline for mages
       manaDeficitPerSec += 20; 
   }
-
-  // Cost from Healing Spells (if taking damage)
   if (hpDeficitPerSec > 0 && player.settings.autoHealSpellThreshold > 0 && player.settings.selectedHealSpellId) {
-      // If we are taking damage, we might use spells INSTEAD of potions if configured?
-      // For simplicity, we assume potions cover heavy damage, spells cover light.
-      // But if bot has heal spell, it uses mana.
-      // Let's assume spell heals 100 HP for 40 Mana.
-      // 2.5 HP per Mana.
       const manaForHealing = hpDeficitPerSec / 2.5;
       manaDeficitPerSec += manaForHealing;
   }
-
-  // Net Mana Balance
   const netManaDeficit = Math.max(0, manaDeficitPerSec - manaRegenPerSec);
 
   if (netManaDeficit > 0 && player.settings.autoManaPotionThreshold > 0 && player.settings.selectedManaPotionId) {
@@ -445,10 +408,8 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
       }
   }
 
-  // Calculate generic waste value for display
   let totalWasteCost = 0;
   const getItemPrice = (id?: string) => SHOP_ITEMS.find(i => i.id === id)?.price || 0;
-  
   totalWasteCost += ammoUsagePerHour * getItemPrice(ammoId);
   totalWasteCost += runeUsagePerHour * getItemPrice(runeId);
   totalWasteCost += healthPotionUsagePerHour * getItemPrice(healthPotionId);
@@ -459,8 +420,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
     rawGoldPerHour: Math.floor(cyclesPerHour * rawGoldPerCycle),
     cyclesPerHour: cyclesPerHour,
     wastePerHour: totalWasteCost,
-    
-    // Detailed Breakdown
     ammoId, ammoUsagePerHour,
     runeId, runeUsagePerHour,
     healthPotionId, healthPotionUsagePerHour,

@@ -951,7 +951,8 @@ export const useGameActions = (
                 }
 
                 const newSlots = [...prev.prey.slots];
-                newSlots[slotIndex] = generatePreyCard();
+                // Passado o nível atual do jogador para o filtro de monstros
+                newSlots[slotIndex] = generatePreyCard(prev.level);
                 const newRerollCount = hasFreeReroll ? prev.prey.rerollsAvailable - 1 : prev.prey.rerollsAvailable;
                 
                 return { ...prev, gold: newGold, bankGold: newBank, prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } };

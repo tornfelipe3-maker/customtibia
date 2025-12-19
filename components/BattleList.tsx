@@ -4,6 +4,7 @@ import { Player, Monster } from '../types';
 import { MONSTERS, BOSSES } from '../constants';
 import { Search, X, Info, Swords, Footprints, Star } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Sprite } from './common/Sprite';
 
 interface BattleListProps {
   player: Player;
@@ -75,7 +76,7 @@ export const BattleList: React.FC<BattleListProps> = ({
       </div>
 
       {/* List Area */}
-      <div className="flex-1 overflow-y-auto tibia-inset bg-[#222]">
+      <div className="flex-1 overflow-y-auto tibia-inset custom-scrollbar bg-[#222]">
         <div className="grid grid-cols-1 gap-1 p-1">
           {tab === 'monsters' && filteredMonsters.map((monster) => {
             const isActive = activeHunt === monster.id;
@@ -92,7 +93,12 @@ export const BattleList: React.FC<BattleListProps> = ({
                 {/* Mini Sprite Box */}
                 <div className="w-12 h-12 bg-[#181818] border border-[#444] flex items-center justify-center shrink-0 mr-4 shadow-inner rounded-sm relative overflow-hidden">
                    <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,transparent_70%)]"></div>
-                   {monster.image ? <img src={monster.image} className="max-w-[40px] max-h-[40px] pixelated z-10" /> : <div className="w-2 h-2 bg-red-500"></div>}
+                   <Sprite 
+                     src={monster.image} 
+                     type="monster" 
+                     size={40} 
+                     className="max-w-[40px] max-h-[40px] z-10" 
+                   />
                 </div>
                 
                 <div className="flex-1 min-w-0">
@@ -163,7 +169,12 @@ export const BattleList: React.FC<BattleListProps> = ({
                  >
                     <div className="w-12 h-12 bg-[#181818] border border-[#444] flex items-center justify-center shrink-0 mr-4 shadow-inner rounded-sm relative overflow-hidden">
                         <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(100,50,255,0.1)_0%,transparent_70%)]"></div>
-                        {boss.image ? <img src={boss.image} className="max-w-[42px] max-h-[42px] pixelated z-10" /> : <Star size={20} className="text-purple-500" />}
+                        <Sprite 
+                           src={boss.image} 
+                           type="monster" 
+                           size={42} 
+                           className="max-w-[42px] max-h-[42px] z-10" 
+                        />
                     </div>
                     <div className="flex-1">
                         <div className="text-sm font-bold text-purple-300">{boss.name}</div>

@@ -4,8 +4,10 @@ import { Monster, Boss, Player, HitSplat } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS } from '../constants';
 import { BattleScene } from './BattleScene';
 import { BattleList } from './BattleList';
-import { Info, X, Heart, Star, Swords, Coins, Shield, Flame, Snowflake, Zap, Mountain, Skull, AlertTriangle, Footprints } from 'lucide-react';
+// Added Sparkles to the import list from lucide-react
+import { Info, X, Heart, Star, Swords, Coins, Shield, Flame, Snowflake, Zap, Mountain, Skull, AlertTriangle, Footprints, Sparkles } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { Sprite } from './common/Sprite';
 
 interface HuntPanelProps {
   player: Player;
@@ -15,6 +17,7 @@ interface HuntPanelProps {
   onStartHunt: (monsterId: string, name: string, isBoss: boolean, count: number) => void;
   onStopHunt: () => void;
   currentMonsterHp?: number;
+  // Corrected 1-based line 19: changed hitsSplat to HitSplat
   hits: HitSplat[];
 }
 
@@ -34,9 +37,6 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
   const [infoModal, setInfoModal] = useState<Monster | null>(null);
   const [areaHuntCount, setAreaHuntCount] = useState(2);
 
-  // We rely on activeMonster from hook to show the real state.
-  // Fallback to static monster only for modal inspection, NOT for BattleScene.
-  
   const handleStartHuntRequest = (id: string, name: string, isBoss: boolean) => {
       if (activeHunt !== id) {
           setConfirmModal({ id, name, isBoss });
@@ -68,12 +68,19 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
       }
   };
 
+  const getLootRarityLabel = (chance: number) => {
+      if (chance >= 0.1) return { label: 'Common', color: 'text-gray-400', border: 'border-gray-700' };
+      if (chance >= 0.05) return { label: 'Uncommon', color: 'text-green-400', border: 'border-green-900/50' };
+      if (chance >= 0.01) return { label: 'Semi-Rare', color: 'text-blue-400', border: 'border-blue-900/50' };
+      if (chance >= 0.005) return { label: 'Rare', color: 'text-purple-400', border: 'border-purple-900/50' };
+      return { label: 'Very Rare', color: 'text-orange-400', border: 'border-orange-900/50' };
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#222]">
       
-      {/* --- MODALS (Kept in Parent to cover full area) --- */}
+      {/* --- MODALS --- */}
 
-      {/* Confirmation Modal */}
       {confirmModal && (
           <div className="fixed inset-0 z-[110] bg-black/80 flex items-center justify-center p-4">
               <div className="tibia-panel w-full max-w-[250px] shadow-2xl p-4 text-center">
@@ -116,10 +123,15 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                 
                 <div className="p-4 overflow-y-auto bg-[#222] custom-scrollbar flex-1">
                     {/* Top Section: Sprite & Vital Stats */}
-                    <div className="flex gap-4 mb-4">
-                        <div className="w-24 h-24 bg-[#181818] border-2 border-[#333] flex items-center justify-center shadow-inner rounded relative overflow-hidden shrink-0">
+                    <div className="flex gap-4 mb-6">
+                        <div className="w-28 h-28 bg-[#181818] border-2 border-[#333] flex items-center justify-center shadow-inner rounded relative overflow-hidden shrink-0">
                              <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,transparent_70%)]"></div>
-                             {infoModal.image ? <img src={infoModal.image} className="max-w-[80px] max-h-[80px] pixelated z-10 scale-[1.8]" /> : <Skull size={32} className="text-gray-500"/>}
+                             <Sprite 
+                                src={infoModal.image} 
+                                type="monster" 
+                                size={64} 
+                                className="scale-[2.2] drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]" 
+                             />
                              {infoModal.level > player.level + 20 && (
                                  <div className="absolute bottom-1 right-1 bg-red-900/80 text-red-200 text-[9px] px-1 rounded font-bold border border-red-700">{t('hunt_danger')}</div>
                              )}
@@ -147,7 +159,7 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
 
                     {/* Elemental Resistances Grid */}
                     {infoModal.elements && (
-                       <div className="mb-4">
+                       <div className="mb-6">
                           <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-2 border-b border-[#333] pb-1">Elemental Sensitivity</h4>
                           <div className="grid grid-cols-4 gap-2">
                              {[
@@ -157,6 +169,7 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                                  { key: 'energy', icon: <Zap size={12}/>, color: 'text-purple-400' },
                                  { key: 'earth', icon: <Mountain size={12}/>, color: 'text-green-500' },
                                  { key: 'death', icon: <Skull size={12}/>, color: 'text-gray-200' },
+                                 { key: 'holy', icon: <Sparkles size={12}/>, color: 'text-yellow-200' },
                              ].map((el) => {
                                  const mult = infoModal.elements?.[el.key as any] ?? 1;
                                  let valColor = 'text-gray-500';
@@ -180,48 +193,62 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                     <div>
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-2 border-b border-[#333] pb-1 flex justify-between">
                             <span>Loot Table</span>
-                            <span className="text-[9px] normal-case opacity-50">Hover for details</span>
+                            <span className="text-[9px] normal-case opacity-50 italic">Sorted by drop frequency</span>
                         </h4>
                         
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="grid grid-cols-5 gap-2">
                             {infoModal.lootTable?.sort((a,b) => b.chance - a.chance).map((loot, idx) => {
                                 const item = SHOP_ITEMS.find(i => i.id === loot.itemId);
-                                let rarityColor = 'border-[#333] bg-[#222]';
-                                if (loot.chance < 0.01) rarityColor = 'border-purple-900/50 bg-purple-900/10';
-                                else if (loot.chance < 0.05) rarityColor = 'border-blue-900/50 bg-blue-900/10';
-                                else if (loot.chance < 0.2) rarityColor = 'border-green-900/50 bg-green-900/10';
+                                const rarity = getLootRarityLabel(loot.chance);
 
                                 return (
-                                    <div key={idx} className={`w-12 h-12 relative border rounded flex items-center justify-center group ${rarityColor}`}>
-                                        {item?.image ? (
-                                            <img src={item.image} className="max-w-[32px] max-h-[32px] pixelated" />
-                                        ) : (
-                                            <div className="text-[9px] text-gray-500">{loot.itemId.substring(0,2)}</div>
-                                        )}
+                                    <div key={idx} className={`aspect-square relative border rounded flex items-center justify-center group bg-[#1a1a1a] hover:bg-[#252525] transition-colors cursor-help ${rarity.border}`}>
+                                        <Sprite 
+                                            src={item?.image} 
+                                            alt={item?.name || loot.itemId} 
+                                            size={32} 
+                                            className="max-w-[32px] max-h-[32px]" 
+                                        />
                                         
-                                        <div className="absolute bottom-0 right-0 bg-black/80 text-[8px] text-gray-300 px-1 rounded-tl leading-none">
+                                        <div className={`absolute bottom-0 right-0 bg-black/80 text-[8px] px-1 rounded-tl leading-none font-mono ${rarity.color}`}>
                                             {loot.chance < 0.01 ? '<1%' : `${Math.round(loot.chance*100)}%`}
                                         </div>
 
-                                        <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 w-32 bg-black border border-gray-600 text-[10px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none z-50 text-center">
-                                            <div className="font-bold text-white mb-0.5">{item?.name || loot.itemId}</div>
-                                            <div className="text-yellow-500 font-mono">{(loot.chance * 100).toFixed(2)}%</div>
-                                            {item?.sellPrice && <div className="text-gray-400 text-[9px] mt-1">{item.sellPrice} gp</div>}
+                                        {/* Loot Tooltip */}
+                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-40 bg-black border border-gray-600 text-[10px] p-2 rounded shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none z-50 text-center animate-in fade-in duration-200">
+                                            <div className={`font-bold mb-0.5 ${rarity.color}`}>{item?.name || loot.itemId}</div>
+                                            <div className="text-gray-500 uppercase text-[8px] font-bold mb-1">{rarity.label}</div>
+                                            <div className="w-full h-[1px] bg-gray-800 my-1"></div>
+                                            <div className="flex justify-between items-center text-[9px]">
+                                                <span className="text-gray-400">Chance:</span>
+                                                <span className="text-yellow-500 font-mono">{(loot.chance * 100).toFixed(2)}%</span>
+                                            </div>
+                                            {item?.sellPrice && (
+                                                <div className="flex justify-between items-center text-[9px] mt-0.5">
+                                                    <span className="text-gray-400">Value:</span>
+                                                    <span className="text-green-500 font-mono">{item.sellPrice.toLocaleString()} gp</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
                             })}
                             {(!infoModal.lootTable || infoModal.lootTable.length === 0) && (
-                                <div className="text-xs text-gray-600 italic p-2">No known loot.</div>
+                                <div className="col-span-5 text-xs text-gray-600 italic p-4 text-center">No known loot in bestiary.</div>
                             )}
                         </div>
                     </div>
+                </div>
+                
+                {/* Footer Tip */}
+                <div className="bg-[#1a1a1a] p-2 border-t border-[#333] text-center">
+                    <p className="text-[9px] text-gray-600 italic">Rare items on influenced mobs have special rarity tiers.</p>
                 </div>
             </div>
         </div>
       )}
 
-      {/* Area Hunt Modal - "CAÇAR LURANDO" */}
+      {/* Area Hunt Modal */}
       {areaHuntModal && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="tibia-panel w-full max-w-[300px] shadow-2xl p-0 overflow-hidden">
@@ -278,12 +305,12 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
       
       <BattleScene 
         player={player}
-        activeMonster={activeMonster} // Pass exact instance from hook, undefined means idle/searching
+        activeMonster={activeMonster} 
         activeHuntCount={player.activeHuntCount}
         currentMonsterHp={currentMonsterHp || 0}
         hits={hits}
         onStopHunt={onStopHunt}
-        isHunting={!!activeHunt} // New Prop to show "Searching..." state
+        isHunting={!!activeHunt} 
       />
 
       <BattleList 

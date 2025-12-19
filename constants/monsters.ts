@@ -87,10 +87,8 @@ export const MONSTERS: Monster[] = [
         id: 'orc_berserker', name: 'Orc Berserker', level: 25, hp: 500, maxHp: 500, exp: 240, minGold: 50, maxGold: 100, damageMin: 50, damageMax: 100, attackSpeedMs: 1500, image: `${IMG_BASE}Orc_Berserker.gif`,
         lootTable: [
             { itemId: 'orc_leather', chance: 0.30, maxAmount: 1 },
-            { itemId: 'crown_legs', chance: 0.01, maxAmount: 1 },
             { itemId: 'crimson_sword', chance: 0.04, maxAmount: 1 }, 
             { itemId: 'orcish_axe', chance: 0.04, maxAmount: 1 },
-            { itemId: 'boh', chance: 0.005, maxAmount: 1 },
             { itemId: 'modified_crossbow', chance: 0.02, maxAmount: 1 },
             { itemId: 'time_ring', chance: 0.01, maxAmount: 1 }
         ] 
@@ -111,8 +109,9 @@ export const MONSTERS: Monster[] = [
             { itemId: 'cyclops_toe', chance: 0.50, maxAmount: 1 }, 
             { itemId: 'meat', chance: 0.6, maxAmount: 4 },
             { itemId: 'ham', chance: 0.3, maxAmount: 2 },
-            { itemId: 'crimson_sword', chance: 0.01, maxAmount: 1 },
-            { itemId: 'health_potion', chance: 0.10, maxAmount: 1 }
+            { itemId: 'health_potion', chance: 0.10, maxAmount: 1 },
+            { itemId: 'crown_legs', chance: 0.01, maxAmount: 1 },
+            { itemId: 'boh', chance: 0.005, maxAmount: 1 }
         ] 
     },
 

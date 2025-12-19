@@ -98,9 +98,15 @@ export const processHuntTick = (
             }
             hit(actualDmg, 'damage', 'player');
             
+            // LOG DE DANO RECEBIDO (Aba Damage)
+            if (actualDmg > 0) {
+                log(`You lose ${actualDmg} hitpoints due to an attack by a ${monster.name}.`, 'combat');
+            } else {
+                log(`A ${monster.name} attacks you but you block it.`, 'combat');
+            }
+            
             if (p.hp <= 0) {
                 stopHunt = true;
-                // Death penalty logic handled in gameLoop for safety
             }
         }
 
@@ -113,6 +119,10 @@ export const processHuntTick = (
         if (playerDmg > 0) {
             monsterHp -= playerDmg;
             hit(playerDmg, 'damage', 'monster');
+            
+            // LOG DE DANO CAUSADO (Aba Damage)
+            log(`A ${monster.name} loses ${playerDmg} hitpoints due to your attack.`, 'combat');
+
             const usedSkill = weapon?.scalingStat || SkillType.FIST;
             const res = processSkillTraining(p, usedSkill, 1);
             p = res.player;
@@ -126,14 +136,15 @@ export const processHuntTick = (
             p.currentXp += xpGained;
             stats.xpGained = xpGained;
 
-            // FIX: Verificar Level Up imediatamente após ganhar XP
+            // LOG DE XP (Aba Server)
+            log(`You gained ${xpGained} experience points.`, 'gain');
+
+            // Level Up Check
             const lvlResult = checkForLevelUp(p);
             if (lvlResult.leveledUp) {
                 p = lvlResult.player;
                 log(`You advanced from Level ${p.level - 1} to Level ${p.level}.`, 'gain');
                 hit('LEVEL UP!', 'heal', 'player');
-                
-                // Trigger tutorial de level 12 se for o caso
                 if (p.level >= 12 && !p.tutorials.seenLevel12) {
                     triggers.tutorial = 'level12';
                 }
@@ -146,6 +157,21 @@ export const processHuntTick = (
             const drop = generateLootWithRarity(monster, hazardLootBonus);
             drop.unique.forEach(u => p.uniqueInventory.push(u));
             Object.entries(drop.standard).forEach(([id, q]) => p.inventory[id] = (p.inventory[id] || 0) + q);
+
+            // LOG DE LOOT (Aba Loot)
+            const lootParts: string[] = [];
+            if (goldDrop > 0) lootParts.push(`${goldDrop} gold coins`);
+            Object.entries(drop.standard).forEach(([id, q]) => {
+                const item = SHOP_ITEMS.find(i => i.id === id);
+                if (item) lootParts.push(`${q}x ${item.name}`);
+            });
+            drop.unique.forEach(u => lootParts.push(`a ${u.name}`));
+            
+            if (lootParts.length > 0) {
+                log(`Loot of a ${monster.name}: ${lootParts.join(', ')}.`, 'loot');
+            } else {
+                log(`Loot of a ${monster.name}: nothing.`, 'loot');
+            }
 
             if (isBossTarget) {
                 bossDefeatedId = monster.id;

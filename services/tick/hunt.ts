@@ -126,6 +126,19 @@ export const processHuntTick = (
             p.currentXp += xpGained;
             stats.xpGained = xpGained;
 
+            // FIX: Verificar Level Up imediatamente após ganhar XP
+            const lvlResult = checkForLevelUp(p);
+            if (lvlResult.leveledUp) {
+                p = lvlResult.player;
+                log(`You advanced from Level ${p.level - 1} to Level ${p.level}.`, 'gain');
+                hit('LEVEL UP!', 'heal', 'player');
+                
+                // Trigger tutorial de level 12 se for o caso
+                if (p.level >= 12 && !p.tutorials.seenLevel12) {
+                    triggers.tutorial = 'level12';
+                }
+            }
+
             const goldDrop = Math.floor((Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold) * effectiveHuntCount;
             p.gold += goldDrop;
             stats.goldGained = goldDrop;

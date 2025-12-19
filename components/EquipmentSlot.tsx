@@ -1,7 +1,8 @@
 
 import React from 'react';
 import { Item, EquipmentSlot, Rarity } from '../types';
-import { Sparkles, User, Shield, Sword, Footprints, Gem, Zap, Layers, HardHat, CircleDot } from 'lucide-react';
+import { EMPTY_SLOT_IMAGES } from '../constants';
+import { Sparkles } from 'lucide-react';
 import { Sprite } from './common/Sprite';
 
 interface EquipmentSlotProps {
@@ -21,22 +22,6 @@ const getRarityColor = (rarity?: Rarity) => {
     }
 };
 
-const getSlotIcon = (slot: EquipmentSlot) => {
-    const props = { size: 20, className: "text-[#333] opacity-40 group-hover:opacity-60 transition-opacity" };
-    switch (slot) {
-        case EquipmentSlot.HEAD: return <HardHat {...props} />;
-        case EquipmentSlot.BODY: return <Shield {...props} />;
-        case EquipmentSlot.LEGS: return <Layers {...props} />;
-        case EquipmentSlot.FEET: return <Footprints {...props} />;
-        case EquipmentSlot.HAND_LEFT: return <Shield {...props} className="text-blue-900 opacity-30" />;
-        case EquipmentSlot.HAND_RIGHT: return <Sword {...props} className="text-red-900 opacity-30" />;
-        case EquipmentSlot.NECK: return <User {...props} />;
-        case EquipmentSlot.RING: return <CircleDot {...props} />;
-        case EquipmentSlot.AMMO: return <Zap {...props} className="text-yellow-900 opacity-30" />;
-        default: return null;
-    }
-};
-
 export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, onClick, onHover }) => (
   <div 
     onClick={onClick}
@@ -44,17 +29,16 @@ export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, on
     onMouseLeave={() => onHover(null, null as any)}
     className={`
         relative w-[46px] h-[46px] bg-[#151515] border-2 shadow-inner cursor-pointer flex items-center justify-center group overflow-hidden rounded-sm transition-all
-        ${item?.rarity ? getRarityColor(item.rarity) : 'border-[#2a2a2a] hover:border-[#444]'}
+        ${item?.rarity ? getRarityColor(item.rarity) : 'border-[#333] hover:border-[#555]'}
     `}
   >
-    {/* Efeito de Profundidade (Tibia Style) */}
-    <div className="absolute inset-0 border border-black/40 pointer-events-none"></div>
-
-    {!item ? (
-       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          {getSlotIcon(slot)}
+    {!item && EMPTY_SLOT_IMAGES[slot] && (
+       <div className="absolute inset-0 flex items-center justify-center pointer-events-none grayscale opacity-20">
+          <Sprite src={EMPTY_SLOT_IMAGES[slot]} size={32} className="max-w-[32px] max-h-[32px]" />
        </div>
-    ) : (
+    )}
+
+    {item ? (
       <>
         <Sprite 
           src={item.image} 
@@ -68,9 +52,8 @@ export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, on
         )}
         {item.rarity === 'legendary' && <Sparkles size={12} className="absolute top-0.5 right-0.5 text-orange-400 animate-spin-slow z-20" />}
       </>
-    )}
+    ) : null}
     
-    {/* Overlay de Hover */}
     <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 pointer-events-none z-20 transition-opacity"></div>
   </div>
 );

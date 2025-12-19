@@ -21,7 +21,7 @@ export const processAutomation = (
     let p = { ...player };
     let waste = 0;
 
-    // --- 1. AUTO HEALTH POTION (Individual CD) ---
+    // --- 1. AUTO HEALTH POTION ---
     if (p.settings.autoHealthPotionThreshold > 0 && 
         (p.hp / p.maxHp) * 100 <= p.settings.autoHealthPotionThreshold &&
         now > (p.healthPotionCooldown || 0)) {
@@ -45,14 +45,14 @@ export const processAutomation = (
                         p.mana = Math.min(p.maxMana, p.mana + item.restoreAmountSecondary);
                     }
                     
-                    log(`Usou ${item.name} (Health).`, 'info');
+                    log(`Used ${item.name}.`, 'info');
                     p.healthPotionCooldown = now + 1000; 
                 }
             }
         }
     }
 
-    // --- 2. AUTO MANA POTION (Individual CD) ---
+    // --- 2. AUTO MANA POTION ---
     if (p.settings.autoManaPotionThreshold > 0 && 
         (p.mana / p.maxMana) * 100 <= p.settings.autoManaPotionThreshold &&
         now > (p.manaPotionCooldown || 0)) {
@@ -77,20 +77,19 @@ export const processAutomation = (
                         }
                     }
                     
-                    log(`Usou ${item.name} (Mana).`, 'info');
+                    log(`Used ${item.name}.`, 'info');
                     p.manaPotionCooldown = now + 1000;
                 }
             }
         }
     }
 
-    // --- 3. AUTO HEAL SPELL (Independent Healing Cooldown) ---
+    // --- 3. AUTO HEAL SPELL ---
     if (p.settings.autoHealSpellThreshold > 0 && (p.hp / p.maxHp) * 100 <= p.settings.autoHealSpellThreshold) {
         if (p.settings.selectedHealSpellId) {
            const spell = SPELLS.find(s => s.id === p.settings.selectedHealSpellId);
            if (spell && p.purchasedSpells.includes(spell.id) && 
                p.level >= spell.minLevel && 
-               (p.skills[SkillType.MAGIC].level >= (spell.reqMagicLevel || 0)) && 
                p.mana >= spell.manaCost && 
                (p.spellCooldowns[spell.id] || 0) <= now && 
                (p.healingCooldown || 0) <= now) {
@@ -103,7 +102,6 @@ export const processAutomation = (
               
               const magicRes = processSkillTraining(p, SkillType.MAGIC, spell.manaCost);
               p = magicRes.player;
-              if (magicRes.leveledUp) log(`Magic Level up: ${p.skills[SkillType.MAGIC].level}!`, 'gain');
               
               const match = spell.name.match(/\((.*?)\)/);
               const incantation = match ? match[1] : spell.name;
@@ -115,27 +113,14 @@ export const processAutomation = (
         }
     }
 
-    // --- 4. AUTO MAGIC SHIELD (Support/Attack Cooldown) ---
-    if (p.settings.autoMagicShield) {
-        if (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID) {
-            const spellId = 'utamo_vita';
-            const spell = SPELLS.find(s => s.id === spellId);
-            
-            if (spell && p.purchasedSpells.includes(spellId) && 
-                p.level >= spell.minLevel && 
-                p.mana >= spell.manaCost && 
-                (p.spellCooldowns[spellId] || 0) <= now && 
-                (p.attackCooldown || 0) <= now) {
-                
+    // --- 4. AUTO MAGIC SHIELD ---
+    if (p.settings.autoMagicShield && (p.vocation === Vocation.SORCERER || p.vocation === Vocation.DRUID)) {
+        if (p.magicShieldUntil < now + 2000) { // Renovar se faltar menos de 2s
+            const spell = SPELLS.find(s => s.id === 'utamo_vita');
+            if (spell && p.purchasedSpells.includes('utamo_vita') && p.mana >= spell.manaCost && (p.spellCooldowns['utamo_vita'] || 0) <= now) {
                 p.mana -= spell.manaCost;
                 p.magicShieldUntil = now + 30000;
-                p.spellCooldowns[spellId] = now + spell.cooldown;
-                p.attackCooldown = now + 2000; 
-
-                const magicRes = processSkillTraining(p, SkillType.MAGIC, spell.manaCost);
-                p = magicRes.player;
-                if (magicRes.leveledUp) log(`Magic Level up: ${p.skills[SkillType.MAGIC].level}!`, 'gain');
-
+                p.spellCooldowns['utamo_vita'] = now + spell.cooldown;
                 log('Cast Utamo Vita.', 'magic');
                 hit('Utamo Vita', 'speech', 'player');
             }

@@ -1,6 +1,5 @@
 
 import { Player, Monster, LogEntry, HitSplat, SkillType, Rarity } from '../types';
-import { MONSTERS, BOSSES } from '../constants'; 
 import { processRegeneration } from './tick/regeneration';
 import { processAutomation } from './tick/automation';
 import { processTraining } from './tick/training';
@@ -43,6 +42,7 @@ export const processGameTick = (
     const triggers: any = {};
     const stats = { xpGained: 0, goldGained: 0, profitGained: 0, waste: 0 };
 
+    // Callbacks de suporte para os sub-ticks
     const log = (msg: string, type: LogEntry['type'] = 'info', rarity?: Rarity) => {
         logs.push({ id: Math.random().toString(36).substr(2, 9), message: msg, type, timestamp: now, rarity });
     };
@@ -50,17 +50,18 @@ export const processGameTick = (
         hits.push({ id: now + Math.random(), value: val, type, target });
     };
 
-    // 1. Core Systems
+    // 1. Core Systems (Regen e Automação Passiva/Cura)
     p = processRegeneration(p, activeHuntId);
     const auto = processAutomation(p, now, log, hit);
     p = auto.player;
     stats.waste += auto.waste;
 
-    if (activeTrainingSkill) {
+    // 2. Treino (Se não estiver caçando)
+    if (activeTrainingSkill && !activeHuntId) {
         p = processTraining(p, activeTrainingSkill, log, hit);
     }
 
-    // 2. Specialized Hunt Logic
+    // 3. Hunt (Contém Automação Ofensiva)
     if (activeHuntId) {
         const huntResult = processHuntTick(p, activeHuntId, monsterHp, now, log, hit);
         p = huntResult.player;
@@ -68,12 +69,17 @@ export const processGameTick = (
         stopHunt = huntResult.stopHunt;
         activeMonster = huntResult.activeMonster;
         killedMonsters = huntResult.killedMonsters;
+        
         stats.xpGained += huntResult.stats.xpGained;
         stats.goldGained += huntResult.stats.goldGained;
+        stats.profitGained += huntResult.stats.goldGained; // Simplificado
+        stats.waste += huntResult.stats.waste;
+        
+        if (huntResult.triggers.tutorial) triggers.tutorial = huntResult.triggers.tutorial;
         if (huntResult.bossDefeatedId) log(`You defeated ${activeMonster?.name}!`, 'gain');
     }
 
-    // 3. Oracle Trigger
+    // 4. Oracle Trigger
     if ((p.level >= 2 && !p.isNameChosen) || (p.level >= 8 && p.vocation === 'None')) {
         triggers.oracle = true;
     }

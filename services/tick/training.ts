@@ -2,7 +2,6 @@
 import { Player, SkillType, LogEntry, HitSplat, Rarity } from '../../types';
 import { processSkillTraining } from '../progression';
 
-// Helper for log/hit callbacks
 type LogFunc = (msg: string, type: LogEntry['type'], rarity?: Rarity) => void;
 type HitFunc = (val: number | string, type: HitSplat['type'], target: 'player'|'monster') => void;
 
@@ -24,17 +23,17 @@ export const processTraining = (
         p = result.player;
         
         if (result.leveledUp) {
-          log(`Sua skill ${activeSkill} subiu para o nível ${p.skills[activeSkill].level}!`, 'gain');
-          hit('Skill Up!', 'heal', 'player');
+          log(`You advanced to ${activeSkill} level ${p.skills[activeSkill].level}!`, 'gain');
+          hit('SKILL UP!', 'heal', 'player');
         }
         
-        // Passive Shielding Training for Melee
+        // Treino passivo de shielding para armas melee
         if ([SkillType.SWORD, SkillType.AXE, SkillType.CLUB].includes(activeSkill)) {
             const shieldRes = processSkillTraining(p, SkillType.DEFENSE, 10);
             p = shieldRes.player;
             if (shieldRes.leveledUp) {
-              log(`Sua skill Shielding subiu para o nível ${p.skills[SkillType.DEFENSE].level}!`, 'gain');
-              hit('Shield Up!', 'heal', 'player');
+              log(`You advanced to shielding level ${p.skills[SkillType.DEFENSE].level}!`, 'gain');
+              hit('SHIELD UP!', 'heal', 'player');
             }
         }
     }

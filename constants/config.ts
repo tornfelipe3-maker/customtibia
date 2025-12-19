@@ -12,18 +12,6 @@ export const MAX_STAMINA = 10800; // 3 hours in seconds
 export const MAX_BACKPACK_SLOTS = 40;
 export const MAX_DEPOT_SLOTS = 2000;
 
-export const EMPTY_SLOT_IMAGES: Record<EquipmentSlot, string> = {
-  [EquipmentSlot.HEAD]: `${IMG_BASE}Helmet_Slot.gif`,
-  [EquipmentSlot.NECK]: `${IMG_BASE}Necklace_Slot.gif`,
-  [EquipmentSlot.BODY]: `${IMG_BASE}Armor_Slot.gif`,
-  [EquipmentSlot.HAND_LEFT]: `${IMG_BASE}Hand_Slot.gif`,
-  [EquipmentSlot.HAND_RIGHT]: `${IMG_BASE}Hand_Slot.gif`,
-  [EquipmentSlot.LEGS]: `${IMG_BASE}Legs_Slot.gif`,
-  [EquipmentSlot.FEET]: `${IMG_BASE}Boots_Slot.gif`,
-  [EquipmentSlot.RING]: `${IMG_BASE}Ring_Slot.gif`,
-  [EquipmentSlot.AMMO]: `${IMG_BASE}Ammo_Slot.gif`,
-};
-
 export const VOCATION_SPRITES = {
   [Vocation.NONE]: `${OUT_BASE}Outfit_Citizen_Male.gif`,
   [Vocation.KNIGHT]: `${OUT_BASE}Outfit_Knight_Male.gif`,

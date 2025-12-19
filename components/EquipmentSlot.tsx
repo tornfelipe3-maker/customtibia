@@ -1,8 +1,7 @@
 
 import React from 'react';
 import { Item, EquipmentSlot, Rarity } from '../types';
-import { EMPTY_SLOT_IMAGES } from '../constants';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, HardHat, Shield, Shirt, Columns, Footprints, Gem, CircleDot, ArrowUp, Sword } from 'lucide-react';
 import { Sprite } from './common/Sprite';
 
 interface EquipmentSlotProps {
@@ -22,6 +21,22 @@ const getRarityColor = (rarity?: Rarity) => {
     }
 };
 
+const getSlotPlaceholder = (slot: EquipmentSlot) => {
+    const props = { size: 24, className: "text-gray-700 opacity-20 transition-all group-hover:opacity-40" };
+    switch (slot) {
+        case EquipmentSlot.HEAD: return <HardHat {...props} />;
+        case EquipmentSlot.NECK: return <Gem {...props} />;
+        case EquipmentSlot.BODY: return <Shirt {...props} />;
+        case EquipmentSlot.HAND_LEFT: return <Shield {...props} />;
+        case EquipmentSlot.HAND_RIGHT: return <Sword {...props} />;
+        case EquipmentSlot.LEGS: return <Columns {...props} />;
+        case EquipmentSlot.FEET: return <Footprints {...props} />;
+        case EquipmentSlot.RING: return <CircleDot {...props} />;
+        case EquipmentSlot.AMMO: return <ArrowUp {...props} />;
+        default: return null;
+    }
+};
+
 export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, onClick, onHover }) => (
   <div 
     onClick={onClick}
@@ -32,13 +47,11 @@ export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, on
         ${item?.rarity ? getRarityColor(item.rarity) : 'border-[#333] hover:border-[#555]'}
     `}
   >
-    {!item && EMPTY_SLOT_IMAGES[slot] && (
-       <div className="absolute inset-0 flex items-center justify-center pointer-events-none grayscale opacity-20">
-          <Sprite src={EMPTY_SLOT_IMAGES[slot]} size={32} className="max-w-[32px] max-h-[32px]" />
+    {!item ? (
+       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {getSlotPlaceholder(slot)}
        </div>
-    )}
-
-    {item ? (
+    ) : (
       <>
         <Sprite 
           src={item.image} 
@@ -52,7 +65,7 @@ export const EquipmentSlotView: React.FC<EquipmentSlotProps> = ({ item, slot, on
         )}
         {item.rarity === 'legendary' && <Sparkles size={12} className="absolute top-0.5 right-0.5 text-orange-400 animate-spin-slow z-20" />}
       </>
-    ) : null}
+    )}
     
     <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 pointer-events-none z-20 transition-opacity"></div>
   </div>

@@ -27,6 +27,16 @@ export const getPlayerModifier = (player: Player, key: string): number => {
     return total;
 };
 
+export const getEffectiveMaxHp = (player: Player): number => {
+    const bonus = getAscensionBonusValue(player, 'hp_boost');
+    return Math.floor(player.maxHp * (1 + (bonus / 100)));
+};
+
+export const getEffectiveMaxMana = (player: Player): number => {
+    const bonus = getAscensionBonusValue(player, 'mana_boost');
+    return Math.floor(player.maxMana * (1 + (bonus / 100)));
+};
+
 export const getReforgeCost = (rarity?: Rarity): number => {
     switch (rarity) {
         case 'uncommon': return 3;
@@ -124,6 +134,8 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
     const level = (player.ascension?.[perk] || 0);
     if (perk === 'boss_cd') return level * 1;
     if (perk === 'loot_boost') return level * 1; 
+    if (perk === 'hp_boost' || perk === 'mana_boost') return level * 1;
+    if (perk === 'potion_hp_boost' || perk === 'potion_mana_boost') return level * 2;
     return level * 5; 
 };
 

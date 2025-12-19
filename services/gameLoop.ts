@@ -3,7 +3,7 @@ import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vo
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
 import { processSkillTraining, checkForLevelUp, getEffectiveSkill } from './progression';
-import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue, getPlayerModifier } from './mechanics';
+import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue, getPlayerModifier, getEffectiveMaxHp, getEffectiveMaxMana } from './mechanics';
 import { generateLootWithRarity, calculateLootValue } from './loot'; 
 
 import { processRegeneration } from './tick/regeneration';
@@ -72,6 +72,9 @@ export const processGameTick = (
     let bossDefeatedId: string | undefined = undefined;
     let monsterHp = currentMonsterHp;
 
+    const maxHp = getEffectiveMaxHp(p);
+    const maxMana = getEffectiveMaxMana(p);
+
     // --- IMBUEMENT TIMER TICK ---
     if (p.imbuActive) {
         Object.keys(p.imbuements).forEach(key => {
@@ -86,7 +89,7 @@ export const processGameTick = (
         });
     }
 
-    // --- HELPER: APPLY IMBUEMENT LEECH (CORRIGIDO PARA SER INSTANTÂNEO EM CADA HIT) ---
+    // --- HELPER: APPLY IMBUEMENT LEECH ---
     const applyLeech = (dmg: number) => {
         if (!p.imbuActive || dmg <= 0) return;
 
@@ -95,7 +98,7 @@ export const processGameTick = (
         if (ls.tier > 0 && ls.timeRemaining > 0) {
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
             if (heal > 0) {
-                p.hp = Math.min(p.maxHp, p.hp + heal);
+                p.hp = Math.min(maxHp, p.hp + heal);
                 hit(heal, 'heal', 'player'); 
             }
         }
@@ -105,7 +108,7 @@ export const processGameTick = (
         if (ml.tier > 0 && ml.timeRemaining > 0) {
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
             if (manaGain > 0) {
-                p.mana = Math.min(p.maxMana, p.mana + manaGain);
+                p.mana = Math.min(maxMana, p.mana + manaGain);
                 hit(manaGain, 'mana', 'player');
             }
         }
@@ -360,7 +363,7 @@ export const processGameTick = (
                 let imbuCritChance = 0;
                 const strikeImbu = p.imbuements[ImbuType.STRIKE];
                 if (p.imbuActive && strikeImbu.tier > 0 && strikeImbu.timeRemaining > 0) {
-                    imbuCritChance = strikeImbu.tier * 5; // 5, 10, 15
+                    imbuCritChance = strikeImbu.tier * 5; 
                 }
 
                 const critChance = getPlayerModifier(p, 'critChance') + imbuCritChance;
@@ -414,7 +417,6 @@ export const processGameTick = (
             if (autoAttackDamage > 0) {
                 monsterHp -= autoAttackDamage;
                 hit(autoAttackDamage, 'damage', 'monster');
-                // Aplica imbuement de recuperação no auto attack (INSTANTÂNEO)
                 applyLeech(autoAttackDamage);
             }
 
@@ -448,7 +450,6 @@ export const processGameTick = (
                             monsterHp -= finalSpellDmg;
                             hit(finalSpellDmg, 'damage', 'monster');
                             hit(spellName, 'speech', 'player');
-                            // Aplica imbuement de recuperação na magia (INSTANTÂNEO)
                             applyLeech(finalSpellDmg);
                         }
 
@@ -484,7 +485,6 @@ export const processGameTick = (
                         } else {
                             monsterHp -= finalRuneDmg;
                             hit(finalRuneDmg, 'damage', 'monster');
-                            // Aplica imbuement de recuperação na runa (INSTANTÂNEO)
                             applyLeech(finalRuneDmg);
                         }
 
@@ -544,12 +544,9 @@ export const processGameTick = (
 
                 let combinedStandardLoot: {[key:string]: number} = {};
                 
-                // --- BOSS SPECIAL DROP: GOLD TOKEN (0-2) ---
                 if ((monster as Boss).cooldownSeconds) {
-                    const tokenRoll = Math.floor(Math.random() * 3); // 0, 1, 2
-                    if (tokenRoll > 0) {
-                        combinedStandardLoot['gold_token'] = tokenRoll;
-                    }
+                    const tokenRoll = Math.floor(Math.random() * 3); 
+                    if (tokenRoll > 0) combinedStandardLoot['gold_token'] = tokenRoll;
                 }
 
                 if (monster.isInfluenced) {

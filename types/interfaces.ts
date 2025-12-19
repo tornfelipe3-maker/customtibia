@@ -154,7 +154,7 @@ export interface PreySlot {
     duration: number;
 }
 
-export type AscensionPerk = 'gold_boost' | 'damage_boost' | 'loot_boost' | 'boss_cd' | 'soul_gain' | 'xp_boost';
+export type AscensionPerk = 'gold_boost' | 'damage_boost' | 'loot_boost' | 'boss_cd' | 'soul_gain' | 'xp_boost' | 'hp_boost' | 'mana_boost' | 'potion_hp_boost' | 'potion_mana_boost';
 
 export interface Relic {
     id: string;

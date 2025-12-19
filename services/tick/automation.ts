@@ -3,6 +3,7 @@ import { Player, Vocation, LogEntry, HitSplat, SkillType, Rarity } from '../../t
 import { SHOP_ITEMS, SPELLS } from '../../constants';
 import { calculateSpellHealing } from '../combat';
 import { processSkillTraining } from '../progression';
+import { getAscensionBonusValue, getEffectiveMaxHp, getEffectiveMaxMana } from '../mechanics';
 
 type LogFunc = (msg: string, type: LogEntry['type'], rarity?: Rarity) => void;
 type HitFunc = (val: number | string, type: HitSplat['type'], target: 'player'|'monster') => void;
@@ -21,9 +22,12 @@ export const processAutomation = (
     let p = { ...player };
     let waste = 0;
 
+    const maxHp = getEffectiveMaxHp(p);
+    const maxMana = getEffectiveMaxMana(p);
+
     // --- 1. AUTO HEALTH POTION (Individual CD) ---
     if (p.settings.autoHealthPotionThreshold > 0 && 
-        (p.hp / p.maxHp) * 100 <= p.settings.autoHealthPotionThreshold &&
+        (p.hp / maxHp) * 100 <= p.settings.autoHealthPotionThreshold &&
         now > (p.healthPotionCooldown || 0)) {
         
         const potionId = p.settings.selectedHealthPotionId;
@@ -38,11 +42,15 @@ export const processAutomation = (
                     waste += item.price || 0;
                     
                     if (item.restoreAmount) {
-                        p.hp = Math.min(p.maxHp, p.hp + item.restoreAmount);
-                        hit(`+${item.restoreAmount}`, 'heal', 'player');
+                        const effBonus = getAscensionBonusValue(p, 'potion_hp_boost');
+                        const finalHeal = Math.floor(item.restoreAmount * (1 + (effBonus / 100)));
+                        p.hp = Math.min(maxHp, p.hp + finalHeal);
+                        hit(`+${finalHeal}`, 'heal', 'player');
                     }
                     if (item.restoreAmountSecondary && item.potionType === 'spirit') {
-                        p.mana = Math.min(p.maxMana, p.mana + item.restoreAmountSecondary);
+                        const effBonus = getAscensionBonusValue(p, 'potion_mana_boost');
+                        const finalMana = Math.floor(item.restoreAmountSecondary * (1 + (effBonus / 100)));
+                        p.mana = Math.min(maxMana, p.mana + finalMana);
                     }
                     
                     log(`Usou ${item.name} (Health).`, 'info');
@@ -54,7 +62,7 @@ export const processAutomation = (
 
     // --- 2. AUTO MANA POTION (Individual CD) ---
     if (p.settings.autoManaPotionThreshold > 0 && 
-        (p.mana / p.maxMana) * 100 <= p.settings.autoManaPotionThreshold &&
+        (p.mana / maxMana) * 100 <= p.settings.autoManaPotionThreshold &&
         now > (p.manaPotionCooldown || 0)) {
 
         const potionId = p.settings.selectedManaPotionId;
@@ -69,11 +77,13 @@ export const processAutomation = (
                     waste += item.price || 0;
                     
                     if (item.restoreAmount) {
+                        const effBonus = getAscensionBonusValue(p, 'potion_mana_boost');
+                        const finalRestore = Math.floor(item.restoreAmount * (1 + (effBonus / 100)));
                         if (item.potionType === 'mana') {
-                            p.mana = Math.min(p.maxMana, p.mana + item.restoreAmount);
+                            p.mana = Math.min(maxMana, p.mana + finalRestore);
                         } else if (item.potionType === 'spirit') {
-                            const manaHeal = item.restoreAmountSecondary || item.restoreAmount;
-                            p.mana = Math.min(p.maxMana, p.mana + manaHeal);
+                            const manaHeal = item.restoreAmountSecondary ? Math.floor(item.restoreAmountSecondary * (1 + (effBonus / 100))) : finalRestore;
+                            p.mana = Math.min(maxMana, p.mana + manaHeal);
                         }
                     }
                     
@@ -85,7 +95,7 @@ export const processAutomation = (
     }
 
     // --- 3. AUTO HEAL SPELL (Independent Healing Cooldown) ---
-    if (p.settings.autoHealSpellThreshold > 0 && (p.hp / p.maxHp) * 100 <= p.settings.autoHealSpellThreshold) {
+    if (p.settings.autoHealSpellThreshold > 0 && (p.hp / maxHp) * 100 <= p.settings.autoHealSpellThreshold) {
         if (p.settings.selectedHealSpellId) {
            const spell = SPELLS.find(s => s.id === p.settings.selectedHealSpellId);
            if (spell && p.purchasedSpells.includes(spell.id) && 
@@ -97,7 +107,7 @@ export const processAutomation = (
               
               const healAmt = calculateSpellHealing(p, spell);
               p.mana -= spell.manaCost;
-              p.hp = Math.min(p.maxHp, p.hp + healAmt);
+              p.hp = Math.min(maxHp, p.hp + healAmt);
               p.spellCooldowns[spell.id] = now + (spell.cooldown || 1000);
               p.healingCooldown = now + 1000; 
               

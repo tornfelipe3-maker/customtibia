@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Player, EquipmentSlot, Item, SkillType, PlayerSettings, Vocation, Rarity } from '../types';
 import { SHOP_ITEMS, MAX_BACKPACK_SLOTS } from '../constants';
-import { getReforgeCost } from '../services';
+import { getReforgeCost, getEffectiveMaxHp, getEffectiveMaxMana } from '../services';
 import { Shield, Backpack, User, EyeOff, Trash2, Sun, Sparkles, Sword, Crosshair, Zap, Hammer, HandMetal, RefreshCw, BarChart2 } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -38,9 +38,13 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({ player, onUpdate
   const [hoverItem, setHoverItem] = useState<Item | null>(null);
   const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
 
+  // --- CALCULATE EFFECTIVE TOTALS ---
+  const effMaxHp = getEffectiveMaxHp(player);
+  const effMaxMana = getEffectiveMaxMana(player);
+
   const getXpPercentage = () => Math.min(100, (player.currentXp / player.maxXp) * 100);
-  const getHpPercentage = () => Math.min(100, (player.hp / player.maxHp) * 100);
-  const getManaPercentage = () => Math.min(100, (player.mana / player.maxMana) * 100);
+  const getHpPercentage = () => Math.min(100, (player.hp / effMaxHp) * 100);
+  const getManaPercentage = () => Math.min(100, (player.mana / effMaxMana) * 100);
 
   const getSkillBonus = (skill: SkillType) => {
     let bonus = 0;
@@ -137,11 +141,11 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({ player, onUpdate
          <div className="space-y-1.5">
             <div className="h-4 w-full bg-[#0a0a0a] border border-[#333] relative rounded-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-red-800 to-red-600 h-full absolute left-0 transition-all duration-300" style={{width: `${getHpPercentage()}%`}}></div>
-                <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">{Math.floor(player.hp)} / {player.maxHp}</div>
+                <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">{Math.floor(player.hp)} / {effMaxHp}</div>
             </div>
             <div className="h-4 w-full bg-[#0a0a0a] border border-[#333] relative rounded-sm overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-800 to-blue-600 h-full absolute left-0 transition-all duration-300" style={{width: `${getManaPercentage()}%`}}></div>
-                <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">{Math.floor(player.mana)} / {player.maxMana}</div>
+                <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">{Math.floor(player.mana)} / {effMaxMana}</div>
             </div>
          </div>
 

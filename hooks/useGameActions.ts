@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport, ImbuType } from '../types';
-import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp } from '../services';
+import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp, getEffectiveMaxHp, getEffectiveMaxMana } from '../services';
 import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS } from '../constants';
 
 export const useGameActions = (
@@ -60,7 +60,6 @@ export const useGameActions = (
                 activeTrainingSkill: null,
                 activeHuntStartTime: 0,
                 activeTrainingStartTime: 0,
-                // Limpeza de Cooldowns por segurança
                 attackCooldown: Date.now(),
                 healingCooldown: 0,
                 healthPotionCooldown: 0,
@@ -146,7 +145,6 @@ export const useGameActions = (
                     activeTrainingSkill: null,
                     activeTrainingStartTime: 0,
                     bossCooldowns: newCooldowns,
-                    // RESET TOTAL DE COOLDOWNS AO INICIAR
                     attackCooldown: now,
                     healingCooldown: 0,
                     healthPotionCooldown: 0,
@@ -176,7 +174,6 @@ export const useGameActions = (
                 activeTrainingStartTime: now,
                 activeHuntId: null,
                 activeHuntStartTime: 0,
-                // Reset de cooldowns
                 attackCooldown: now,
                 spellCooldowns: {}
             }));
@@ -728,7 +725,6 @@ export const useGameActions = (
                     premiumUntil: prev.premiumUntil, xpBoostUntil: prev.xpBoostUntil, soulPoints: prev.soulPoints + points,
                     uniqueInventory: recoveredUnique, uniqueDepot: prev.uniqueDepot, tutorials: prev.tutorials,
                     taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive,
-                    // Reset cooldowns
                     attackCooldown: now,
                     spellCooldowns: {}
                 };

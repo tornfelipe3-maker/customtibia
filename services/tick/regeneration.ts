@@ -1,6 +1,7 @@
 
 import { Player, Vocation } from '../../types';
 import { REGEN_RATES, MAX_STAMINA } from '../../constants';
+import { getEffectiveMaxHp, getEffectiveMaxMana } from '../mechanics';
 
 export const processRegeneration = (player: Player, activeHuntId: string | null): Player => {
     let p = { ...player };
@@ -15,9 +16,12 @@ export const processRegeneration = (player: Player, activeHuntId: string | null)
         if (p.stamina < MAX_STAMINA) p.stamina = Math.min(MAX_STAMINA, p.stamina + 0.5);
     }
 
-    // Apply Regen
-    if (p.hp < p.maxHp) p.hp = Math.min(p.maxHp, Math.floor(p.hp + regen.hp));
-    if (p.mana < p.maxMana) p.mana = Math.min(p.maxMana, Math.floor(p.mana + regen.mana));
+    // Apply Regen respeitando o bônus de Ascensão
+    const effMaxHp = getEffectiveMaxHp(p);
+    const effMaxMana = getEffectiveMaxMana(p);
+
+    if (p.hp < effMaxHp) p.hp = Math.min(effMaxHp, Math.floor(p.hp + regen.hp));
+    if (p.mana < effMaxMana) p.mana = Math.min(effMaxMana, Math.floor(p.mana + regen.mana));
 
     return p;
 };

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Player, Monster, HitSplat, Vocation } from '../types';
 import { VOCATION_SPRITES } from '../constants';
+import { getEffectiveMaxHp } from '../services';
 import { Skull, Octagon, Sparkles, AlertTriangle, Crown, Flame, Search } from 'lucide-react';
 import { Sprite } from './common/Sprite';
 
@@ -40,7 +41,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       switch(type) {
           case 'damage': return 'text-[#b90000]';
           case 'heal': return 'text-[#00c000]'; 
-          case 'mana': return 'text-[#00aaff]'; // Azul claro vibrante
+          case 'mana': return 'text-[#00aaff]'; 
           case 'speech': return 'text-yellow-400 text-[10px] font-normal';
           default: return 'text-gray-400';
       }
@@ -65,16 +66,15 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          
          if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-10% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
          
-         // Posicionamento: Vida longe na esquerda, Mana longe na direita
          let leftPos = '50%';
          let displayValue = String(hit.value);
 
          if (target === 'player') {
              if (hit.type === 'heal') {
-                 leftPos = '0%'; // Extremidade esquerda do container do player
+                 leftPos = '0%'; 
                  displayValue = `+${hit.value} HP`;
              } else if (hit.type === 'mana') {
-                 leftPos = '100%'; // Extremidade direita do container do player
+                 leftPos = '100%'; 
                  displayValue = `+${hit.value} MP`;
              }
          }
@@ -95,15 +95,14 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
   };
 
   const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
+  const playerEffMaxHp = getEffectiveMaxHp(player);
 
   return (
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${!activeMonster ? 'border-black' : activeMonster.isInfluenced ? `border-${activeMonster.influencedType}` : 'border-black'}`}>
          
          {activeMonster ? (
-            // Aumentado space-x de 32 para 48 para empurrar o mob mais para a direita
             <div className="relative w-full max-w-[600px] h-full flex items-center justify-center space-x-48 z-10">
                <div className="flex flex-col items-center animate-[pulse_2s_infinite] relative">
-                  {/* Container de Hits do Jogador */}
                   <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center -mx-20 w-[calc(100%+160px)]">
                     {renderHits('player')}
                   </div>
@@ -112,7 +111,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                      <Sprite src={VOCATION_SPRITES[player.vocation]} type="outfit" className="scale-[2]" size={40} />
                   </div>
                   <div className="mt-6 w-16 h-2 bg-black border border-black/50 shadow">
-                     <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}></div>
+                     <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${(player.hp / playerEffMaxHp) * 100}%` }}></div>
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[11px] font-bold text-white drop-shadow-md bg-black/40 px-2 py-0.5 rounded">{player.name || 'Hero'}</span>

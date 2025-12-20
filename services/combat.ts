@@ -69,12 +69,14 @@ export const calculatePlayerDamage = (player: Player): number => {
         let ammoAtk = 0;
         if (weapon.weaponType) {
             const ammo = player.equipment[EquipmentSlot.AMMO];
-            if (ammo && ammo.attack && 
-               ((weapon.weaponType === 'bow' && ammo.ammoType === 'arrow') ||
-               (weapon.weaponType === 'crossbow' && ammo.ammoType === 'bolt'))) {
-                 ammoAtk = ammo.attack || 0;
+            const isValidAmmo = ammo && ammo.attack && (
+                (weapon.weaponType === 'bow' && ammo.ammoType === 'arrow') ||
+                (weapon.weaponType === 'crossbow' && ammo.ammoType === 'bolt')
+            );
+            if (isValidAmmo) {
+                 ammoAtk = ammo!.attack || 0;
             } else {
-                return 0;
+                return 0; // No ammo = No damage
             }
         } else {
             ammoAtk = attackValue; 

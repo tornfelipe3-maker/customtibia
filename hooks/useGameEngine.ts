@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType } from '../types';
+import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport } from '../types';
 import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState } from '../services';
 import { BOSSES } from '../constants';
 import { useGameActions } from './useGameActions';
@@ -30,6 +30,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   const [analyzerHistory, setAnalyzerHistory] = useState<{ timestamp: number, xp: number, profit: number, waste: number }[]>([]);
   const [sessionKills, setSessionKills] = useState<{[name: string]: number}>({});
   const [offlineReport, setOfflineReport] = useState<OfflineReport | null>(null);
+  const [deathReport, setDeathReport] = useState<DeathReport | null>(null);
 
   const [isPaused, setIsPaused] = useState(false);
   const [activeTutorial, setActiveTutorial] = useState<'mob' | 'item' | 'ascension' | 'level12' | null>(null);
@@ -55,7 +56,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       setCurrentMonsterHp,
       setActiveMonster,
       setSessionKills,
-      setOfflineReport
+      setOfflineReport,
+      setDeathReport
   );
 
   useEffect(() => {
@@ -127,8 +129,8 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   }, [initialPlayer]);
 
   useEffect(() => {
-      if (offlineReport !== null) setIsPaused(true);
-  }, [offlineReport]);
+      if (offlineReport !== null || deathReport !== null) setIsPaused(true);
+  }, [offlineReport, deathReport]);
 
   useEffect(() => {
       if (!accountName) return;
@@ -241,7 +243,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
-              if (result.triggers.tutorial || result.triggers.oracle) triggerUpdate = result.triggers;
+              if (result.triggers.tutorial || result.triggers.oracle || result.triggers.death) triggerUpdate = result.triggers;
               if (result.stopHunt) { stopBatchHunt = true; break; }
               if (result.stopTrain) { stopBatchTrain = true; break; }
           }
@@ -280,6 +282,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                   if (triggerUpdate.tutorial === 'level12') tempPlayer.tutorials.seenLevel12 = true;
               } else if (triggerUpdate.oracle) {
                   setIsPaused(true);
+              } else if (triggerUpdate.death) {
+                  setIsPaused(true);
+                  setDeathReport(triggerUpdate.death);
               }
           }
 
@@ -321,5 +326,5 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       };
   }, [!!player, isPaused, gameSpeed]);
 
-  return { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, gameSpeed };
+  return { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, deathReport, gameSpeed };
 };

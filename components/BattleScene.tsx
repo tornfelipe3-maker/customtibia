@@ -28,6 +28,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
   const [isSpawning, setIsSpawning] = useState(false);
   const isDead = activeMonster && currentMonsterHp <= 0;
   const uniqueKey = activeMonster?.guid || activeMonster?.id;
+  const hazardLevel = player.activeHazardLevel || 0;
 
   useEffect(() => {
       if (uniqueKey) {
@@ -39,9 +40,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
 
   const getHitColor = (hit: HitSplat) => {
       if (hit.target === 'monster' && hit.type === 'damage') {
-          if (hit.source === 'spell') return 'text-[#ff4500] drop-shadow-[0_0_2px_rgba(255,69,0,0.8)]'; // Magia: Laranja/Vermelho vibrante
-          if (hit.source === 'rune') return 'text-[#ffffff] drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]';   // Runa: Branco puro
-          return 'text-[#b90000]'; // Básico: Vermelho clássico
+          if (hit.source === 'spell') return 'text-[#ff4500] drop-shadow-[0_0_2px_rgba(255,69,0,0.8)]'; 
+          if (hit.source === 'rune') return 'text-[#ffffff] drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]';   
+          return 'text-[#b90000]'; 
       }
 
       switch(hit.type) {
@@ -84,7 +85,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                  displayValue = `+${hit.value} MP`;
              }
          } else if (target === 'monster' && hit.type === 'damage') {
-             // Lógica de separação horizontal por origem
              if (hit.source === 'basic') leftPos = '40%';
              else if (hit.source === 'spell') leftPos = '55%';
              else if (hit.source === 'rune') leftPos = '70%';
@@ -108,11 +108,31 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
   const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
   const playerEffMaxHp = getEffectiveMaxHp(player);
 
+  // --- LOGICA DE VISUAIS DE HAZARD/INFLUENCIA ---
+  const activeInfluencedType = activeMonster?.isInfluenced ? activeMonster.influencedType : null;
+  // Se houver influência (monstro raro), usa a borda da raridade. Se for comum e hazard ativo, usa a nova borda laranja.
+  const borderClass = activeInfluencedType ? `border-${activeInfluencedType}` : (hazardLevel > 0 ? 'border-hazard' : 'border-black');
+  const atmosphereClass = activeInfluencedType ? `atmosphere-${activeInfluencedType}` : (hazardLevel > 0 ? 'atmosphere-hazard' : '');
+
   return (
-      <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${!activeMonster ? 'border-black' : activeMonster.isInfluenced ? `border-${activeMonster.influencedType}` : 'border-black'}`}>
+      <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${borderClass}`}>
          
+         {/* Camada de Atmosfera (Efeitos visuais de fundo) */}
+         {activeMonster && atmosphereClass && (
+             <div className={`atmosphere ${atmosphereClass}`} />
+         )}
+
          {activeMonster ? (
             <div className="relative w-full max-w-[600px] h-full flex items-center justify-center space-x-48 z-10">
+               
+               {/* Hazard Level Badge */}
+               {hazardLevel > 0 && (
+                   <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded border border-orange-800/50 animate-pulse">
+                       <Flame size={12} className="text-orange-500" />
+                       <span className="text-[10px] font-black text-orange-200 font-mono">HAZARD {hazardLevel}</span>
+                   </div>
+               )}
+
                <div className="flex flex-col items-center animate-[pulse_2s_infinite] relative">
                   <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center -mx-20 w-[calc(100%+160px)]">
                     {renderHits('player')}
@@ -135,7 +155,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                   </div>
                   <div className="mb-2 text-center flex flex-col items-center min-h-[30px] justify-end">
                      <div className="flex items-center justify-center gap-1.5 bg-black/60 px-3 py-1 rounded border border-black/20">
-                        <span className="text-xs font-bold text-[#0f0] drop-shadow-[1px_1px_0_#000]">{activeMonster.name}</span>
+                        <span className={`text-xs font-bold drop-shadow-[1px_1px_0_#000] ${activeMonster.isInfluenced ? 'text-yellow-400' : 'text-[#0f0]'}`}>{activeMonster.name}</span>
                         {displayHuntCount > 1 && <span className="text-red-500 text-[10px] font-bold ml-1">x{displayHuntCount}</span>}
                      </div>
                   </div>

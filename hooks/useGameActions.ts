@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport, ImbuType } from '../types';
+import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport, ImbuType, DeathReport } from '../types';
 import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp, getEffectiveMaxHp, getEffectiveMaxMana } from '../services';
 import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS } from '../constants';
 
@@ -17,7 +17,8 @@ export const useGameActions = (
     setCurrentMonsterHp: (hp: number) => void,
     setActiveMonster: (m: any) => void,
     setSessionKills: React.Dispatch<React.SetStateAction<{[name:string]: number}>>,
-    setOfflineReport: React.Dispatch<React.SetStateAction<OfflineReport | null>>
+    setOfflineReport: React.Dispatch<React.SetStateAction<OfflineReport | null>>,
+    setDeathReport: React.Dispatch<React.SetStateAction<DeathReport | null>>
 ) => {
 
     const updatePlayerState = (fn: (p: Player) => Player | null) => {
@@ -44,6 +45,11 @@ export const useGameActions = (
         closeTutorial: () => {
             setIsPaused(false);
             setActiveTutorial(null);
+        },
+        closeDeathModal: () => {
+            setDeathReport(null);
+            setIsPaused(false);
+            addLog("You have respawned in the temple.", 'info');
         },
         closeOfflineModal: () => {
             setOfflineReport(null);

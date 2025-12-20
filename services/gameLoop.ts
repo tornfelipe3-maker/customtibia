@@ -1,5 +1,5 @@
 
-import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType } from '../types';
+import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType, DeathReport } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
 import { processSkillTraining, checkForLevelUp, getEffectiveSkill } from './progression';
@@ -26,6 +26,7 @@ export interface GameTickResult {
     triggers: {
         tutorial?: 'mob' | 'item' | 'ascension' | 'level12';
         oracle?: boolean;
+        death?: DeathReport;
     };
     stats: {
         xpGained: number;
@@ -272,7 +273,8 @@ export const processGameTick = (
 
                     if (p.hp <= 0) {
                         let penaltyRate = 0.10; 
-                        if (p.hasBlessing) {
+                        const hadBlessing = p.hasBlessing;
+                        if (hadBlessing) {
                             penaltyRate = 0.04; 
                             p.hasBlessing = false;
                             log('The Blessing of Henricus reduced your death penalty!', 'magic');
@@ -281,12 +283,14 @@ export const processGameTick = (
                         const xpLossAmount = Math.floor(p.maxXp * penaltyRate);
                         const goldLoss = Math.floor(p.gold * penaltyRate); 
 
+                        let levelWasReduced = false;
                         if (p.currentXp >= xpLossAmount) {
                             p.currentXp -= xpLossAmount;
                         } else {
                             if (p.level > 1) {
                                 const remainingDebt = xpLossAmount - p.currentXp;
                                 p.level--; 
+                                levelWasReduced = true;
                                 p.maxXp = getXpForLevel(p.level + 1); 
                                 p.currentXp = Math.max(0, p.maxXp - remainingDebt);
 
@@ -303,6 +307,16 @@ export const processGameTick = (
                                 p.currentXp = 0; 
                             }
                         }
+
+                        // Prepare Death Report
+                        const deathReport: DeathReport = {
+                            xpLoss: xpLossAmount,
+                            goldLoss: goldLoss,
+                            levelDown: levelWasReduced,
+                            vocation: p.vocation,
+                            killerName: monster.name,
+                            hasBlessing: hadBlessing
+                        };
 
                         p.hp = p.maxHp;
                         p.mana = p.maxMana;
@@ -328,6 +342,8 @@ export const processGameTick = (
 
                         log(`You are dead. Lost ${xpLossAmount.toLocaleString()} XP, ${goldLoss.toLocaleString()} Gold, and Skills.`, 'danger');
                         hit('DEAD', 'damage', 'player');
+
+                        triggers.death = deathReport;
 
                         return { player: p, monsterHp: 0, newLogs: logs, newHits: hits, stopHunt: true, stopTrain: false, activeMonster: undefined, killedMonsters, triggers, stats };
                     }

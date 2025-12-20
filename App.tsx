@@ -28,6 +28,7 @@ import { WikiModal } from './components/WikiModal';
 import { HuntAnalyzer } from './components/HuntAnalyzer'; 
 import { HazardPanel } from './components/HazardPanel'; 
 import { OfflineModal } from './components/OfflineModal'; 
+import { DeathModal } from './components/DeathModal'; 
 import { Sidebar } from './components/Sidebar'; 
 import { ImbuementPanel } from './components/ImbuementPanel';
 import { StorageService } from './services/storage';
@@ -40,7 +41,7 @@ import {
 
 const App = () => {
   const { isAuthenticated, loadedPlayer, currentAccount, login, register, importSave, authError, isAuthLoading, logout } = useAuth();
-  const { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, gameSpeed } = useGameEngine(loadedPlayer, currentAccount);
+  const { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, deathReport, gameSpeed } = useGameEngine(loadedPlayer, currentAccount);
   const { t, language } = useLanguage(); 
   const [activeTab, setActiveTab] = useState('hunt'); 
   const [showHighscores, setShowHighscores] = useState(false);
@@ -165,7 +166,6 @@ const App = () => {
                         isGm={player.isGm} 
                         onBuyItem={actions.buyItem} 
                         onSellItem={actions.sellItem} 
-                        /* FIXED: Corrected handleToggleSkippedLoot to toggleSkippedLoot to match useGameActions definition */
                         onToggleSkippedLoot={actions.toggleSkippedLoot} 
                         onBuyBlessing={actions.handleBuyBlessing}
                     />
@@ -276,6 +276,13 @@ const App = () => {
             <OfflineModal 
                 report={offlineReport} 
                 onClose={actions.closeOfflineModal}
+            />
+        )}
+
+        {deathReport && (
+            <DeathModal 
+                report={deathReport} 
+                onClose={actions.closeDeathModal}
             />
         )}
     </div>

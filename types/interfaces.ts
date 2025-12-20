@@ -181,6 +181,15 @@ export interface OfflineReport {
     waste: number;
 }
 
+export interface DeathReport {
+    xpLoss: number;
+    goldLoss: number;
+    levelDown: boolean;
+    vocation: Vocation;
+    killerName: string;
+    hasBlessing: boolean;
+}
+
 export interface PlayerImbuement {
     tier: number; // 0, 1, 2, 3
     timeRemaining: number; // seconds

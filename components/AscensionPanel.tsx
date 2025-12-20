@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Player, AscensionPerk } from '../types';
 import { calculateSoulPointsToGain, getAscensionUpgradeCost, getAscensionBonusValue } from '../services';
-import { Ghost, Skull, TrendingUp, DollarSign, Swords, Clock, Gift, BookOpen, Info, X, Heart, Zap, FlaskConical } from 'lucide-react';
+import { Ghost, Skull, TrendingUp, DollarSign, Swords, Clock, Gift, BookOpen, Info, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface AscensionPanelProps {
@@ -17,7 +17,7 @@ export const AscensionPanel: React.FC<AscensionPanelProps> = ({ player, onAscend
   const [activeInfo, setActiveInfo] = useState<AscensionPerk | null>(null);
   
   const pointsToGain = calculateSoulPointsToGain(player);
-  const canAscend = player.level >= 30; 
+  const canAscend = player.level >= 30; // Changed from 50
 
   const toggleInfo = (id: AscensionPerk) => {
       setActiveInfo(activeInfo === id ? null : id);
@@ -55,38 +55,6 @@ export const AscensionPanel: React.FC<AscensionPanelProps> = ({ player, onAscend
         details: t('ascension_loot_details'),
         icon: <Gift size={18} className="text-purple-400"/>, 
         perLevel: '+1%' 
-    },
-    { 
-        id: 'hp_boost', 
-        name: t('ascension_hp_name'), 
-        desc: t('ascension_hp_desc'), 
-        details: t('ascension_hp_details'),
-        icon: <Heart size={18} className="text-red-500"/>, 
-        perLevel: '+1%' 
-    },
-    { 
-        id: 'mana_boost', 
-        name: t('ascension_mana_name'), 
-        desc: t('ascension_mana_desc'), 
-        details: t('ascension_mana_details'),
-        icon: <Zap size={18} className="text-blue-400"/>, 
-        perLevel: '+1%' 
-    },
-    { 
-        id: 'potion_hp_boost', 
-        name: t('ascension_pot_hp_name'), 
-        desc: t('ascension_pot_hp_desc'), 
-        details: t('ascension_pot_hp_details'),
-        icon: <FlaskConical size={18} className="text-red-400"/>, 
-        perLevel: '+2%' 
-    },
-    { 
-        id: 'potion_mana_boost', 
-        name: t('ascension_pot_mana_name'), 
-        desc: t('ascension_pot_mana_desc'), 
-        details: t('ascension_pot_mana_details'),
-        icon: <FlaskConical size={18} className="text-blue-400"/>, 
-        perLevel: '+2%' 
     },
     { 
         id: 'boss_cd', 

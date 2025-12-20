@@ -92,7 +92,8 @@ export const ImbuementPanel: React.FC<ImbuementPanelProps> = ({ player, onImbu, 
 
             <div className="grid grid-cols-1 gap-6">
                 {IMBU_DATA.map(imbu => {
-                    const current = player.imbuements[imbu.type];
+                    const imbuements = player.imbuements || {};
+                    const current = imbuements[imbu.type] || { tier: 0, timeRemaining: 0 };
                     const isActive = current.tier > 0;
                     
                     return (

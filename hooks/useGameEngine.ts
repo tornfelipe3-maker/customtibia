@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport } from '../types';
-import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions } from '../services';
+import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType } from '../types';
+import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState } from '../services';
 import { BOSSES } from '../constants';
 import { useGameActions } from './useGameActions';
 
@@ -61,6 +61,18 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
   useEffect(() => {
       if (initialPlayer) {
           const migratedPlayer = { ...initialPlayer };
+
+          // --- MIGRATION: IMBUEMENTS (ANTI-CRASH) ---
+          if (!migratedPlayer.imbuements) {
+              migratedPlayer.imbuements = {
+                  [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
+                  [ImbuType.MANA_LEECH]: { tier: 0, timeRemaining: 0 },
+                  [ImbuType.STRIKE]: { tier: 0, timeRemaining: 0 }
+              };
+          }
+          if (migratedPlayer.imbuActive === undefined) migratedPlayer.imbuActive = true;
+          // -------------------------------------------
+
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.relics) migratedPlayer.relics = [];
@@ -72,7 +84,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
           if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;
           
-          // NEW POCOES INDIVIDUAL CD MIGRATION
           if (migratedPlayer.healthPotionCooldown === undefined) migratedPlayer.healthPotionCooldown = 0;
           if (migratedPlayer.manaPotionCooldown === undefined) migratedPlayer.manaPotionCooldown = 0;
 

@@ -46,23 +46,27 @@ export const useGameActions = (
             setActiveTutorial(null);
         },
         closeOfflineModal: () => {
-            // 1. Fecha o relatório e despausa
             setOfflineReport(null);
             setIsPaused(false);
             
-            // 2. Reseta o estado de combate físico (HP do mob e instância)
             resetCombatState();
             monsterHpRef.current = 0;
             setCurrentMonsterHp(0);
             setActiveMonster(undefined);
 
-            // 3. Reseta as atividades do Jogador (Volta para a Cidade)
             updatePlayerState(p => ({
                 ...p,
                 activeHuntId: null,
                 activeTrainingSkill: null,
                 activeHuntStartTime: 0,
-                activeTrainingStartTime: 0
+                activeTrainingStartTime: 0,
+                // Limpeza de Cooldowns por segurança
+                attackCooldown: Date.now(),
+                healingCooldown: 0,
+                healthPotionCooldown: 0,
+                manaPotionCooldown: 0,
+                runeCooldown: 0,
+                spellCooldowns: {}
             }));
 
             addLog("Returned to city after claiming offline progress.", 'info');
@@ -125,22 +129,30 @@ export const useGameActions = (
             addLog(`Paid ${amount.toLocaleString()} gold.`, 'info');
         },
         startHunt: (monsterId: string, _name: string, isBoss: boolean, count: number = 1) => {
+            const now = Date.now();
             updatePlayerState(p => {
                 const newCooldowns = { ...p.bossCooldowns };
                 if (isBoss) {
                     const boss = BOSSES.find(b => b.id === monsterId);
                     if (boss && boss.cooldownSeconds) {
-                        newCooldowns[monsterId] = Date.now() + (boss.cooldownSeconds * 1000);
+                        newCooldowns[monsterId] = now + (boss.cooldownSeconds * 1000);
                     }
                 }
                 return {
                     ...p,
                     activeHuntId: monsterId,
                     activeHuntCount: count,
-                    activeHuntStartTime: Date.now(),
+                    activeHuntStartTime: now,
                     activeTrainingSkill: null,
                     activeTrainingStartTime: 0,
-                    bossCooldowns: newCooldowns
+                    bossCooldowns: newCooldowns,
+                    // RESET TOTAL DE COOLDOWNS AO INICIAR
+                    attackCooldown: now,
+                    healingCooldown: 0,
+                    healthPotionCooldown: 0,
+                    manaPotionCooldown: 0,
+                    runeCooldown: 0,
+                    spellCooldowns: {}
                 };
             });
             resetCombatState(); 
@@ -157,12 +169,16 @@ export const useGameActions = (
             addLog("Stopped hunting.", 'info');
         },
         startTraining: (skill: SkillType) => {
+            const now = Date.now();
             updatePlayerState(p => ({
                 ...p,
                 activeTrainingSkill: skill,
-                activeTrainingStartTime: Date.now(),
+                activeTrainingStartTime: now,
                 activeHuntId: null,
-                activeHuntStartTime: 0
+                activeHuntStartTime: 0,
+                // Reset de cooldowns
+                attackCooldown: now,
+                spellCooldowns: {}
             }));
             resetCombatState();
             addLog(`Started training ${skill}.`, 'info');
@@ -687,6 +703,7 @@ export const useGameActions = (
             monsterHpRef.current = 0;
             setCurrentMonsterHp(0);
             setActiveMonster(undefined);
+            const now = Date.now();
             updatePlayerState(prev => {
                 if (prev.level < 30) return prev;
                 const points = calculateSoulPointsToGain(prev);
@@ -710,7 +727,10 @@ export const useGameActions = (
                     skills: prev.skills, relics: prev.relics, ascension: prev.ascension, tibiaCoins: prev.tibiaCoins,
                     premiumUntil: prev.premiumUntil, xpBoostUntil: prev.xpBoostUntil, soulPoints: prev.soulPoints + points,
                     uniqueInventory: recoveredUnique, uniqueDepot: prev.uniqueDepot, tutorials: prev.tutorials,
-                    taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive
+                    taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive,
+                    // Reset cooldowns
+                    attackCooldown: now,
+                    spellCooldowns: {}
                 };
             });
             addLog("ASCENSION! Preserve your vocation and skills.", 'gain');
@@ -759,7 +779,13 @@ export const useGameActions = (
                 let newBank = prev.bankGold;
                 if (!hasFreeReroll) {
                     let remaining = cost;
-                    if (newGold >= remaining) { newGold -= remaining; remaining = 0; } else { remaining -= newGold; newGold = 0; }
+                    if (newGold >= remaining) {
+                        newGold -= remaining;
+                        remaining = 0;
+                    } else {
+                        remaining -= newGold;
+                        newGold = 0;
+                    }
                     if (remaining > 0) newBank -= remaining;
                 }
                 const newSlots = [...prev.prey.slots];

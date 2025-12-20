@@ -146,7 +146,11 @@ export const INITIAL_PLAYER_STATS: Player = {
         loot_boost: 0,
         boss_cd: 0,
         soul_gain: 0,
-        xp_boost: 0
+        xp_boost: 0,
+        hp_boost: 0,
+        mana_boost: 0,
+        potion_hp_boost: 0,
+        potion_mana_boost: 0
     },
     tutorials: {
         introCompleted: false,

@@ -120,16 +120,27 @@ export const processSkillTraining = (player: Player, skillType: SkillType, value
   return { player: p, leveledUp };
 };
 
-export const checkForLevelUp = (player: Player): { player: Player, leveledUp: boolean, hpGain: number, manaGain: number } => {
+export const checkForLevelUp = (player: Player): { player: Player, leveledUp: boolean, hpGain: number, manaGain: number, trigger?: 'level12' | 'ascension' } => {
     let p = { ...player };
     let leveledUp = false;
     let totalHpGain = 0;
     let totalManaGain = 0;
+    let tutorialTrigger: any = undefined;
 
     while (p.currentXp >= p.maxXp) {
         p.currentXp -= p.maxXp;
         p.level += 1;
         p.maxXp = getXpForLevel(p.level);
+
+        // Gatilhos de Tutoriais por Level
+        if (p.level === 12 && !p.tutorials.seenLevel12) {
+            p.tutorials.seenLevel12 = true;
+            tutorialTrigger = 'level12';
+        }
+        if (p.level === 30 && !p.tutorials.seenAscension) {
+            p.tutorials.seenAscension = true;
+            tutorialTrigger = 'ascension';
+        }
 
         let hpGain = 5; let manaGain = 5;
         if (p.vocation === Vocation.KNIGHT) { hpGain = 15; manaGain = 5; }
@@ -146,5 +157,5 @@ export const checkForLevelUp = (player: Player): { player: Player, leveledUp: bo
         leveledUp = true;
     }
     
-    return { player: p, leveledUp, hpGain: totalHpGain, manaGain: totalManaGain };
+    return { player: p, leveledUp, hpGain: totalHpGain, manaGain: totalManaGain, trigger: tutorialTrigger };
 };

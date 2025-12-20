@@ -3,6 +3,7 @@ import { Player, Vocation, LogEntry, HitSplat, SkillType, Rarity } from '../../t
 import { SHOP_ITEMS, SPELLS } from '../../constants';
 import { calculateSpellHealing } from '../combat';
 import { processSkillTraining } from '../progression';
+import { getAscensionBonusValue } from '../mechanics';
 
 type LogFunc = (msg: string, type: LogEntry['type'], rarity?: Rarity) => void;
 type HitFunc = (val: number | string, type: HitSplat['type'], target: 'player'|'monster') => void;
@@ -38,14 +39,18 @@ export const processAutomation = (
                     waste += item.price || 0;
                     
                     if (item.restoreAmount) {
-                        p.hp = Math.min(p.maxHp, p.hp + item.restoreAmount);
-                        hit(`+${item.restoreAmount}`, 'heal', 'player');
+                        const boost = 1 + (getAscensionBonusValue(p, 'potion_hp_boost') / 100);
+                        const finalHeal = Math.floor(item.restoreAmount * boost);
+                        p.hp = Math.min(p.maxHp, p.hp + finalHeal);
+                        hit(`+${finalHeal}`, 'heal', 'player');
                     }
                     if (item.restoreAmountSecondary && item.potionType === 'spirit') {
-                        p.mana = Math.min(p.maxMana, p.mana + item.restoreAmountSecondary);
+                        const boost = 1 + (getAscensionBonusValue(p, 'potion_mana_boost') / 100);
+                        const finalMana = Math.floor(item.restoreAmountSecondary * boost);
+                        p.mana = Math.min(p.maxMana, p.mana + finalMana);
                     }
                     
-                    log(`Usou ${item.name} (Health).`, 'info');
+                    log(`Usou ${item.name}.`, 'info');
                     p.healthPotionCooldown = now + 1000; 
                 }
             }
@@ -69,15 +74,18 @@ export const processAutomation = (
                     waste += item.price || 0;
                     
                     if (item.restoreAmount) {
+                        const boost = 1 + (getAscensionBonusValue(p, 'potion_mana_boost') / 100);
                         if (item.potionType === 'mana') {
-                            p.mana = Math.min(p.maxMana, p.mana + item.restoreAmount);
+                            const finalMana = Math.floor(item.restoreAmount * boost);
+                            p.mana = Math.min(p.maxMana, p.mana + finalMana);
                         } else if (item.potionType === 'spirit') {
                             const manaHeal = item.restoreAmountSecondary || item.restoreAmount;
-                            p.mana = Math.min(p.maxMana, p.mana + manaHeal);
+                            const finalMana = Math.floor(manaHeal * boost);
+                            p.mana = Math.min(p.maxMana, p.mana + finalMana);
                         }
                     }
                     
-                    log(`Usou ${item.name} (Mana).`, 'info');
+                    log(`Usou ${item.name}.`, 'info');
                     p.manaPotionCooldown = now + 1000;
                 }
             }

@@ -46,8 +46,26 @@ export const useGameActions = (
             setActiveTutorial(null);
         },
         closeOfflineModal: () => {
+            // 1. Fecha o relatório e despausa
             setOfflineReport(null);
             setIsPaused(false);
+            
+            // 2. Reseta o estado de combate físico (HP do mob e instância)
+            resetCombatState();
+            monsterHpRef.current = 0;
+            setCurrentMonsterHp(0);
+            setActiveMonster(undefined);
+
+            // 3. Reseta as atividades do Jogador (Volta para a Cidade)
+            updatePlayerState(p => ({
+                ...p,
+                activeHuntId: null,
+                activeTrainingSkill: null,
+                activeHuntStartTime: 0,
+                activeTrainingStartTime: 0
+            }));
+
+            addLog("Returned to city after claiming offline progress.", 'info');
         },
         setActiveHazardLevel: (level: number) => {
             updatePlayerState(p => ({
@@ -55,7 +73,6 @@ export const useGameActions = (
                 activeHazardLevel: Math.max(0, Math.min(level, p.hazardLevel))
             }));
         },
-        // --- IMBUEMENT ACTIONS ---
         handleImbu: (type: ImbuType, tier: number) => {
             updatePlayerState(p => {
                 const costs = [0, 1, 3, 5];

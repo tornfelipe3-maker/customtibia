@@ -292,6 +292,7 @@ export interface HitSplat {
   value: number | string;
   type: 'damage' | 'heal' | 'mana' | 'miss' | 'speech';
   target: 'player' | 'monster';
+  source?: 'basic' | 'spell' | 'rune';
 }
 
 export interface Spell {

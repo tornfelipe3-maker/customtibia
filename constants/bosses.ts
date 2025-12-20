@@ -14,7 +14,7 @@ export const BOSSES: Boss[] = [
         maxGold: 5000, 
         damageMin: 450, 
         damageMax: 900, 
-        attackSpeedMs: 1500, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
@@ -35,7 +35,7 @@ export const BOSSES: Boss[] = [
         maxGold: 10000, 
         damageMin: 900, 
         damageMax: 1800, 
-        attackSpeedMs: 1500, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
@@ -94,7 +94,7 @@ export const BOSSES: Boss[] = [
         maxGold: 60000, 
         damageMin: 1800, 
         damageMax: 3750, 
-        attackSpeedMs: 1200, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
@@ -129,7 +129,7 @@ export const BOSSES: Boss[] = [
         maxGold: 50000, 
         damageMin: 2100, 
         damageMax: 4200, 
-        attackSpeedMs: 1100, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
@@ -152,7 +152,7 @@ export const BOSSES: Boss[] = [
         maxGold: 250000, 
         damageMin: 4500, 
         damageMax: 9000, 
-        attackSpeedMs: 900, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
@@ -175,7 +175,7 @@ export const BOSSES: Boss[] = [
         maxGold: 120000, 
         damageMin: 1500, 
         damageMax: 3000, 
-        attackSpeedMs: 1200, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
@@ -195,11 +195,11 @@ export const BOSSES: Boss[] = [
         hp: 10000000, 
         maxHp: 10000000, 
         exp: 10000000, 
-        minGold: 250000, 
+        minGold: 25000, 
         maxGold: 600000, 
         damageMin: 7500, 
         damageMax: 15000, 
-        attackSpeedMs: 800, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
@@ -221,7 +221,7 @@ export const BOSSES: Boss[] = [
         maxGold: 25000, 
         damageMin: 1500, 
         damageMax: 3000, 
-        attackSpeedMs: 1500, 
+        attackSpeedMs: 1000, 
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [

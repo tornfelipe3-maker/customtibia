@@ -37,8 +37,14 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       }
   }, [uniqueKey]);
 
-  const getHitColor = (type: HitSplat['type']) => {
-      switch(type) {
+  const getHitColor = (hit: HitSplat) => {
+      if (hit.target === 'monster' && hit.type === 'damage') {
+          if (hit.source === 'spell') return 'text-[#ff4500] drop-shadow-[0_0_2px_rgba(255,69,0,0.8)]'; // Magia: Laranja/Vermelho vibrante
+          if (hit.source === 'rune') return 'text-[#ffffff] drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]';   // Runa: Branco puro
+          return 'text-[#b90000]'; // Básico: Vermelho clássico
+      }
+
+      switch(hit.type) {
           case 'damage': return 'text-[#b90000]';
           case 'heal': return 'text-[#00c000]'; 
           case 'mana': return 'text-[#00aaff]'; 
@@ -77,12 +83,17 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                  leftPos = '100%'; 
                  displayValue = `+${hit.value} MP`;
              }
+         } else if (target === 'monster' && hit.type === 'damage') {
+             // Lógica de separação horizontal por origem
+             if (hit.source === 'basic') leftPos = '40%';
+             else if (hit.source === 'spell') leftPos = '55%';
+             else if (hit.source === 'rune') leftPos = '70%';
          }
 
          return (
             <div 
                 key={hit.id} 
-                className={`damage-float ${getHitColor(hit.type)}`} 
+                className={`damage-float ${getHitColor(hit)}`} 
                 style={{ 
                     top: `calc(10% + ${randomY}px)`, 
                     left: `calc(${leftPos} + ${randomX}px)` 
@@ -119,7 +130,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                </div>
 
                <div className="flex flex-col items-center relative">
-                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center">{renderHits('monster')}</div>
+                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center w-[300px] -left-24 -top-12 h-48">
+                    {renderHits('monster')}
+                  </div>
                   <div className="mb-2 text-center flex flex-col items-center min-h-[30px] justify-end">
                      <div className="flex items-center justify-center gap-1.5 bg-black/60 px-3 py-1 rounded border border-black/20">
                         <span className="text-xs font-bold text-[#0f0] drop-shadow-[1px_1px_0_#000]">{activeMonster.name}</span>

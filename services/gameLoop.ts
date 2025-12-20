@@ -62,8 +62,8 @@ export const processGameTick = (
     const log = (msg: string, type: LogEntry['type'] = 'info', rarity?: Rarity) => {
         logs.push({ id: Math.random().toString(36).substr(2, 9), message: msg, type, timestamp: now, rarity });
     };
-    const hit = (val: number | string, type: HitSplat['type'], target: 'player'|'monster') => {
-        hits.push({ id: now + Math.random(), value: val, type, target });
+    const hit = (val: number | string, type: HitSplat['type'], target: 'player'|'monster', source?: HitSplat['source']) => {
+        hits.push({ id: now + Math.random(), value: val, type, target, source });
     };
 
     let p = { ...player };
@@ -415,7 +415,7 @@ export const processGameTick = (
 
             if (autoAttackDamage > 0) {
                 monsterHp -= autoAttackDamage;
-                hit(autoAttackDamage, 'damage', 'monster');
+                hit(autoAttackDamage, 'damage', 'monster', 'basic');
                 // Aplica imbuement de recuperação no auto attack
                 applyLeech(autoAttackDamage);
             }
@@ -448,7 +448,7 @@ export const processGameTick = (
                              hit('DODGED', 'speech', 'monster');
                         } else {
                             monsterHp -= finalSpellDmg;
-                            hit(finalSpellDmg, 'damage', 'monster');
+                            hit(finalSpellDmg, 'damage', 'monster', 'spell');
                             hit(spellName, 'speech', 'player');
                             // Aplica imbuement de recuperação na magia
                             applyLeech(finalSpellDmg);
@@ -485,7 +485,7 @@ export const processGameTick = (
                              hit('DODGED', 'speech', 'monster');
                         } else {
                             monsterHp -= finalRuneDmg;
-                            hit(finalRuneDmg, 'damage', 'monster');
+                            hit(finalRuneDmg, 'damage', 'monster', 'rune');
                             // Aplica imbuement de recuperação na runa
                             applyLeech(finalRuneDmg);
                         }

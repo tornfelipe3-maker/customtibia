@@ -62,7 +62,7 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       if (initialPlayer) {
           const migratedPlayer = { ...initialPlayer };
           
-          // --- SKILLS MIGRATION (Crucial for preventing crashes) ---
+          // --- MIGRATION: Ensure all fields exist for older saves ---
           if (!migratedPlayer.skills) migratedPlayer.skills = { ...INITIAL_PLAYER_STATS.skills };
           Object.values(SkillType).forEach(s => {
               if (!migratedPlayer.skills[s as SkillType]) {
@@ -70,28 +70,27 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               }
           });
 
+          if (migratedPlayer.attackCooldown === undefined) migratedPlayer.attackCooldown = 0;
+          if (migratedPlayer.healingCooldown === undefined) migratedPlayer.healingCooldown = 0;
+          if (migratedPlayer.globalCooldown === undefined) migratedPlayer.globalCooldown = 0;
+          if (migratedPlayer.runeCooldown === undefined) migratedPlayer.runeCooldown = 0;
+          if (!migratedPlayer.purchasedSpells) migratedPlayer.purchasedSpells = [];
+          if (!migratedPlayer.spellCooldowns) migratedPlayer.spellCooldowns = {};
+          
+          if (!migratedPlayer.settings) migratedPlayer.settings = { ...INITIAL_PLAYER_STATS.settings };
+          if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
+
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
-          if (!migratedPlayer.relics) migratedPlayer.relics = [];
-          if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
-          if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
           if (!migratedPlayer.skippedLoot) migratedPlayer.skippedLoot = [];
-          if (migratedPlayer.prey && migratedPlayer.prey.rerollsAvailable === undefined) migratedPlayer.prey.rerollsAvailable = 3;
-          if (migratedPlayer.taskNextFreeReroll === undefined) migratedPlayer.taskNextFreeReroll = 0;
-          if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
-          if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;
           
-          if (migratedPlayer.healthPotionCooldown === undefined) migratedPlayer.healthPotionCooldown = 0;
-          if (migratedPlayer.manaPotionCooldown === undefined) migratedPlayer.manaPotionCooldown = 0;
+          if (!migratedPlayer.prey) migratedPlayer.prey = INITIAL_PLAYER_STATS.prey;
+          if (migratedPlayer.prey.rerollsAvailable === undefined) migratedPlayer.prey.rerollsAvailable = 3;
 
-          if (!migratedPlayer.tutorials) {
-              migratedPlayer.tutorials = { 
-                  introCompleted: false, seenRareMob: false, seenRareItem: false, 
-                  seenAscension: false, seenLevel12: false, seenMenus: []
-              };
-          }
-
-          if (migratedPlayer.activeHazardLevel === undefined) migratedPlayer.activeHazardLevel = 0;
+          if (!migratedPlayer.tutorials) migratedPlayer.tutorials = INITIAL_PLAYER_STATS.tutorials;
+          if (!migratedPlayer.ascension) migratedPlayer.ascension = INITIAL_PLAYER_STATS.ascension;
+          if (!migratedPlayer.imbuements) migratedPlayer.imbuements = INITIAL_PLAYER_STATS.imbuements;
+          if (migratedPlayer.imbuActive === undefined) migratedPlayer.imbuActive = true;
 
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
@@ -133,26 +132,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          const MAX_SIMULATION_MS = 15 * 60 * 1000; 
-
-          if (delta > MAX_SIMULATION_MS) { 
-              const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current);
-              
-              if (report) {
-                  setAnalyzerHistory(prev => [...prev, { timestamp: now, xp: report.xpGained, profit: report.goldGained, waste: report.waste || 0 }].slice(-3600));
-                  if (stopHunt) {
-                      fastForwardedPlayer.activeHuntId = null;
-                      setActiveMonster(undefined);
-                      setCurrentMonsterHp(0);
-                      monsterHpRef.current = 0;
-                  }
-              }
-              setPlayer(fastForwardedPlayer);
-              playerRef.current = fastForwardedPlayer;
-              lastTickRef.current = now;
-              return;
-          }
-
           let ticksToProcess = Math.floor(delta / tickDuration);
           if (ticksToProcess <= 0) return;
 
@@ -167,7 +146,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           
           let stopBatchHunt = false;
           let stopBatchTrain = false;
-          let triggerUpdate = null;
 
           for (let i = 0; i < ticksToProcess; i++) {
               const simTime = lastTickRef.current + ((i + 1) * tickDuration);
@@ -186,7 +164,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
-              if (result.triggers.tutorial || result.triggers.oracle) triggerUpdate = result.triggers;
               if (result.stopHunt) { stopBatchHunt = true; break; }
               if (result.stopTrain) { stopBatchTrain = true; break; }
           }
@@ -204,13 +181,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
           if (batchStats.xp > 0 || batchStats.profit > 0 || batchStats.waste > 0) {
               setAnalyzerHistory(prev => [...prev, { timestamp: now, xp: batchStats.xp, profit: batchStats.profit, waste: batchStats.waste }].slice(-3600));
-          }
-
-          if (triggerUpdate) {
-              if (triggerUpdate.tutorial) {
-                  setIsPaused(true);
-                  setActiveTutorial(triggerUpdate.tutorial);
-              }
           }
 
           playerRef.current = tempPlayer; 

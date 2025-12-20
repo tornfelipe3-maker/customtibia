@@ -38,11 +38,13 @@ export interface GameTickResult {
 let currentMonsterInstance: Monster | undefined = undefined;
 let respawnUnlockTime: number = 0;
 let lastMonsterAttackTime: number = 0; 
+let lastPlayerAttackTime: number = 0; // Adicionado timer global para ataque básico
 
 export const resetCombatState = () => {
     currentMonsterInstance = undefined;
     respawnUnlockTime = 0;
     lastMonsterAttackTime = 0;
+    lastPlayerAttackTime = 0;
 };
 
 export const processGameTick = (
@@ -75,16 +77,12 @@ export const processGameTick = (
     const maxHp = getEffectiveMaxHp(p);
     const maxMana = getEffectiveMaxMana(p);
 
-    // --- IMBUEMENT TIMER TICK ---
+    // --- IMBUEMENT TICK ---
     if (p.imbuActive) {
         Object.keys(p.imbuements).forEach(key => {
             const imbu = p.imbuements[key as ImbuType];
             if (imbu.tier > 0 && imbu.timeRemaining > 0) {
                 imbu.timeRemaining = Math.max(0, imbu.timeRemaining - 1);
-                if (imbu.timeRemaining === 0) {
-                    imbu.tier = 0;
-                    log(`Your ${key.replace('_', ' ')} imbuement has expired!`, 'danger');
-                }
             }
         });
     }
@@ -94,24 +92,15 @@ export const processGameTick = (
         const ls = p.imbuements[ImbuType.LIFE_STEAL];
         if (ls.tier > 0 && ls.timeRemaining > 0) {
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
-            if (heal > 0) {
-                p.hp = Math.min(maxHp, p.hp + heal);
-                hit(heal, 'heal', 'player'); 
-            }
+            if (heal > 0) { p.hp = Math.min(maxHp, p.hp + heal); hit(heal, 'heal', 'player'); }
         }
         const ml = p.imbuements[ImbuType.MANA_LEECH];
         if (ml.tier > 0 && ml.timeRemaining > 0) {
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
-            if (manaGain > 0) {
-                p.mana = Math.min(maxMana, p.mana + manaGain);
-                hit(manaGain, 'mana', 'player');
-            }
+            if (manaGain > 0) { p.mana = Math.min(maxMana, p.mana + manaGain); hit(manaGain, 'mana', 'player'); }
         }
     };
 
-    const huntId = activeHuntId;
-    const settingsHuntCount = p.activeHuntCount || 1;
-    
     p = processRegeneration(p, activeHuntId);
     const autoRes = processAutomation(p, now, log, hit);
     p = autoRes.player;
@@ -121,56 +110,33 @@ export const processGameTick = (
         p = processTraining(p, activeTrainingSkill, log, hit);
     }
 
-    if (huntId) {
-        const baseMonster = MONSTERS.find(m => m.id === huntId) || BOSSES.find(b => b.id === huntId);
+    if (activeHuntId) {
+        const baseMonster = MONSTERS.find(m => m.id === activeHuntId) || BOSSES.find(b => b.id === activeHuntId);
         const canSpawn = now > respawnUnlockTime;
-        const needsSpawn = !currentMonsterInstance || currentMonsterInstance.id !== huntId || monsterHp <= 0;
+        const needsSpawn = !currentMonsterInstance || currentMonsterInstance.id !== activeHuntId || monsterHp <= 0;
 
         if (needsSpawn && canSpawn && baseMonster) {
-            const instanceId = `${baseMonster.id}-${now}-${Math.random().toString(36).substr(2, 5)}`;
-            const isBoss = !!(baseMonster as Boss).cooldownSeconds;
-
-            if (!isBoss && (p.level >= 12) && (p.gmExtra?.forceRarity || Math.random() < 0.04)) {
-                currentMonsterInstance = createInfluencedMonster(baseMonster, p.gmExtra?.forceRarity);
-                currentMonsterInstance.guid = instanceId;
-                currentMonsterInstance.spawnTime = now;
-                monsterHp = currentMonsterInstance.maxHp;
-                if (!p.tutorials.seenRareMob) triggers.tutorial = 'mob';
-            } else {
-                currentMonsterInstance = { ...baseMonster, guid: instanceId, spawnTime: now };
-                monsterHp = currentMonsterInstance.maxHp * settingsHuntCount;
-            }
+            currentMonsterInstance = { ...baseMonster, guid: `${baseMonster.id}-${now}`, spawnTime: now };
+            monsterHp = currentMonsterInstance.maxHp * (p.activeHuntCount || 1);
         }
 
         const monster = (monsterHp > 0) ? currentMonsterInstance : undefined;
-        const SPAWN_DELAY_MS = 600;
-        const isSpawning = monster && monster.spawnTime && (now - monster.spawnTime < SPAWN_DELAY_MS);
 
-        if (monster && !isSpawning) {
-            const effectiveHuntCount = monster.isInfluenced ? 1 : settingsHuntCount;
-            const hazard = !!(monster as Boss).cooldownSeconds ? 0 : (p.activeHazardLevel || 0);
+        if (monster && (!monster.spawnTime || now - monster.spawnTime > 600)) {
+            const effectiveHuntCount = p.activeHuntCount || 1;
 
+            // --- MONSTER ATTACK ---
             if (now >= lastMonsterAttackTime + (monster.attackSpeedMs || 2000)) {
                 lastMonsterAttackTime = now;
-                const rawDmgBase = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
-                let difficultyMult = 1 + ((effectiveHuntCount - 1) * 0.015);
-                let totalIncomingRaw = Math.floor((rawDmgBase * effectiveHuntCount) * difficultyMult * (1 + (hazard * 0.01)));
+                const rawDmg = Math.floor(Math.random() * (monster.damageMax - monster.damageMin + 1)) + monster.damageMin;
+                const totalIncoming = Math.floor(rawDmg * effectiveHuntCount * (1 + ((p.activeHazardLevel || 0) * 0.01)));
                 
                 const mitigation = calculatePlayerDefense(p);
-                let actualDmg = Math.max(0, Math.floor(totalIncomingRaw - mitigation));
+                let actualDmg = Math.max(0, totalIncoming - mitigation);
                 
-                const activePreyDef = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'defense');
-                if (activePreyDef && actualDmg > 0) actualDmg = Math.floor(actualDmg * (1 - (activePreyDef.bonusValue / 100)));
-
                 if (actualDmg > 0) {
-                    if (p.magicShieldUntil && p.magicShieldUntil > now) {
-                        const manaDmg = Math.floor(actualDmg * 0.70);
-                        let hpDmg = Math.floor(actualDmg * 0.30);
-                        if (p.mana >= manaDmg) p.mana -= manaDmg; else { const spill = manaDmg - p.mana; p.mana = 0; hpDmg += spill; }
-                        p.hp -= hpDmg;
-                    } else p.hp -= actualDmg;
+                    p.hp -= actualDmg;
                     hit(actualDmg, 'damage', 'player');
-
                     if (p.hp <= 0) {
                         stopHunt = true;
                         p.hp = maxHp;
@@ -181,46 +147,84 @@ export const processGameTick = (
                 } else hit('Miss', 'miss', 'player');
             }
 
-            let autoAttackDamage = calculatePlayerDamage(p);
-            if (autoAttackDamage > 0) {
-                monsterHp -= autoAttackDamage;
-                hit(autoAttackDamage, 'damage', 'monster');
-                applyLeech(autoAttackDamage);
+            // --- PLAYER BASIC ATTACK (SWING TIMER 2s) ---
+            if (now >= lastPlayerAttackTime + 2000) {
+                lastPlayerAttackTime = now;
+                let autoAttackDamage = calculatePlayerDamage(p);
+                if (autoAttackDamage > 0) {
+                    monsterHp -= autoAttackDamage;
+                    hit(autoAttackDamage, 'damage', 'monster');
+                    applyLeech(autoAttackDamage);
+                    
+                    const weapon = p.equipment[EquipmentSlot.HAND_RIGHT];
+                    if (weapon?.manaCost && weapon.manaCost > 0) p.mana = Math.max(0, p.mana - weapon.manaCost);
+
+                    const usedSkill = weapon?.scalingStat || SkillType.FIST;
+                    p = processSkillTraining(p, usedSkill, 1).player;
+                }
+            }
+
+            // --- AUTO SPELL ATTACK ---
+            if (p.settings.autoAttackSpell && (p.attackCooldown || 0) <= now) {
+                const rotation = p.settings.attackSpellRotation?.length ? p.settings.attackSpellRotation : [p.settings.selectedAttackSpellId];
                 
-                const usedSkill = p.equipment[EquipmentSlot.HAND_RIGHT]?.scalingStat || SkillType.FIST;
-                const skillRes = processSkillTraining(p, usedSkill, 1);
-                p = skillRes.player;
+                for (const spellId of rotation) {
+                    if (!spellId) continue;
+                    const spell = SPELLS.find(s => s.id === spellId);
+                    if (spell && p.purchasedSpells.includes(spell.id) && p.mana >= spell.manaCost && (p.spellCooldowns[spell.id] || 0) <= now) {
+                        const spellDmg = calculateSpellDamage(p, spell);
+                        monsterHp -= spellDmg;
+                        p.mana -= spell.manaCost;
+                        p.spellCooldowns[spell.id] = now + (spell.cooldown || 2000);
+                        p.attackCooldown = now + 2000;
+                        
+                        hit(spellDmg, 'damage', 'monster');
+                        const incantation = spell.name.match(/\((.*?)\)/)?.[1] || spell.name;
+                        hit(incantation, 'speech', 'player');
+                        applyLeech(spellDmg);
+                        p = processSkillTraining(p, SkillType.MAGIC, spell.manaCost).player;
+                        break;
+                    }
+                }
+            }
+
+            // --- AUTO RUNE ATTACK ---
+            if (p.settings.autoAttackRune && p.settings.selectedRuneId && (p.runeCooldown || 0) <= now) {
+                const runeItem = SHOP_ITEMS.find(i => i.id === p.settings.selectedRuneId);
+                if (runeItem && (p.inventory[runeItem.id] || 0) > 0) {
+                    const runeDmg = calculateRuneDamage(p, runeItem);
+                    monsterHp -= runeDmg;
+                    p.inventory[runeItem.id]--;
+                    p.runeCooldown = now + 1000;
+                    
+                    hit(runeDmg, 'damage', 'monster');
+                    applyLeech(runeDmg);
+                    p = processSkillTraining(p, SkillType.MAGIC, 10).player;
+                }
             }
 
             if (monsterHp <= 0) {
                 killedMonsters.push({ name: monster.name, count: effectiveHuntCount });
-                const goldDrop = Math.floor((Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold) * effectiveHuntCount;
-                const xpGained = Math.floor(monster.exp * effectiveHuntCount * getXpStageMultiplier(p.level));
+                const xp = Math.floor(monster.exp * effectiveHuntCount * getXpStageMultiplier(p.level));
+                p.currentXp += xp;
+                stats.xpGained += xp;
+                p = checkForLevelUp(p).player;
                 
-                p.currentXp += xpGained;
-                stats.xpGained += xpGained;
-                const levelResult = checkForLevelUp(p); p = levelResult.player;
-                p.gold += goldDrop;
-                stats.goldGained += goldDrop;
-                stats.profitGained += goldDrop;
+                const gold = Math.floor((Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold) * effectiveHuntCount;
+                p.gold += gold;
+                stats.goldGained += gold;
+                stats.profitGained += gold;
 
                 const drop = generateLootWithRarity(monster, getAscensionBonusValue(p, 'loot_boost'));
-                Object.entries(drop.standard).forEach(([itemId, qty]) => {
-                   p.inventory[itemId] = (p.inventory[itemId] || 0) + qty;
-                });
+                Object.entries(drop.standard).forEach(([id, qty]) => p.inventory[id] = (p.inventory[id] || 0) + qty);
                 if (drop.unique.length > 0) p.uniqueInventory = [...(p.uniqueInventory || []), ...drop.unique];
 
-                if ((monster as Boss).cooldownSeconds) {
-                    bossDefeatedId = monster.id;
-                    stopHunt = true; 
-                }
+                if ((monster as Boss).cooldownSeconds) bossDefeatedId = monster.id;
                 monsterHp = 0; 
                 respawnUnlockTime = now + 500; 
             }
         }
     }
 
-    const returnInstance = (monsterHp > 0 || (currentMonsterInstance && now <= respawnUnlockTime)) ? currentMonsterInstance : undefined;
-
-    return { player: p, monsterHp, newLogs: logs, newHits: hits, stopHunt, stopTrain, bossDefeatedId, activeMonster: returnInstance, killedMonsters, triggers, stats };
+    return { player: p, monsterHp, newLogs: logs, newHits: hits, stopHunt, stopTrain, bossDefeatedId, activeMonster: monsterHp > 0 ? currentMonsterInstance : undefined, killedMonsters, triggers, stats };
 };

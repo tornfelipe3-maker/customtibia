@@ -16,7 +16,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'leather_helmet', chance: 0.05, maxAmount: 1 },
             { itemId: 'wooden_shield', chance: 0.06, maxAmount: 1 }, 
             { itemId: 'dagger', chance: 0.08, maxAmount: 1 },
-            { itemId: 'scarf', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'scarf', chance: 0.01, maxAmount: 1 } 
         ] 
     },
     { 
@@ -30,7 +30,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'brass_shield', chance: 0.02, maxAmount: 1 },
             { itemId: 'hand_axe', chance: 0.10, maxAmount: 1 }, 
             { itemId: 'spear', chance: 0.25, maxAmount: 2 },
-            { itemId: 'scarf', chance: 0.02, maxAmount: 1 } // ADICIONADO
+            { itemId: 'scarf', chance: 0.02, maxAmount: 1 } 
         ] 
     },
 
@@ -45,8 +45,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'plate_shield', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'short_sword', chance: 0.08, maxAmount: 1 },
             { itemId: 'steel_boots', chance: 0.01, maxAmount: 1 },
-            { itemId: 'silver_amulet', chance: 0.015, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'life_ring', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'silver_amulet', chance: 0.015, maxAmount: 1 }, 
+            { itemId: 'life_ring', chance: 0.01, maxAmount: 1 } 
         ] 
     },
     { 
@@ -57,8 +57,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'plate_armor', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'axe', chance: 0.05, maxAmount: 1 },
             { itemId: 'bone_club', chance: 0.10, maxAmount: 1 },
-            { itemId: 'silver_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'life_ring', chance: 0.015, maxAmount: 1 } // ADICIONADO
+            { itemId: 'silver_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'life_ring', chance: 0.015, maxAmount: 1 } 
         ] 
     },
     { 
@@ -68,7 +68,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'plate_legs', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'short_sword', chance: 0.10, maxAmount: 1 }, 
             { itemId: 'health_potion', chance: 0.15, maxAmount: 1 },
-            { itemId: 'silver_amulet', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'silver_amulet', chance: 0.01, maxAmount: 1 } 
         ] 
     },
 
@@ -83,8 +83,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'crown_helmet', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'spellbook', chance: 0.02, maxAmount: 1 },
             { itemId: 'life_ring', chance: 0.02, maxAmount: 1 },
-            { itemId: 'protection_amulet', chance: 0.01, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'time_ring', chance: 0.005, maxAmount: 1 } // ADICIONADO
+            { itemId: 'protection_amulet', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'time_ring', chance: 0.005, maxAmount: 1 } 
         ] 
     },
     { 
@@ -95,8 +95,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'crimson_sword', chance: 0.04, maxAmount: 1 }, 
             { itemId: 'orcish_axe', chance: 0.04, maxAmount: 1 },
             { itemId: 'boh', chance: 0.005, maxAmount: 1 },
-            { itemId: 'protection_amulet', chance: 0.015, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'protection_amulet', chance: 0.015, maxAmount: 1 }, 
+            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } 
         ] 
     },
     { 
@@ -106,8 +106,9 @@ export const MONSTERS: Monster[] = [
             { itemId: 'crown_armor', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'crown_shield', chance: 0.02, maxAmount: 1 },
             { itemId: 'wand_draconia', chance: 0.02, maxAmount: 1 },
-            { itemId: 'protection_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'northwind_rod', chance: 0.02, maxAmount: 1 },
+            { itemId: 'protection_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } 
         ] 
     },
     { 
@@ -118,8 +119,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'ham', chance: 0.3, maxAmount: 2 },
             { itemId: 'crimson_sword', chance: 0.01, maxAmount: 1 },
             { itemId: 'health_potion', chance: 0.10, maxAmount: 1 },
-            { itemId: 'protection_amulet', chance: 0.01, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'protection_amulet', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'time_ring', chance: 0.01, maxAmount: 1 } 
         ] 
     },
 
@@ -134,8 +135,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'dragon_shield', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'dragon_helmet', chance: 0.01, maxAmount: 1 },
             { itemId: 'elvish_bow', chance: 0.04, maxAmount: 1 },
-            { itemId: 'platinum_amulet', chance: 0.01, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'ring_of_healing', chance: 0.01, maxAmount: 1 } // ADICIONADO
+            { itemId: 'platinum_amulet', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'ring_of_healing', chance: 0.01, maxAmount: 1 } 
         ] 
     },
     { 
@@ -146,8 +147,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'knight_boots', chance: 0.01, maxAmount: 1 },         
             { itemId: 'wand_inferno', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'mana_potion', chance: 0.30, maxAmount: 2 },
-            { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'ring_of_healing', chance: 0.03, maxAmount: 1 } // ADICIONADO
+            { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'ring_of_healing', chance: 0.03, maxAmount: 1 } 
         ] 
     },
     { 
@@ -155,8 +156,8 @@ export const MONSTERS: Monster[] = [
         lootTable: [
             { itemId: 'spider_silk', chance: 0.12, maxAmount: 1 }, 
             { itemId: 'knight_boots', chance: 0.05, maxAmount: 1 }, 
-            { itemId: 'platinum_amulet', chance: 0.03, maxAmount: 1 }, // Aumentado chance pois já existia
-            { itemId: 'ring_of_healing', chance: 0.04, maxAmount: 1 }, // ADICIONADO
+            { itemId: 'platinum_amulet', chance: 0.03, maxAmount: 1 }, 
+            { itemId: 'ring_of_healing', chance: 0.04, maxAmount: 1 }, 
             { itemId: 'strong_health_potion', chance: 0.15, maxAmount: 1 }
         ] 
     },
@@ -169,8 +170,9 @@ export const MONSTERS: Monster[] = [
             { itemId: 'dragon_helmet', chance: 0.03, maxAmount: 1 },
             { itemId: 'fire_axe', chance: 0.03, maxAmount: 1 }, 
             { itemId: 'fire_sword', chance: 0.03, maxAmount: 1 },
-            { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'ring_of_healing', chance: 0.02, maxAmount: 1 } // ADICIONADO
+            { itemId: 'hailstorm_rod', chance: 0.02, maxAmount: 1 },
+            { itemId: 'platinum_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'ring_of_healing', chance: 0.02, maxAmount: 1 } 
         ] 
     },
 
@@ -185,8 +187,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'zaoan_helmet', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'mpa', chance: 0.01, maxAmount: 1 },
             { itemId: 'relic_sword', chance: 0.03, maxAmount: 1 },
-            { itemId: 'stone_skin_amulet', chance: 0.03, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'stealth_ring', chance: 0.02, maxAmount: 1 } // ADICIONADO
+            { itemId: 'stone_skin_amulet', chance: 0.03, maxAmount: 1 }, 
+            { itemId: 'stealth_ring', chance: 0.02, maxAmount: 1 } 
         ] 
     },
     { 
@@ -198,8 +200,9 @@ export const MONSTERS: Monster[] = [
             { itemId: 'guardian_boots', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'guardian_shield', chance: 0.015, maxAmount: 1 },
             { itemId: 'wand_starstorm', chance: 0.02, maxAmount: 1 },
-            { itemId: 'stone_skin_amulet', chance: 0.04, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'stealth_ring', chance: 0.03, maxAmount: 1 } // ADICIONADO
+            { itemId: 'underworld_rod', chance: 0.015, maxAmount: 1 },
+            { itemId: 'stone_skin_amulet', chance: 0.04, maxAmount: 1 }, 
+            { itemId: 'stealth_ring', chance: 0.03, maxAmount: 1 } 
         ] 
     },
     { 
@@ -209,8 +212,9 @@ export const MONSTERS: Monster[] = [
             { itemId: 'dragon_claw_common', chance: 0.08, maxAmount: 1 }, 
             { itemId: 'dsm', chance: 0.03, maxAmount: 1 },
             { itemId: 'royal_spear', chance: 0.3, maxAmount: 3 },
-            { itemId: 'stone_skin_amulet', chance: 0.05, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'stealth_ring', chance: 0.04, maxAmount: 1 } // ADICIONADO
+            { itemId: 'arbalest', chance: 0.015, maxAmount: 1 },
+            { itemId: 'stone_skin_amulet', chance: 0.05, maxAmount: 1 }, 
+            { itemId: 'stealth_ring', chance: 0.04, maxAmount: 1 } 
         ] 
     },
     { 
@@ -220,8 +224,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'noble_axe', chance: 0.04, maxAmount: 1 },     
             { itemId: 'mastermind_shield', chance: 0.02, maxAmount: 1 },
             { itemId: 'shadow_sceptre', chance: 0.03, maxAmount: 1 },
-            { itemId: 'stone_skin_amulet', chance: 0.05, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'stealth_ring', chance: 0.05, maxAmount: 1 } // ADICIONADO
+            { itemId: 'stone_skin_amulet', chance: 0.05, maxAmount: 1 }, 
+            { itemId: 'stealth_ring', chance: 0.05, maxAmount: 1 } 
         ] 
     },
 
@@ -236,9 +240,11 @@ export const MONSTERS: Monster[] = [
             { itemId: 'rift_helmet', chance: 0.01, maxAmount: 1 },  
             { itemId: 'wand_defiance', chance: 0.02, maxAmount: 1 },
             { itemId: 'glacial_rod', chance: 0.02, maxAmount: 1 },
+            { itemId: 'shiny_blade', chance: 0.01, maxAmount: 1 },
+            { itemId: 'rift_crossbow', chance: 0.015, maxAmount: 1 },
             { itemId: 'depth_calcei', chance: 0.005, maxAmount: 1 },
-            { itemId: 'werewolf_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'energy_ring', chance: 0.03, maxAmount: 1 } // ADICIONADO
+            { itemId: 'werewolf_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'energy_ring', chance: 0.03, maxAmount: 1 } 
         ] 
     },
     { 
@@ -249,9 +255,11 @@ export const MONSTERS: Monster[] = [
             { itemId: 'ornate_chestplate', chance: 0.005, maxAmount: 1 }, 
             { itemId: 'mpa', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'rift_legs', chance: 0.015, maxAmount: 1 },
+            { itemId: 'crystalline_axe', chance: 0.01, maxAmount: 1 },
+            { itemId: 'mycological_mace', chance: 0.01, maxAmount: 1 },
             { itemId: 'depth_calcei', chance: 0.02, maxAmount: 1 },
-            { itemId: 'werewolf_amulet', chance: 0.04, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'energy_ring', chance: 0.05, maxAmount: 1 } // ADICIONADO
+            { itemId: 'werewolf_amulet', chance: 0.04, maxAmount: 1 }, 
+            { itemId: 'energy_ring', chance: 0.05, maxAmount: 1 } 
         ] 
     },
 
@@ -265,8 +273,10 @@ export const MONSTERS: Monster[] = [
             { itemId: 'prismatic_boots', chance: 0.01, maxAmount: 1 },  
             { itemId: 'prismatic_helmet', chance: 0.01, maxAmount: 1 },
             { itemId: 'umbral_bow', chance: 0.01, maxAmount: 1 },
-            { itemId: 'cobra_amulet', chance: 0.015, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'death_ring', chance: 0.02, maxAmount: 1 } // ADICIONADO
+            { itemId: 'tagralt_blade', chance: 0.01, maxAmount: 1 },
+            { itemId: 'umbral_mace', chance: 0.01, maxAmount: 1 },
+            { itemId: 'cobra_amulet', chance: 0.015, maxAmount: 1 }, 
+            { itemId: 'death_ring', chance: 0.02, maxAmount: 1 } 
         ] 
     },
     { 
@@ -277,8 +287,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'prismatic_armor', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'prismatic_legs', chance: 0.01, maxAmount: 1 },
             { itemId: 'demonwing_axe', chance: 0.01, maxAmount: 1 },
-            { itemId: 'cobra_amulet', chance: 0.02, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'death_ring', chance: 0.03, maxAmount: 1 } // ADICIONADO
+            { itemId: 'cobra_amulet', chance: 0.02, maxAmount: 1 }, 
+            { itemId: 'death_ring', chance: 0.03, maxAmount: 1 } 
         ] 
     },
 
@@ -291,8 +301,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'asura_hair', chance: 0.50, maxAmount: 2 },        
             { itemId: 'falcon_boots', chance: 0.005, maxAmount: 1 },    
             { itemId: 'falcon_wand', chance: 0.005, maxAmount: 1 },
-            { itemId: 'falcon_amulet', chance: 0.005, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'might_ring', chance: 0.04, maxAmount: 1 } // ADICIONADO
+            { itemId: 'falcon_amulet', chance: 0.005, maxAmount: 1 }, 
+            { itemId: 'might_ring', chance: 0.04, maxAmount: 1 } 
         ] 
     },
     { 
@@ -302,8 +312,8 @@ export const MONSTERS: Monster[] = [
             { itemId: 'falcon_greaves', chance: 0.005, maxAmount: 1 },  
             { itemId: 'falcon_longsword', chance: 0.005, maxAmount: 1 },
             { itemId: 'great_shield', chance: 0.005, maxAmount: 1 },
-            { itemId: 'falcon_amulet', chance: 0.01, maxAmount: 1 }, // ADICIONADO
-            { itemId: 'might_ring', chance: 0.08, maxAmount: 1 } // ADICIONADO
+            { itemId: 'falcon_amulet', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'might_ring', chance: 0.08, maxAmount: 1 } 
         ] 
     },
 ];

@@ -331,7 +331,7 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
 
   const totalHp = monster.hp * huntCount;
   const turnsToKill = Math.ceil(totalHp / avgDmg);
-  const attackSpeedSeconds = 1.0; 
+  const attackSpeedSeconds = 2.0; 
   const secondsToKill = turnsToKill * attackSpeedSeconds;
   const respawnTime = 2; 
   const cycleTime = secondsToKill + respawnTime;

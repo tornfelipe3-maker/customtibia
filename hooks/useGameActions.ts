@@ -739,10 +739,17 @@ export const useGameActions = (
         },
         upgradeAscension: (perk: AscensionPerk) => {
             updatePlayerState(prev => {
-                const currentLvl = prev.ascension[perk];
+                // FALLBACK: Garante que o nível atual seja pelo menos 0 para evitar NaN
+                const currentLvl = prev.ascension[perk] || 0;
                 const cost = getAscensionUpgradeCost(perk, currentLvl);
+                
                 if (prev.soulPoints < cost) return prev;
-                return { ...prev, soulPoints: prev.soulPoints - cost, ascension: { ...prev.ascension, [perk]: currentLvl + 1 } };
+                
+                return { 
+                    ...prev, 
+                    soulPoints: prev.soulPoints - cost, 
+                    ascension: { ...prev.ascension, [perk]: currentLvl + 1 } 
+                };
             });
             addLog("Soul Power upgraded.", 'magic');
         },

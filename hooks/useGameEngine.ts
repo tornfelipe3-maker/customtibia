@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport } from '../types';
+import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
 import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState } from '../services';
-import { BOSSES } from '../constants';
+import { BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
 const WORKER_CODE = `
@@ -73,7 +73,18 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               };
           }
           if (migratedPlayer.imbuActive === undefined) migratedPlayer.imbuActive = true;
-          // -------------------------------------------
+          
+          // --- MIGRATION: ASCENSION PERKS (PREVENT NaN) ---
+          if (!migratedPlayer.ascension) {
+              migratedPlayer.ascension = { ...INITIAL_PLAYER_STATS.ascension };
+          } else {
+              // Garantir que todas as chaves novas existam (HP, Mana, Potions, etc)
+              Object.keys(INITIAL_PLAYER_STATS.ascension).forEach(perk => {
+                  if (migratedPlayer.ascension[perk as AscensionPerk] === undefined) {
+                      migratedPlayer.ascension[perk as AscensionPerk] = 0;
+                  }
+              });
+          }
 
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 

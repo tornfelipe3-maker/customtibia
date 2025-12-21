@@ -42,6 +42,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       if (hit.target === 'monster' && hit.type === 'damage') {
           if (hit.source === 'spell') return 'text-[#ff4500] drop-shadow-[0_0_2px_rgba(255,69,0,0.8)]'; 
           if (hit.source === 'rune') return 'text-[#ffffff] drop-shadow-[0_0_2px_rgba(0,0,0,0.8)]';   
+          if (hit.source === 'reflect') return 'text-[#0055ff] drop-shadow-[0_0_3px_rgba(0,85,255,0.8)]';
           return 'text-[#b90000]'; 
       }
 
@@ -74,6 +75,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-10% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
          
          let leftPos = '50%';
+         let topPos = '10%';
          let displayValue = String(hit.value);
 
          if (target === 'player') {
@@ -88,6 +90,10 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
              if (hit.source === 'basic') leftPos = '40%';
              else if (hit.source === 'spell') leftPos = '55%';
              else if (hit.source === 'rune') leftPos = '70%';
+             else if (hit.source === 'reflect') {
+                 leftPos = '80%'; // Ajustado para ficar mais à direita
+                 topPos = '75%'; // Abaixo do monstro
+             }
          }
 
          return (
@@ -95,7 +101,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                 key={hit.id} 
                 className={`damage-float ${getHitColor(hit)}`} 
                 style={{ 
-                    top: `calc(10% + ${randomY}px)`, 
+                    top: `calc(${topPos} + ${randomY}px)`, 
                     left: `calc(${leftPos} + ${randomX}px)` 
                 }}
             >
@@ -110,14 +116,12 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
 
   // --- LOGICA DE VISUAIS DE HAZARD/INFLUENCIA ---
   const activeInfluencedType = activeMonster?.isInfluenced ? activeMonster.influencedType : null;
-  // Se houver influência (monstro raro), usa a borda da raridade. Se for comum e hazard ativo, usa a nova borda laranja.
   const borderClass = activeInfluencedType ? `border-${activeInfluencedType}` : (hazardLevel > 0 ? 'border-hazard' : 'border-black');
   const atmosphereClass = activeInfluencedType ? `atmosphere-${activeInfluencedType}` : (hazardLevel > 0 ? 'atmosphere-hazard' : '');
 
   return (
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${borderClass}`}>
          
-         {/* Camada de Atmosfera (Efeitos visuais de fundo) */}
          {activeMonster && atmosphereClass && (
              <div className={`atmosphere ${atmosphereClass}`} />
          )}
@@ -125,7 +129,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          {activeMonster ? (
             <div className="relative w-full max-w-[600px] h-full flex items-center justify-center space-x-48 z-10">
                
-               {/* Hazard Level Badge */}
                {hazardLevel > 0 && (
                    <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded border border-orange-800/50 animate-pulse">
                        <Flame size={12} className="text-orange-500" />

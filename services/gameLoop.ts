@@ -267,7 +267,7 @@ export const processGameTick = (
                         const reflectedDmg = Math.floor(actualDmg * (reflection / 100));
                         if (reflectedDmg > 0) {
                             monsterHp -= reflectedDmg;
-                            hit(reflectedDmg, 'damage', 'monster');
+                            hit(reflectedDmg, 'damage', 'monster', 'reflect');
                         }
                     }
 

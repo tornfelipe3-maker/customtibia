@@ -48,10 +48,8 @@ export const calculateOfflineProgress = (
                 // Get detailed stats including specific item usage per hour
                 const stats = estimateHuntStats(modifiedPlayer, monster, huntCount);
                 
-                // --- SUPPLY CHECK (THE "ENOUGH POTIONS?" CHECK) ---
-                // We calculate how many hours we can survive based on Inventory + Gold (Auto-Refill)
-                
-                let maxDurationBySupplies = MAX_OFFLINE_SEC * 2; // Default infinite if no consumption
+                // --- SUPPLY CHECK ---
+                let maxDurationBySupplies = MAX_OFFLINE_SEC * 2; 
 
                 const checkResource = (itemId: string | undefined, usagePerHour: number) => {
                     if (!itemId || usagePerHour <= 0) return MAX_OFFLINE_SEC * 2;
@@ -59,15 +57,11 @@ export const calculateOfflineProgress = (
                     const inventoryCount = modifiedPlayer.inventory[itemId] || 0;
                     const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 999999;
                     
-                    // How long can we last on inventory?
-                    const hoursOnInventory = inventoryCount / usagePerHour;
-                    
-                    // How long can we last on auto-buy (Gold + Bank)?
                     const totalGold = modifiedPlayer.gold + modifiedPlayer.bankGold;
                     const affordableCount = Math.floor(totalGold / itemPrice);
-                    const hoursOnGold = affordableCount / usagePerHour;
+                    const hoursOnGold = (inventoryCount + affordableCount) / usagePerHour;
                     
-                    return (hoursOnInventory + hoursOnGold) * 3600; // Convert to seconds
+                    return hoursOnGold * 3600; 
                 };
 
                 const limitAmmo = checkResource(stats.ammoId, stats.ammoUsagePerHour);
@@ -75,24 +69,20 @@ export const calculateOfflineProgress = (
                 const limitHP = checkResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
                 const limitMP = checkResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
 
-                // The hunt stops at the EARLIEST limit
                 const limitingFactor = Math.min(limitAmmo, limitRune, limitHP, limitMP);
                 
                 if (limitingFactor < effectiveTime) {
                     effectiveTime = limitingFactor;
-                    // If we ran out of something critical, we stop the hunt
-                    // Note: If limit is 0 (can't even start), effectiveTime is 0.
                     if (limitingFactor < diffSeconds) {
-                        stopHunt = true; // Mark to stop future hunting
+                        stopHunt = true; 
                     }
                 }
 
-                // If effective time is tiny (e.g. out of ammo immediately), skip rewards
                 if (effectiveTime < 10) {
                     return { player: modifiedPlayer, report, stopHunt: true, stopTrain };
                 }
 
-                report.secondsOffline = effectiveTime; // Update report to show actual hunted time
+                report.secondsOffline = effectiveTime; 
 
                 // --- APPLY CONSUMPTION ---
                 const consumeResource = (itemId: string | undefined, usagePerHour: number) => {
@@ -102,7 +92,6 @@ export const calculateOfflineProgress = (
                     let remainingNeeded = totalNeeded;
                     const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 0;
 
-                    // 1. Deduct from Inventory
                     const inBag = modifiedPlayer.inventory[itemId] || 0;
                     if (inBag >= remainingNeeded) {
                         modifiedPlayer.inventory[itemId] -= remainingNeeded;
@@ -113,10 +102,9 @@ export const calculateOfflineProgress = (
                         delete modifiedPlayer.inventory[itemId];
                     }
 
-                    // 2. Deduct from Gold (Auto-Refill cost)
                     if (remainingNeeded > 0) {
                         const cost = remainingNeeded * itemPrice;
-                        report!.waste += cost; // Track waste for report
+                        report!.waste += cost; 
                         
                         if (modifiedPlayer.gold >= cost) {
                             modifiedPlayer.gold -= cost;
@@ -133,8 +121,7 @@ export const calculateOfflineProgress = (
                 consumeResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
                 consumeResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
 
-
-                // --- APPLY REWARDS (Based on Effective Time) ---
+                // --- APPLY REWARDS ---
                 const hoursPassed = effectiveTime / 3600;
                 let totalCycles = Math.floor(stats.cyclesPerHour * hoursPassed);
                 if (totalCycles === 0 && effectiveTime > 30 && stats.cyclesPerHour > 0) totalCycles = 1;
@@ -150,19 +137,33 @@ export const calculateOfflineProgress = (
                 modifiedPlayer.gold += safeTotalGold;
                 report.goldGained = safeTotalGold;
 
-                // Loot
+                // Loot & TASKS
                 const lootSummary: {[key:string]: number} = {};
                 
                 if (totalKills > 0) {
                     report.killedMonsters.push({ name: monster.name, count: totalKills });
 
-                    // Calculate Loot Modifiers
+                    // --- NEW: UPDATE HUNTING TASKS ---
+                    if (modifiedPlayer.taskOptions) {
+                        modifiedPlayer.taskOptions.forEach(task => {
+                            if (task.status === 'active' && !task.isComplete && task.type === 'kill' && task.monsterId === monster.id) {
+                                task.killsCurrent = (task.killsCurrent || 0) + totalKills;
+                                const req = task.killsRequired || task.amountRequired;
+                                if (task.killsCurrent >= req) {
+                                    task.killsCurrent = req;
+                                    task.isComplete = true;
+                                }
+                            }
+                        });
+                    }
+
+                    // Loot Modifiers
                     let lootMult = 1;
                     const activePrey = modifiedPlayer.prey.slots.find(s => s.monsterId === monster.id && s.active);
                     if (activePrey && activePrey.bonusType === 'loot') lootMult += (activePrey.bonusValue / 100);
                     
                     lootMult += (getAscensionBonusValue(modifiedPlayer, 'loot_boost') / 100);
-                    if (modifiedPlayer.premiumUntil > now) lootMult += 0.20; // +20%
+                    if (modifiedPlayer.premiumUntil > now) lootMult += 0.20; 
                     const isBoss = !!(monster as any).cooldownSeconds;
                     const hazardLoot = isBoss ? 0 : (modifiedPlayer.activeHazardLevel || 0);
                     lootMult += (hazardLoot / 100);
@@ -197,10 +198,7 @@ export const calculateOfflineProgress = (
                 report.leveledUp = endLevel - startLevel;
             }
 
-            // Always reset start time for next cycle logic if continuous
-            if (stopHunt) {
-                // Keep stopHunt true to UI
-            } else {
+            if (!stopHunt) {
                 modifiedPlayer.activeHuntStartTime = Date.now();
             }
 

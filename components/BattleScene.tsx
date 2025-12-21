@@ -67,32 +67,34 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
 
   const renderHits = (target: 'player' | 'monster') => {
       return hits.filter(h => h.target === target).map(hit => {
-         const randomX = (hit.id % 20) - 10;
-         const randomY = (hit.id % 10) - 5;
+         // Dispersão aleatória baseada no ID do hit para evitar amontoamento
+         const randomX = (hit.id % 100) - 50; 
+         const randomY = (hit.id % 60) - 30;  
          
-         if (hit.type === 'miss') return <div key={hit.id} className="hit-miss" style={{ top: `calc(40% + ${randomY}px)`, left: `calc(50% + ${randomX}px)` }}></div>;
+         if (hit.type === 'miss') return <div key={hit.id} className="hit-miss" style={{ top: `calc(50% + ${randomY}px)`, left: `calc(50% + ${randomX}px)` }}></div>;
          
-         if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-10% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
+         if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-15% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
          
          let leftPos = '50%';
-         let topPos = '10%';
+         let topPos = '30%'; 
          let displayValue = String(hit.value);
 
          if (target === 'player') {
              if (hit.type === 'heal') {
-                 leftPos = '0%'; 
+                 leftPos = '-15%'; 
                  displayValue = `+${hit.value} HP`;
              } else if (hit.type === 'mana') {
-                 leftPos = '100%'; 
+                 leftPos = '115%'; 
                  displayValue = `+${hit.value} MP`;
              }
          } else if (target === 'monster' && hit.type === 'damage') {
-             if (hit.source === 'basic') leftPos = '40%';
-             else if (hit.source === 'spell') leftPos = '55%';
-             else if (hit.source === 'rune') leftPos = '70%';
+             // Configuração de colunas deslocadas apenas 5% para a direita do original
+             if (hit.source === 'basic') leftPos = '25%';
+             else if (hit.source === 'spell') leftPos = '45%';
+             else if (hit.source === 'rune') leftPos = '60%';
              else if (hit.source === 'reflect') {
-                 leftPos = '80%'; // Ajustado para ficar mais à direita
-                 topPos = '75%'; // Abaixo do monstro
+                 leftPos = '70%'; // Posição original era 65% + 5%
+                 topPos = '50%';  
              }
          }
 
@@ -114,7 +116,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
   const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
   const playerEffMaxHp = getEffectiveMaxHp(player);
 
-  // --- LOGICA DE VISUAIS DE HAZARD/INFLUENCIA ---
   const activeInfluencedType = activeMonster?.isInfluenced ? activeMonster.influencedType : null;
   const borderClass = activeInfluencedType ? `border-${activeInfluencedType}` : (hazardLevel > 0 ? 'border-hazard' : 'border-black');
   const atmosphereClass = activeInfluencedType ? `atmosphere-${activeInfluencedType}` : (hazardLevel > 0 ? 'atmosphere-hazard' : '');
@@ -131,7 +132,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                
                {hazardLevel > 0 && (
                    <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5 bg-black/60 px-2 py-1 rounded border border-orange-800/50 animate-pulse">
-                       <Flame size={12} className="text-orange-500" />
+                       <span className="text-orange-500"><Flame size={12} /></span>
                        <span className="text-[10px] font-black text-orange-200 font-mono">HAZARD {hazardLevel}</span>
                    </div>
                )}
@@ -153,7 +154,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                </div>
 
                <div className="flex flex-col items-center relative">
-                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center w-[300px] -left-24 -top-12 h-48">
+                  <div className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center w-[400px] -left-32 -top-16 h-64">
                     {renderHits('monster')}
                   </div>
                   <div className="mb-2 text-center flex flex-col items-center min-h-[30px] justify-end">

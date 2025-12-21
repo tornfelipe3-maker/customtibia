@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Player, Monster, HitSplat, Vocation } from '../types';
 import { VOCATION_SPRITES } from '../constants';
 import { getEffectiveMaxHp } from '../services';
@@ -15,6 +15,13 @@ interface BattleSceneProps {
   onStopHunt: () => void;
   isHunting?: boolean;
 }
+
+const FLOOR_ASSETS = {
+    default: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Dirt_(Tile).gif',
+    enraged: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Lava_Tile.gif',
+    blessed: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Ancient_Paving.gif',
+    corrupted: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Slate_Floor.gif'
+};
 
 export const BattleScene: React.FC<BattleSceneProps> = ({
   player,
@@ -70,33 +77,18 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          let displayValue = String(hit.value);
 
          if (target === 'player') {
-             // ORDEM REQUERIDA: Dano em primeiro (topo), depois Vida, depois Mana
-             if (hit.type === 'damage') {
-                 topPos = '5%'; // Mais alto
-             } else if (hit.type === 'heal') {
-                 topPos = '35%'; // Meio
-             } else if (hit.type === 'mana') {
-                 topPos = '65%'; // Base
-             }
+             if (hit.type === 'damage') topPos = '5%'; 
+             else if (hit.type === 'heal') topPos = '35%'; 
+             else if (hit.type === 'mana') topPos = '65%'; 
          } else if (target === 'monster' && hit.type === 'damage') {
              if (hit.source === 'basic') leftPos = '25%';
              else if (hit.source === 'spell') leftPos = '45%';
              else if (hit.source === 'rune') leftPos = '60%';
-             else if (hit.source === 'reflect') {
-                 leftPos = '70%'; 
-                 topPos = '50%';  
-             }
+             else if (hit.source === 'reflect') { leftPos = '70%'; topPos = '50%'; }
          }
 
          return (
-            <div 
-                key={hit.id} 
-                className={`damage-float ${getHitColor(hit)}`} 
-                style={{ 
-                    top: `calc(${topPos} + ${randomY}px)`, 
-                    left: `calc(${leftPos} + ${randomX}px)` 
-                }}
-            >
+            <div key={hit.id} className={`damage-float ${getHitColor(hit)}`} style={{ top: `calc(${topPos} + ${randomY}px)`, left: `calc(${leftPos} + ${randomX}px)` }}>
                 {displayValue}
             </div>
          );
@@ -105,14 +97,22 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
 
   const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
   const playerEffMaxHp = getEffectiveMaxHp(player);
-
   const activeInfluencedType = activeMonster?.isInfluenced ? activeMonster.influencedType : null;
   const borderClass = activeInfluencedType ? `border-${activeInfluencedType}` : (hazardLevel > 0 ? 'border-hazard' : 'border-black');
   const atmosphereClass = activeInfluencedType ? `atmosphere-${activeInfluencedType}` : (hazardLevel > 0 ? 'atmosphere-hazard' : '');
 
+  // Determinar o asset de chão
+  const floorImage = activeInfluencedType ? FLOOR_ASSETS[activeInfluencedType] : FLOOR_ASSETS.default;
+
   return (
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${borderClass}`}>
          
+         {/* Seamless Tile Floor Layer (64x64) */}
+         <div 
+            className="tile-floor" 
+            style={{ backgroundImage: `url('${floorImage}')` }}
+         />
+
          {activeMonster && atmosphereClass && (
              <div className={`atmosphere ${atmosphereClass}`} />
          )}
@@ -155,7 +155,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                   </div>
                   
                   <div className="relative z-10 w-24 h-24 flex items-center justify-center drop-shadow-[6px_6px_0_rgba(0,0,0,0.5)]">
-                    <div key={uniqueKey} className={`relative monster-sprite-container ${isDead ? 'death-anim' : 'spawn-anim'}`}>
+                    <div key={uniqueKey} className={`relative monster-sprite-container ${isDead ? 'death-anim' : 'spawn-anim'} z-10`}>
                         <Sprite 
                             src={activeMonster.image} 
                             type="monster" 

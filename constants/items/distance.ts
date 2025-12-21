@@ -20,12 +20,14 @@ export const DISTANCE_LIST: Item[] = [
 
   // TIER 5 (Lvl 100-200) -> Item Lvl 100
   { id: 'composite_hornbow', name: 'Composite Hornbow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 25000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco composto.', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 100, image: `${IMG_BASE}Composite_Hornbow.gif` },
-  
+  { id: 'umbral_bow', name: 'Umbral Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 45000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco sombrio (Tier 5).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 100, image: `${IMG_BASE}Umbral_Bow.gif` },
+
   // TIER 6 (Lvl 200-300) -> Item Lvl 200
   { id: 'rift_crossbow', name: 'Rift Crossbow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 50000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Besta da fenda.', scalingStat: SkillType.DISTANCE, weaponType: 'crossbow', requiredVocation: [Vocation.PALADIN], requiredLevel: 200, image: `${IMG_BASE}Rift_Crossbow.gif` },
+  { id: 'rift_bow', name: 'Rift Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 60000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco da fenda (Tier 6).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 200, image: `${IMG_BASE}Rift_Bow.gif` },
 
   // TIER 7 (Lvl 300-400) -> Item Lvl 300
-  { id: 'umbral_bow', name: 'Umbral Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 100000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco sombrio (Tier 7).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 300, image: `${IMG_BASE}Umbral_Bow.gif` },
+  // Removido Umbral Bow daqui pois foi movido para o Tier 5 conforme solicitado
 
   // TIER 8 (Lvl 400+) -> Item Lvl 400
   { id: 'falcon_bow', name: 'Falcon Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 300000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco do Falcão (Tier 8).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 400, image: `${IMG_BASE}Falcon_Bow.gif` },

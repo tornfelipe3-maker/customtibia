@@ -224,6 +224,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'noble_axe', chance: 0.04, maxAmount: 1 },     
             { itemId: 'mastermind_shield', chance: 0.02, maxAmount: 1 },
             { itemId: 'shadow_sceptre', chance: 0.03, maxAmount: 1 },
+            { itemId: 'umbral_bow', chance: 0.01, maxAmount: 1 },
             { itemId: 'stone_skin_amulet', chance: 0.05, maxAmount: 1 }, 
             { itemId: 'stealth_ring', chance: 0.05, maxAmount: 1 } 
         ] 
@@ -257,6 +258,7 @@ export const MONSTERS: Monster[] = [
             { itemId: 'rift_legs', chance: 0.015, maxAmount: 1 },
             { itemId: 'crystalline_axe', chance: 0.01, maxAmount: 1 },
             { itemId: 'mycological_mace', chance: 0.01, maxAmount: 1 },
+            { itemId: 'rift_bow', chance: 0.01, maxAmount: 1 },
             { itemId: 'depth_calcei', chance: 0.02, maxAmount: 1 },
             { itemId: 'werewolf_amulet', chance: 0.04, maxAmount: 1 }, 
             { itemId: 'energy_ring', chance: 0.05, maxAmount: 1 } 
@@ -272,7 +274,6 @@ export const MONSTERS: Monster[] = [
             { itemId: 'hellhound_slobber', chance: 0.40, maxAmount: 2 }, 
             { itemId: 'prismatic_boots', chance: 0.01, maxAmount: 1 },  
             { itemId: 'prismatic_helmet', chance: 0.01, maxAmount: 1 },
-            { itemId: 'umbral_bow', chance: 0.01, maxAmount: 1 },
             { itemId: 'tagralt_blade', chance: 0.01, maxAmount: 1 },
             { itemId: 'umbral_mace', chance: 0.01, maxAmount: 1 },
             { itemId: 'cobra_amulet', chance: 0.015, maxAmount: 1 }, 

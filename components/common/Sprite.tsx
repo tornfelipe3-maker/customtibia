@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ITEM_PLACEHOLDER, IMG_BASE, OUT_BASE } from '../../constants/config';
 import { Skull } from 'lucide-react';
 
@@ -16,42 +16,35 @@ export const Sprite: React.FC<SpriteProps> = ({ src, alt, className, style, size
   const [currentSrc, setCurrentSrc] = useState<string | undefined>(src);
   const [isFallbackAttempted, setIsFallbackAttempted] = useState(false);
   const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  // Sync internal state with prop changes
+  // Sincroniza o src interno com a prop src
   useEffect(() => {
     setCurrentSrc(src);
     setError(false);
-    setLoading(true);
     setIsFallbackAttempted(false);
   }, [src]);
 
   const handleError = () => {
-    // If we were using Fandom (IMG_BASE), try TibiaWiki BR (OUT_BASE) as mirror
+    // Se falhar no Fandom, tenta o mirror do TibiaWiki BR
     if (currentSrc && currentSrc.includes('tibia.fandom.com') && !isFallbackAttempted) {
       const fileName = currentSrc.split('/').pop();
       if (fileName) {
         setIsFallbackAttempted(true);
         setCurrentSrc(`${OUT_BASE}${fileName}`);
-        return; // Let the next load attempt handle it
+        return;
       }
     }
 
-    // If mirror also fails or wasn't fandom, set error
     setError(true);
-    setLoading(false);
-    console.warn(`Failed to load sprite (including mirrors): ${src}`);
-  };
-
-  const handleLoad = () => {
-    setLoading(false);
+    console.warn(`Failed to load sprite: ${src}`);
   };
 
   if (!currentSrc || error) {
     if (type === 'monster') {
       return (
-        <div className={`flex items-center justify-center bg-black/20 rounded ${className}`} style={{ width: size, height: size, ...style }}>
-          <Skull size={size ? size * 0.6 : 24} className="text-red-900/50" />
+        <div className={`flex items-center justify-center bg-black/10 rounded ${className}`} style={{ width: size, height: size, ...style }}>
+          <Skull size={size ? size * 0.6 : 24} className="text-red-900/40" />
         </div>
       );
     }
@@ -66,21 +59,19 @@ export const Sprite: React.FC<SpriteProps> = ({ src, alt, className, style, size
   }
 
   return (
-    <div className="relative inline-flex items-center justify-center overflow-visible">
-      {loading && (
-        <div className="absolute inset-0 flex items-center justify-center animate-pulse bg-white/5 rounded-sm"></div>
-      )}
+    <div className="relative inline-flex items-center justify-center">
       <img
+        ref={imgRef}
         src={currentSrc}
         alt={alt || 'sprite'}
-        className={`${className} ${loading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
+        className={className}
         style={{ 
           imageRendering: 'pixelated', 
+          display: 'block',
           ...style 
         }}
         onError={handleError}
-        onLoad={handleLoad}
-        loading="lazy"
+        loading="eager"
         referrerPolicy="no-referrer"
       />
     </div>

@@ -25,18 +25,9 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
   onStopHunt,
   isHunting
 }) => {
-  const [isSpawning, setIsSpawning] = useState(false);
   const isDead = activeMonster && currentMonsterHp <= 0;
   const uniqueKey = activeMonster?.guid || activeMonster?.id;
   const hazardLevel = player.activeHazardLevel || 0;
-
-  useEffect(() => {
-      if (uniqueKey) {
-          setIsSpawning(true);
-          const timer = setTimeout(() => setIsSpawning(false), 300);
-          return () => clearTimeout(timer);
-      }
-  }, [uniqueKey]);
 
   const getHitColor = (hit: HitSplat) => {
       if (hit.target === 'monster' && hit.type === 'damage') {
@@ -67,7 +58,6 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
 
   const renderHits = (target: 'player' | 'monster') => {
       return hits.filter(h => h.target === target).map(hit => {
-         // Dispersão aleatória baseada no ID do hit para evitar amontoamento
          const randomX = (hit.id % 100) - 50; 
          const randomY = (hit.id % 60) - 30;  
          
@@ -88,12 +78,11 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                  displayValue = `+${hit.value} MP`;
              }
          } else if (target === 'monster' && hit.type === 'damage') {
-             // Configuração de colunas deslocadas apenas 5% para a direita do original
              if (hit.source === 'basic') leftPos = '25%';
              else if (hit.source === 'spell') leftPos = '45%';
              else if (hit.source === 'rune') leftPos = '60%';
              else if (hit.source === 'reflect') {
-                 leftPos = '70%'; // Posição original era 65% + 5%
+                 leftPos = '70%'; 
                  topPos = '50%';  
              }
          }
@@ -165,7 +154,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                   </div>
                   
                   <div className="relative z-10 w-24 h-24 flex items-center justify-center drop-shadow-[6px_6px_0_rgba(0,0,0,0.5)]">
-                    <div key={uniqueKey} className={`relative monster-sprite-container ${isDead && !isSpawning ? 'death-anim' : 'spawn-anim'}`}>
+                    <div key={uniqueKey} className={`relative monster-sprite-container ${isDead ? 'death-anim' : 'spawn-anim'}`}>
                         <Sprite 
                             src={activeMonster.image} 
                             type="monster" 
@@ -173,7 +162,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                             size={48} 
                             style={getInfluencedStyle(activeMonster)} 
                         />
-                        {isDead && !isSpawning && (
+                        {isDead && (
                             <div className="absolute inset-0 flex items-center justify-center z-50">
                                 <Skull size={32} className="text-gray-400 drop-shadow-md animate-bounce" />
                             </div>

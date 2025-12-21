@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { BookOpen, X, Sword, Shield, Star, Zap, RefreshCw, Ghost, Target, Gem, Crown, DollarSign, Gift, Clock, Footprints } from 'lucide-react';
+/* Added Coins to the lucide-react imports */
+import { BookOpen, X, Sword, Shield, Star, Zap, RefreshCw, Ghost, Target, Gem, Crown, DollarSign, Gift, Clock, Footprints, Skull, Sparkles, AlertTriangle, Coins } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface WikiModalProps {
@@ -21,6 +22,30 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
       case 'basics':
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            {/* TASKS EMPHASIS */}
+            <section className="bg-orange-900/20 border-2 border-orange-600 rounded-lg p-4 shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+                <h3 className="text-orange-400 font-black text-xl mb-2 flex items-center gap-2 uppercase tracking-tighter">
+                    <Skull size={24} /> {t('wiki_tasks_fast_title')}
+                </h3>
+                <p className="text-sm text-gray-200 font-bold mb-3">
+                    {t('wiki_tasks_fast_desc')}
+                </p>
+                <div className="bg-black/40 p-3 rounded border border-orange-900/50 text-xs text-orange-200 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                        <span>Multiplicador de XP massivo ao completar.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                        <span>Recompensas de Ouro garantidas para novos equipamentos.</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                        <span>Novos contratos gerados a cada 20 horas gratuitamente.</span>
+                    </div>
+                </div>
+            </section>
+
             <section>
               <h3 className="text-yellow-500 font-bold text-lg mb-2 flex items-center gap-2">
                 <Sword size={18} /> {t('wiki_basics_combat')}
@@ -58,18 +83,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                 <div className="bg-blue-900/20 border border-blue-800/50 p-3 rounded text-xs text-blue-200">
                     {t('wiki_basics_skills_tip')}
                 </div>
-            </section>
-
-            <section>
-              <h3 className="text-red-400 font-bold text-lg mb-2 flex items-center gap-2">
-                <Footprints size={18} /> {t('wiki_lure_title')}
-              </h3>
-              <p className="text-sm text-gray-300 mb-2">
-                {t('wiki_lure_desc')}
-              </p>
-              <div className="bg-red-900/20 border border-red-800/50 p-3 rounded text-xs text-red-200">
-                 {t('wiki_lure_example')}
-              </div>
             </section>
           </div>
         );
@@ -147,7 +160,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                 {/* Standard */}
                  <div className="bg-[#222] p-2 border border-blue-900/30 rounded">
                     <div className="text-blue-300 font-bold text-xs">{t('affix_xp')}</div>
                     <div className="text-[10px] text-gray-500">{t('affix_xp_desc')}</div>
@@ -164,8 +176,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                     <div className="text-orange-400 font-bold text-xs">{t('affix_speed')}</div>
                     <div className="text-[10px] text-gray-500">{t('affix_speed_desc')}</div>
                  </div>
-
-                 {/* New Ones */}
                  <div className="bg-[#222] p-2 border border-red-900/50 rounded shadow-md">
                     <div className="text-red-500 font-bold text-xs">{t('affix_boss')}</div>
                     <div className="text-[10px] text-gray-400">{t('affix_boss_desc')}</div>
@@ -194,15 +204,30 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
       case 'systems':
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-             
-             {/* Creature Products Update Info */}
-             <section className="mb-6 bg-yellow-900/10 border border-yellow-800/30 p-3 rounded">
-                <h3 className="text-yellow-500 font-bold text-sm mb-2 flex items-center gap-2 border-b border-yellow-900/30 pb-1">
-                    <Gift size={14} /> Loot System Update
+             {/* HAZARD SYSTEM */}
+             <section className="bg-red-900/10 border border-red-800/30 p-3 rounded">
+                <h3 className="text-red-500 font-bold text-sm mb-2 flex items-center gap-2 border-b border-red-900/30 pb-1">
+                    <AlertTriangle size={14} /> {t('menu_hazard')}
                 </h3>
                 <p className="text-xs text-gray-300 mb-2">
-                    High-level monsters now drop specific, valuable Creature Products (e.g., <strong>Werehyaena Nose, Green Piece of Cloth</strong>) instead of generic low-level food. These items are essential for tasks and selling to Yasir/Trader.
+                    Aumente o nível de perigo das áreas de caça para ganhar bônus de XP e Loot massivos. No entanto, os monstros tornam-se mortais, ganhando dano, crítico e esquiva.
                 </p>
+                <p className="text-[10px] text-gray-500 italic">
+                    * Desafie a Primal Menace para aumentar seu nível máximo de Hazard.
+                </p>
+             </section>
+
+             {/* IMBUEMENTS */}
+             <section className="bg-purple-900/10 border border-purple-800/30 p-3 rounded">
+                <h3 className="text-purple-400 font-bold text-sm mb-2 flex items-center gap-2 border-b border-purple-900/30 pb-1">
+                    <Sparkles size={14} /> {t('menu_imbuement')}
+                </h3>
+                <p className="text-xs text-gray-300 mb-2">
+                    Encante sua alma com bônus de Vampirism (Life Steal), Void (Mana Leech) ou Strike (Critical). Cada imbuement dura 3 horas de jogo ativo.
+                </p>
+                <div className="text-[10px] text-purple-400 flex items-center gap-1">
+                    <Coins size={10} /> Requer Gold Tokens dropados de Chefes.
+                </div>
              </section>
 
              <section className="mb-6">
@@ -216,7 +241,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                 <div className="space-y-2">
                     <h4 className="text-[10px] font-bold text-purple-300 uppercase tracking-widest">{t('wiki_ascension_perks')}</h4>
                     <div className="grid grid-cols-1 gap-2">
-                        {/* XP */}
                         <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
                             <BookOpen size={14} className="text-green-400 shrink-0 mt-0.5" />
                             <div>
@@ -224,7 +248,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                                 <div className="text-[10px] text-gray-500">{t('ascension_xp_details')}</div>
                             </div>
                         </div>
-                        {/* Gold */}
                         <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
                             <DollarSign size={14} className="text-yellow-400 shrink-0 mt-0.5" />
                             <div>
@@ -232,7 +255,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                                 <div className="text-[10px] text-gray-500">{t('ascension_gold_details')}</div>
                             </div>
                         </div>
-                        {/* DMG */}
                         <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
                             <Sword size={14} className="text-red-400 shrink-0 mt-0.5" />
                             <div>
@@ -240,55 +262,8 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
                                 <div className="text-[10px] text-gray-500">{t('ascension_dmg_details')}</div>
                             </div>
                         </div>
-                        {/* Loot */}
-                        <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
-                            <Gift size={14} className="text-purple-400 shrink-0 mt-0.5" />
-                            <div>
-                                <div className="text-purple-400 text-xs font-bold">{t('ascension_loot_name')}</div>
-                                <div className="text-[10px] text-gray-500">{t('ascension_loot_details')}</div>
-                            </div>
-                        </div>
-                        {/* Boss CD */}
-                        <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
-                            <Clock size={14} className="text-orange-400 shrink-0 mt-0.5" />
-                            <div>
-                                <div className="text-orange-400 text-xs font-bold">{t('ascension_boss_name')}</div>
-                                <div className="text-[10px] text-gray-500">{t('ascension_boss_details')}</div>
-                            </div>
-                        </div>
-                        {/* Soul */}
-                        <div className="bg-[#222] border border-[#333] p-2 rounded flex items-start gap-2">
-                            <Ghost size={14} className="text-gray-300 shrink-0 mt-0.5" />
-                            <div>
-                                <div className="text-gray-300 text-xs font-bold">{t('ascension_soul_name')}</div>
-                                <div className="text-[10px] text-gray-500">{t('ascension_soul_details')}</div>
-                            </div>
-                        </div>
                     </div>
                 </div>
-             </section>
-
-             <section className="mb-6">
-                <h3 className="text-yellow-500 font-bold text-sm mb-2 flex items-center gap-2 border-b border-[#333] pb-1">
-                    <Target size={14} /> {t('wiki_prey_title')}
-                </h3>
-                <p className="text-xs text-gray-300">
-                    {t('wiki_prey_desc')}
-                </p>
-             </section>
-
-             <section>
-                <h3 className="text-red-400 font-bold text-sm mb-2 flex items-center gap-2 border-b border-[#333] pb-1">
-                    <Crown size={14} /> {t('wiki_inf_title')}
-                </h3>
-                <p className="text-xs text-gray-300 mb-2">
-                    {t('wiki_inf_desc')}
-                </p>
-                <ul className="space-y-1 text-[10px]">
-                    <li className="flex items-center gap-2"><span className="text-red-500 font-bold">{t('tut_enraged')}:</span> {t('tut_enraged_desc')}</li>
-                    <li className="flex items-center gap-2"><span className="text-purple-400 font-bold">{t('tut_corrupted')}:</span> {t('tut_corrupted_desc')}</li>
-                    <li className="flex items-center gap-2"><span className="text-yellow-500 font-bold">{t('tut_blessed')}:</span> {t('tut_blessed_desc')}</li>
-                </ul>
              </section>
           </div>
         );
@@ -342,7 +317,6 @@ export const WikiModal: React.FC<WikiModalProps> = ({ isOpen, onClose }) => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-[#181818] relative">
-                {/* Background watermark */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
                     <BookOpen size={200} />
                 </div>

@@ -5,7 +5,6 @@ import { getEffectiveSkill } from "./progression";
 import { GENERATE_MODIFIERS } from "./loot"; 
 
 export const getXpStageMultiplier = (level: number): number => {
-  // Balanced Curve
   if (level <= 8) return 250; 
   if (level <= 20) return 30;  
   if (level <= 50) return 20;  
@@ -247,7 +246,7 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
     const xpNeededForNextLevel = getXpForLevel(playerLevel + 1) - getXpForLevel(playerLevel);
     const minXpLevels = taskType === 'collect' ? 3.0 : 2.0;
     const minSafeXp = Math.floor(xpNeededForNextLevel * minXpLevels);
-    xpReward = Math.max(xpReward, minSafeXp);
+    xpReward = Math.max(xpReward, minXpLevels);
 
     const avgGoldPerKill = (monster.minGold + monster.maxGold) / 2;
     const goldReward = Math.floor(avgGoldPerKill * effortMetric * 25.0) + (playerLevel * 25000); 
@@ -346,31 +345,20 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   // --- MULTIPLICATIVE XP CALCULATION (MATCHING GAMELOOP) ---
   let finalXpMultiplier = 1.0;
   
-  // 1. Stage Mult
   finalXpMultiplier *= getXpStageMultiplier(player.level);
-  
-  // 2. Stamina
   if (player.stamina > 0) finalXpMultiplier *= 1.5;
-  
-  // 3. Prey XP
   if (activePrey && activePrey.bonusType === 'xp') {
       finalXpMultiplier *= (1 + (activePrey.bonusValue / 100));
   }
-  
-  // 4. Ascension XP
   finalXpMultiplier *= (1 + (getAscensionBonusValue(player, 'xp_boost') / 100));
-  
-  // 5. Gear XP
   const equipXpBonus = getPlayerModifier(player, 'xpBoost');
   if (equipXpBonus > 0) finalXpMultiplier *= (1 + (equipXpBonus / 100));
+  if (player.premiumUntil > now) finalXpMultiplier *= 2.0; 
+  if (player.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
   
-  // 6. Store Buffs
-  if (player.premiumUntil > now) finalXpMultiplier *= 2.0; // +100% (2.0x)
-  if (player.xpBoostUntil > now) finalXpMultiplier *= 3.0; // +200% (3.0x)
-  
-  // 7. Hazard XP
+  // NOVO: 10% XP por nível de Hazard nas estimativas
   const isBoss = !!(monster as Boss).cooldownSeconds;
-  const hazardXpMult = isBoss ? 1.0 : (1 + ((player.activeHazardLevel || 0) * 0.02));
+  const hazardXpMult = isBoss ? 1.0 : (1 + ((player.activeHazardLevel || 0) * 0.10));
   finalXpMultiplier *= hazardXpMult;
 
   const xpPerCycle = monster.exp * huntCount * finalXpMultiplier;

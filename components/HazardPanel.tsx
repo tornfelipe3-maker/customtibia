@@ -30,10 +30,10 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
 
-  // Stats calculation based on ACTIVE hazard
+  // NOVO: XP Bonus 10% por nível, Loot Bonus 5% por nível
   const dmgBonus = activeHazard * 1; // 1%
-  const xpBonus = activeHazard * 2; // 2%
-  const lootBonus = activeHazard * 1; // 1%
+  const xpBonus = activeHazard * 10; // 10%
+  const lootBonus = activeHazard * 5; // 5%
   const dodgeChance = Math.min(25, activeHazard * 0.25);
   const critChance = Math.min(50, activeHazard * 0.5);
 
@@ -49,15 +49,12 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
   return (
     <div className="h-full flex flex-col bg-[#1a0505] text-red-100 relative overflow-hidden">
         
-        {/* Background Texture */}
         <div className="absolute inset-0 bg-[url('https://tibia.fandom.com/wiki/Special:FilePath/Background_Artwork_Texture.jpg')] opacity-10 pointer-events-none"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-red-950/50 to-black/90 pointer-events-none"></div>
 
-        {/* MODAL CONFIRMATION */}
         {showConfirm && (
             <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center p-6 backdrop-blur-sm animate-in fade-in duration-200">
                 <div className="bg-[#2a0a0a] border-2 border-red-600 rounded-lg p-6 max-w-sm w-full shadow-[0_0_50px_rgba(220,38,38,0.3)] text-center relative overflow-hidden">
-                    {/* Corner Accent */}
                     <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
                         <Skull size={120} className="text-red-500" />
                     </div>
@@ -105,7 +102,6 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
             </div>
         )}
 
-        {/* Header */}
         <div className="relative z-10 p-6 flex items-center justify-between border-b border-red-900/50 bg-black/40 shadow-xl shrink-0">
             <div className="flex items-center gap-4">
                 <div className="p-3 bg-red-900/30 border border-red-600 rounded-full shadow-[0_0_15px_rgba(220,38,38,0.5)] animate-pulse">
@@ -123,10 +119,8 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
             </div>
         </div>
 
-        {/* Content */}
         <div className="relative z-10 flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col items-center">
             
-            {/* LEVEL SELECTOR */}
             <div className="w-full max-w-4xl bg-black/60 border border-red-900/50 rounded-lg p-6 mb-6 shadow-lg">
                 <div className="flex justify-between items-end mb-4">
                     <div className="flex items-center gap-2">
@@ -152,7 +146,6 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
                 
-                {/* Stats Card */}
                 <div className="bg-black/60 border border-red-900/30 rounded-lg p-5 shadow-lg">
                     <h3 className="text-lg font-bold text-red-300 mb-4 flex items-center gap-2 border-b border-red-900/30 pb-2">
                         <TrendingUp size={20}/> Active Effects
@@ -166,7 +159,7 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
                                 <span className="font-bold text-green-300">+{xpBonus}%</span>
                             </div>
                             <div className="flex justify-between text-sm">
-                                <span>Loot Chance Bonus</span>
+                                <span>Loot Chance Bonus (Multiplicative)</span>
                                 <span className="font-bold text-green-300">+{lootBonus}%</span>
                             </div>
                         </div>
@@ -193,7 +186,6 @@ export const HazardPanel: React.FC<HazardPanelProps> = ({ player, onStartHunt, b
                     </div>
                 </div>
 
-                {/* Boss Card */}
                 <div className="bg-black/60 border border-red-900/30 rounded-lg p-5 shadow-lg flex flex-col items-center text-center">
                     <h3 className="text-lg font-bold text-red-300 mb-4 flex items-center gap-2 border-b border-red-900/30 pb-2 w-full justify-center">
                         <Swords size={20}/> The Primal Menace

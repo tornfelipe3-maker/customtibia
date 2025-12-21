@@ -73,7 +73,7 @@ export const processGameTick = (
     let bossDefeatedId: string | undefined = undefined;
     let monsterHp = currentMonsterHp;
 
-    // --- IMBUEMENT TIMER TICK (COM SEGURANÇA) ---
+    // --- IMBUEMENT TIMER TICK ---
     if (p.imbuActive && p.imbuements) {
         Object.keys(p.imbuements).forEach(key => {
             const imbu = p.imbuements[key as ImbuType];
@@ -87,11 +87,10 @@ export const processGameTick = (
         });
     }
 
-    // --- HELPER: APPLY IMBUEMENT LEECH (COM SEGURANÇA) ---
+    // --- HELPER: APPLY IMBUEMENT LEECH ---
     const applyLeech = (dmg: number) => {
         if (!p.imbuActive || !p.imbuements || dmg <= 0) return;
 
-        // Life Steal (Vampirism)
         const ls = p.imbuements[ImbuType.LIFE_STEAL];
         if (ls && ls.tier > 0 && ls.timeRemaining > 0) {
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
@@ -101,7 +100,6 @@ export const processGameTick = (
             }
         }
 
-        // Mana Leech (Void)
         const ml = p.imbuements[ImbuType.MANA_LEECH];
         if (ml && ml.tier > 0 && ml.timeRemaining > 0) {
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
@@ -134,8 +132,11 @@ export const processGameTick = (
     const hazardCritChance = Math.min(0.5, hazard * 0.005); 
     const hazardCritDmg = 1.5 + (hazard * 0.01);
     const hazardDodgeChance = Math.min(0.25, hazard * 0.0025); 
-    const hazardXpBonus = 1 + (hazard * 0.02);
-    const hazardLootBonus = hazard; 
+    
+    // NOVO: 10% XP por nível de Hazard
+    const hazardXpBonus = 1 + (hazard * 0.10);
+    // NOVO: 5% Loot por nível de Hazard (LootBonus é usado na conta multiplicativa em loot.ts)
+    const hazardLootBonus = hazard * 5; 
 
     if (p.prey.nextFreeReroll <= now) {
         if (p.prey.rerollsAvailable < 3) {
@@ -308,7 +309,6 @@ export const processGameTick = (
                             }
                         }
 
-                        // Prepare Death Report
                         const deathReport: DeathReport = {
                             xpLoss: xpLossAmount,
                             goldLoss: goldLoss,
@@ -372,7 +372,6 @@ export const processGameTick = (
                     if (bossBonus > 0) autoAttackDamage = Math.floor(autoAttackDamage * (1 + (bossBonus / 100)));
                 }
 
-                // --- IMBUEMENT: STRIKE (CRIT) ---
                 let imbuCritChance = 0;
                 if (p.imbuActive && p.imbuements) {
                     const strikeImbu = p.imbuements[ImbuType.STRIKE];
@@ -432,7 +431,6 @@ export const processGameTick = (
             if (autoAttackDamage > 0) {
                 monsterHp -= autoAttackDamage;
                 hit(autoAttackDamage, 'damage', 'monster', 'basic');
-                // Aplica imbuement de recuperação no auto attack
                 applyLeech(autoAttackDamage);
             }
 
@@ -466,7 +464,6 @@ export const processGameTick = (
                             monsterHp -= finalSpellDmg;
                             hit(finalSpellDmg, 'damage', 'monster', 'spell');
                             hit(spellName, 'speech', 'player');
-                            // Aplica imbuement de recuperação na magia
                             applyLeech(finalSpellDmg);
                         }
 
@@ -502,7 +499,6 @@ export const processGameTick = (
                         } else {
                             monsterHp -= finalRuneDmg;
                             hit(finalRuneDmg, 'damage', 'monster', 'rune');
-                            // Aplica imbuement de recuperação na runa
                             applyLeech(finalRuneDmg);
                         }
 
@@ -531,6 +527,8 @@ export const processGameTick = (
                 if (equipXpBonus > 0) finalXpMultiplier *= (1 + (equipXpBonus / 100));
                 if (p.premiumUntil > now) finalXpMultiplier *= 2.0; 
                 if (p.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
+                
+                // NOVO: XP de Hazard multiplicada aqui
                 finalXpMultiplier *= hazardXpBonus;
 
                 const xpGained = Math.floor(monster.exp * effectiveHuntCount * finalXpMultiplier);
@@ -551,6 +549,7 @@ export const processGameTick = (
                 stats.goldGained += finalGold;
                 stats.profitGained += finalGold;
 
+                // --- LOOT LOGIC ---
                 let lootBonus = 0;
                 const activePreyLoot = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'loot');
                 if (activePreyLoot) lootBonus += activePreyLoot.bonusValue;
@@ -558,6 +557,8 @@ export const processGameTick = (
                 lootBonus += getAscensionBonusValue(p, 'loot_boost');
                 lootBonus += getPlayerModifier(p, 'lootBoost');
                 if (p.premiumUntil > now) lootBonus += 20; 
+                
+                // NOVO: Loot de Hazard adicionado ao percentual (em loot.ts será 1 + lootBonus/100)
                 lootBonus += hazardLootBonus;
 
                 let combinedStandardLoot: {[key:string]: number} = {};

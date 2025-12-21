@@ -7,6 +7,8 @@ export const TRANSLATIONS = {
     lbl_remaining: 'Remaining',
     lbl_level: 'Level',
     lbl_cost: 'Cost',
+    lbl_active: 'Active',
+    lbl_paused: 'Paused',
 
     // --- CHAR PANEL ---
     char_backpack: 'Backpack',
@@ -18,6 +20,7 @@ export const TRANSLATIONS = {
     skill_axe: 'Axe Fighting',
     skill_dist: 'Distance Fighting',
     skill_shield: 'Shielding',
+    char_analyzer: 'Analyzer',
 
     // --- HUNT PANEL ---
     hunt_confirm_title: 'Do you want to hunt',
@@ -64,6 +67,7 @@ export const TRANSLATIONS = {
     menu_tasks: 'Tasks',
     menu_prey: 'Prey System',
     menu_quests: 'Quest Log',
+    menu_hazard: 'Hazard System',
     cat_city: 'City',
     menu_shop: 'Shop',
     menu_bank: 'Bank',
@@ -73,6 +77,7 @@ export const TRANSLATIONS = {
     cat_char: 'Character',
     menu_train: 'Training',
     menu_ascension: 'Ascension',
+    menu_imbuement: 'Imbuements',
     menu_bot: 'Bot Config',
     cat_system: 'System',
     menu_store: 'Store',
@@ -110,7 +115,7 @@ export const TRANSLATIONS = {
     task_reroll_single: 'Reroll',
     task_ready: 'Ready',
     task_free_reset: 'Free Reset',
-    task_banner_hint: 'Complete tasks to earn Gold and Experience rewards.',
+    task_banner_hint: 'Tasks are the fastest way to progress! Complete them for massive rewards.',
     task_kill_header: 'Monster Bounties',
     task_collect_header: 'Collection Orders',
     task_reroll_global: 'Reroll All Tasks',
@@ -195,7 +200,7 @@ export const TRANSLATIONS = {
     wiki_basics_skills_tip: 'Training offline or using training dummies is very effective.',
     wiki_lure_title: 'Lure Hunting',
     wiki_lure_desc: 'Hunting multiple creatures (Lure) multiplies your rewards but increases danger. Each additional monster adds +3% to their damage output.',
-    wiki_lure_example: 'Example: Hunting 8x creatures deals +21% de dano bônus em você.',
+    wiki_lure_example: 'Example: Hunting 8x creatures deals +21% bonus damage to you.',
     wiki_rarity_title: 'Item Rarity',
     wiki_rarity_desc: 'Equipment can drop with special rarity tiers, granting bonus attributes.',
     wiki_rarity_c: 'Common',
@@ -230,9 +235,11 @@ export const TRANSLATIONS = {
     wiki_inf_title: 'Influenced Monsters',
     wiki_inf_desc: 'Special monster variants with unique drops.',
     wiki_tab_basics: 'Basics',
-    wiki_tab_rarity: 'Raridade',
+    wiki_tab_rarity: 'Rarity',
     wiki_tab_bonuses: 'Attributes',
     wiki_tab_systems: 'Systems',
+    wiki_tasks_fast_title: 'Fast Progression: Tasks',
+    wiki_tasks_fast_desc: 'Tasks are the main way to progress in Tibia Idle. They provide massive XP and Gold compared to standard hunting.',
 
     // --- TUTORIALS (ALERTS) ---
     tut_mob_title: 'DANGEROUS Creature Spotted!',
@@ -242,7 +249,7 @@ export const TRANSLATIONS = {
     tut_blessed: 'Blessed',
     tut_blessed_desc: 'THE LOOT LORD. 15x HP. Hits hard enough to force potion use. Massive Gold & Best Drop Rates if you endure the fight.',
     tut_corrupted: 'Corrupted',
-    tut_corrupted_desc: 'A ELITE. 4x Vida, Ataques mais fortes. Uma ameaça equilibrada com bons drops.',
+    tut_corrupted_desc: 'THE ELITE. 4x HP, Stronger attacks. A balanced threat with good drops.',
     
     tut_item_title: 'You found a Rare Item!',
     tut_item_desc: 'Congratulations! You have dropped a piece of equipment with a special Rarity Tier.',
@@ -275,6 +282,8 @@ export const TRANSLATIONS = {
     lbl_remaining: 'Restante',
     lbl_level: 'Nível',
     lbl_cost: 'Custo',
+    lbl_active: 'Ativo',
+    lbl_paused: 'Pausado',
 
     // --- CHAR PANEL ---
     char_backpack: 'Mochila',
@@ -286,6 +295,7 @@ export const TRANSLATIONS = {
     skill_axe: 'Axe Fighting',
     skill_dist: 'Distance Fighting',
     skill_shield: 'Shielding',
+    char_analyzer: 'Analisador',
 
     // --- HUNT PANEL ---
     hunt_confirm_title: 'Deseja caçar',
@@ -332,6 +342,7 @@ export const TRANSLATIONS = {
     menu_tasks: 'Tarefas',
     menu_prey: 'Sistema Prey',
     menu_quests: 'Missões',
+    menu_hazard: 'Sistema Hazard',
     cat_city: 'Cidade',
     menu_shop: 'Loja',
     menu_bank: 'Banco',
@@ -341,6 +352,7 @@ export const TRANSLATIONS = {
     cat_char: 'Personagem',
     menu_train: 'Treino',
     menu_ascension: 'Ascensão',
+    menu_imbuement: 'Imbuements',
     menu_bot: 'Config Bot',
     cat_system: 'Sistema',
     menu_store: 'Store',
@@ -378,7 +390,7 @@ export const TRANSLATIONS = {
     task_reroll_single: 'Trocar',
     task_ready: 'Pronto',
     task_free_reset: 'Reset Grátis',
-    task_banner_hint: 'Complete tarefas para ganhar recompensas de Ouro e Experiência.',
+    task_banner_hint: 'Tasks são a forma mais rápida de progredir! Complete-as para recompensas massivas.',
     task_kill_header: 'Caçadas',
     task_collect_header: 'Coletas',
     task_reroll_global: 'Trocar Todas as Tarefas',
@@ -501,6 +513,8 @@ export const TRANSLATIONS = {
     wiki_tab_rarity: 'Raridade',
     wiki_tab_bonuses: 'Atributos',
     wiki_tab_systems: 'Sistemas',
+    wiki_tasks_fast_title: 'Progresso Rápido: Tasks',
+    wiki_tasks_fast_desc: 'Tasks são a principal forma de progredir no Tibia Idle. Elas fornecem XP e Ouro massivos comparado à caça padrão.',
 
     // --- TUTORIALS (ALERTS) ---
     tut_mob_title: 'Criatura PERIGOSA Avistada!',
@@ -529,7 +543,7 @@ export const TRANSLATIONS = {
     tut_ascension_desc: 'Você chegou a um momento crucial. O Sistema de Ascensão (Guerra das Almas) está disponível.',
     tut_asc_lose_title: 'O que você PERDE ao Resetar',
     tut_asc_lose_desc: 'Nível (volta ao 8), Vida/Mana, Ouro, Itens Comuns e Inventário.',
-    tut_asc_keep_title: 'O que você MANTÉM',
+    tut_asc_keep_title: 'What you KEEP',
     tut_asc_keep_desc: 'Vocação, Skills, Magias, Quests, Itens RAROS+, Depot (Únicos), Tibia Coins.',
     tut_asc_gain_title: 'Por que Resetar?',
     tut_asc_gain_desc: 'Você ganha SOUL POINTS. Use-os para aumentar permanentemente XP, Dano, Drop e reduzir Cooldown de Bosses. É a única forma de ficar forte o suficiente para a Soul War.',

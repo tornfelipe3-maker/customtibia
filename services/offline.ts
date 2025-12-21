@@ -1,4 +1,3 @@
-
 import { Player, SkillType, Vocation, OfflineReport } from '../types';
 import { MONSTERS, SHOP_ITEMS } from '../constants';
 import { estimateHuntStats, getAscensionBonusValue } from './mechanics';
@@ -12,7 +11,6 @@ export const calculateOfflineProgress = (
 ): { player: Player, report: OfflineReport | null, stopHunt: boolean, stopTrain: boolean } => {
     
     const now = Date.now();
-    // Validate save time
     if (!lastSaveTime || lastSaveTime > now) {
         return { player: { ...player, lastSaveTime: now }, report: null, stopHunt: false, stopTrain: false };
     }
@@ -24,10 +22,9 @@ export const calculateOfflineProgress = (
     let stopHunt = false;
     let stopTrain = false;
 
-    // Minimum 10 seconds to trigger report
     if (diffSeconds > 10) {
         const potentialTime = Math.min(diffSeconds, MAX_OFFLINE_SEC);
-        let effectiveTime = potentialTime; // Can be reduced if supplies run out
+        let effectiveTime = potentialTime; 
         
         report = {
             secondsOffline: diffSeconds,
@@ -39,16 +36,13 @@ export const calculateOfflineProgress = (
             waste: 0, 
         };
 
-        // --- HUNTING OFFLINE ---
         if (modifiedPlayer.activeHuntId) {
             const monster = MONSTERS.find(m => m.id === modifiedPlayer.activeHuntId);
             const huntCount = modifiedPlayer.activeHuntCount || 1;
             
             if (monster) {
-                // Get detailed stats including specific item usage per hour
                 const stats = estimateHuntStats(modifiedPlayer, monster, huntCount);
                 
-                // --- SUPPLY CHECK ---
                 let maxDurationBySupplies = MAX_OFFLINE_SEC * 2; 
 
                 const checkResource = (itemId: string | undefined, usagePerHour: number) => {
@@ -59,6 +53,7 @@ export const calculateOfflineProgress = (
                     
                     const totalGold = modifiedPlayer.gold + modifiedPlayer.bankGold;
                     const affordableCount = Math.floor(totalGold / itemPrice);
+                    // Fixed: Removed invalid spaces in variable declaration name
                     const hoursOnGold = (inventoryCount + affordableCount) / usagePerHour;
                     
                     return hoursOnGold * 3600; 
@@ -84,7 +79,6 @@ export const calculateOfflineProgress = (
 
                 report.secondsOffline = effectiveTime; 
 
-                // --- APPLY CONSUMPTION ---
                 const consumeResource = (itemId: string | undefined, usagePerHour: number) => {
                     if (!itemId || usagePerHour <= 0) return;
                     
@@ -121,29 +115,24 @@ export const calculateOfflineProgress = (
                 consumeResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
                 consumeResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
 
-                // --- APPLY REWARDS ---
                 const hoursPassed = effectiveTime / 3600;
                 let totalCycles = Math.floor(stats.cyclesPerHour * hoursPassed);
                 if (totalCycles === 0 && effectiveTime > 30 && stats.cyclesPerHour > 0) totalCycles = 1;
                 const totalKills = totalCycles * huntCount;
 
-                // XP
                 const safeTotalXp = Math.floor(stats.xpPerHour * hoursPassed);
                 modifiedPlayer.currentXp += safeTotalXp;
                 report.xpGained = safeTotalXp;
 
-                // Gold
                 const safeTotalGold = Math.floor(stats.rawGoldPerHour * hoursPassed);
                 modifiedPlayer.gold += safeTotalGold;
                 report.goldGained = safeTotalGold;
 
-                // Loot & TASKS
                 const lootSummary: {[key:string]: number} = {};
                 
                 if (totalKills > 0) {
                     report.killedMonsters.push({ name: monster.name, count: totalKills });
 
-                    // --- NEW: UPDATE HUNTING TASKS ---
                     if (modifiedPlayer.taskOptions) {
                         modifiedPlayer.taskOptions.forEach(task => {
                             if (task.status === 'active' && !task.isComplete && task.type === 'kill' && task.monsterId === monster.id) {
@@ -157,7 +146,6 @@ export const calculateOfflineProgress = (
                         });
                     }
 
-                    // Loot Modifiers
                     let lootMult = 1;
                     const activePrey = modifiedPlayer.prey.slots.find(s => s.monsterId === monster.id && s.active);
                     if (activePrey && activePrey.bonusType === 'loot') lootMult += (activePrey.bonusValue / 100);
@@ -165,7 +153,9 @@ export const calculateOfflineProgress = (
                     lootMult += (getAscensionBonusValue(modifiedPlayer, 'loot_boost') / 100);
                     if (modifiedPlayer.premiumUntil > now) lootMult += 0.20; 
                     const isBoss = !!(monster as any).cooldownSeconds;
-                    const hazardLoot = isBoss ? 0 : (modifiedPlayer.activeHazardLevel || 0);
+                    
+                    // NOVO: 5% Loot por nível de Hazard offline
+                    const hazardLoot = isBoss ? 0 : (modifiedPlayer.activeHazardLevel || 0) * 5;
                     lootMult += (hazardLoot / 100);
                     
                     const GLOBAL_DROP_RATE = 1.5; 
@@ -190,7 +180,6 @@ export const calculateOfflineProgress = (
                 }
                 report.lootObtained = lootSummary;
 
-                // Level Ups
                 const startLevel = modifiedPlayer.level;
                 const lvlResult = checkForLevelUp(modifiedPlayer);
                 modifiedPlayer = lvlResult.player;
@@ -202,7 +191,6 @@ export const calculateOfflineProgress = (
                 modifiedPlayer.activeHuntStartTime = Date.now();
             }
 
-        // --- TRAINING OFFLINE ---
         } else if (modifiedPlayer.activeTrainingSkill) {
             const skill = modifiedPlayer.activeTrainingSkill;
             let pointsGained = effectiveTime; 

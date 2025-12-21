@@ -73,6 +73,10 @@ export const processGameTick = (
     let bossDefeatedId: string | undefined = undefined;
     let monsterHp = currentMonsterHp;
 
+    // --- ACCUMULATORS FOR CONSOLIDATED VISUALS ---
+    let totalHealValue = 0;
+    let totalManaValue = 0;
+
     // --- IMBUEMENT TIMER TICK ---
     if (p.imbuActive && p.imbuements) {
         Object.keys(p.imbuements).forEach(key => {
@@ -87,7 +91,7 @@ export const processGameTick = (
         });
     }
 
-    // --- HELPER: APPLY IMBUEMENT LEECH ---
+    // --- HELPER: APPLY IMBUEMENT LEECH (Accumulate values) ---
     const applyLeech = (dmg: number) => {
         if (!p.imbuActive || !p.imbuements || dmg <= 0) return;
 
@@ -96,7 +100,7 @@ export const processGameTick = (
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
             if (heal > 0) {
                 p.hp = Math.min(p.maxHp, p.hp + heal);
-                hit(heal, 'heal', 'player'); 
+                totalHealValue += heal; // Accumulate instead of hit()
             }
         }
 
@@ -105,7 +109,7 @@ export const processGameTick = (
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
             if (manaGain > 0) {
                 p.mana = Math.min(p.maxMana, p.mana + manaGain);
-                hit(manaGain, 'mana', 'player');
+                totalManaValue += manaGain; // Accumulate instead of hit()
             }
         }
     };
@@ -133,9 +137,7 @@ export const processGameTick = (
     const hazardCritDmg = 1.5 + (hazard * 0.01);
     const hazardDodgeChance = Math.min(0.25, hazard * 0.0025); 
     
-    // NOVO: 10% XP por nível de Hazard
     const hazardXpBonus = 1 + (hazard * 0.10);
-    // NOVO: 5% Loot por nível de Hazard (LootBonus é usado na conta multiplicativa em loot.ts)
     const hazardLootBonus = hazard * 5; 
 
     if (p.prey.nextFreeReroll <= now) {
@@ -168,6 +170,10 @@ export const processGameTick = (
     const autoRes = processAutomation(p, now, log, hit);
     p = autoRes.player;
     stats.waste += autoRes.waste;
+    
+    // Consolidate automation healing
+    totalHealValue += autoRes.totalHeal;
+    totalManaValue += autoRes.totalMana;
 
     if (activeTrainingSkill) {
         p = processTraining(p, activeTrainingSkill, log, hit);
@@ -516,7 +522,6 @@ export const processGameTick = (
                 const goldDropBase = Math.floor(Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold;
                 const goldDrop = goldDropBase * effectiveHuntCount;
                 
-                // --- XP LOGIC ---
                 let finalXpMultiplier = 1.0;
                 finalXpMultiplier *= getXpStageMultiplier(p.level);
                 if (p.stamina > 0) finalXpMultiplier *= 1.5;
@@ -528,7 +533,6 @@ export const processGameTick = (
                 if (p.premiumUntil > now) finalXpMultiplier *= 2.0; 
                 if (p.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
                 
-                // NOVO: XP de Hazard multiplicada aqui
                 finalXpMultiplier *= hazardXpBonus;
 
                 const xpGained = Math.floor(monster.exp * effectiveHuntCount * finalXpMultiplier);
@@ -549,7 +553,6 @@ export const processGameTick = (
                 stats.goldGained += finalGold;
                 stats.profitGained += finalGold;
 
-                // --- LOOT LOGIC ---
                 let lootBonus = 0;
                 const activePreyLoot = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'loot');
                 if (activePreyLoot) lootBonus += activePreyLoot.bonusValue;
@@ -558,7 +561,6 @@ export const processGameTick = (
                 lootBonus += getPlayerModifier(p, 'lootBoost');
                 if (p.premiumUntil > now) lootBonus += 20; 
                 
-                // NOVO: Loot de Hazard adicionado ao percentual (em loot.ts será 1 + lootBonus/100)
                 lootBonus += hazardLootBonus;
 
                 let combinedStandardLoot: {[key:string]: number} = {};
@@ -660,6 +662,14 @@ export const processGameTick = (
                 respawnUnlockTime = now + 500; 
             }
         }
+    }
+
+    // --- EMIT CONSOLIDATED HITS AT THE END OF THE TICK ---
+    if (totalHealValue > 0) {
+        hit(`+${totalHealValue}`, 'heal', 'player');
+    }
+    if (totalManaValue > 0) {
+        hit(`+${totalManaValue}`, 'mana', 'player');
     }
 
     const returnInstance = (monsterHp > 0 || (currentMonsterInstance && now <= respawnUnlockTime)) ? currentMonsterInstance : undefined;

@@ -11,6 +11,8 @@ type HitFunc = (val: number | string, type: HitSplat['type'], target: 'player'|'
 interface AutomationResult {
     player: Player;
     waste: number;
+    totalHeal: number;
+    totalMana: number;
 }
 
 export const processAutomation = (
@@ -21,6 +23,8 @@ export const processAutomation = (
 ): AutomationResult => {
     let p = { ...player };
     let waste = 0;
+    let totalHeal = 0;
+    let totalMana = 0;
 
     // --- 1. AUTO HEALTH POTION (Individual CD) ---
     if (p.settings.autoHealthPotionThreshold > 0 && 
@@ -42,12 +46,13 @@ export const processAutomation = (
                         const boost = 1 + (getAscensionBonusValue(p, 'potion_hp_boost') / 100);
                         const finalHeal = Math.floor(item.restoreAmount * boost);
                         p.hp = Math.min(p.maxHp, p.hp + finalHeal);
-                        hit(`+${finalHeal}`, 'heal', 'player');
+                        totalHeal += finalHeal;
                     }
                     if (item.restoreAmountSecondary && item.potionType === 'spirit') {
                         const boost = 1 + (getAscensionBonusValue(p, 'potion_mana_boost') / 100);
                         const finalMana = Math.floor(item.restoreAmountSecondary * boost);
                         p.mana = Math.min(p.maxMana, p.mana + finalMana);
+                        totalMana += finalMana;
                     }
                     
                     log(`Usou ${item.name}.`, 'info');
@@ -78,10 +83,12 @@ export const processAutomation = (
                         if (item.potionType === 'mana') {
                             const finalMana = Math.floor(item.restoreAmount * boost);
                             p.mana = Math.min(p.maxMana, p.mana + finalMana);
+                            totalMana += finalMana;
                         } else if (item.potionType === 'spirit') {
                             const manaHeal = item.restoreAmountSecondary || item.restoreAmount;
                             const finalMana = Math.floor(manaHeal * boost);
                             p.mana = Math.min(p.maxMana, p.mana + finalMana);
+                            totalMana += finalMana;
                         }
                     }
                     
@@ -106,6 +113,7 @@ export const processAutomation = (
               const healAmt = calculateSpellHealing(p, spell);
               p.mana -= spell.manaCost;
               p.hp = Math.min(p.maxHp, p.hp + healAmt);
+              totalHeal += healAmt;
               p.spellCooldowns[spell.id] = now + (spell.cooldown || 1000);
               p.healingCooldown = now + 1000; 
               
@@ -117,7 +125,7 @@ export const processAutomation = (
               const incantation = match ? match[1] : spell.name;
               
               log(`Cast ${incantation}.`, 'magic');
-              hit(`+${healAmt}`, 'heal', 'player');
+              // Mantemos o texto da magia mas não o +Valor aqui, pois será somado
               hit(incantation, 'speech', 'player'); 
            }
         }
@@ -150,5 +158,5 @@ export const processAutomation = (
         }
     }
 
-    return { player: p, waste };
+    return { player: p, waste, totalHeal, totalMana };
 };

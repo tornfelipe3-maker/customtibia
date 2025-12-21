@@ -63,19 +63,20 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
          
          if (hit.type === 'miss') return <div key={hit.id} className="hit-miss" style={{ top: `calc(50% + ${randomY}px)`, left: `calc(50% + ${randomX}px)` }}></div>;
          
-         if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-15% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
+         if (hit.type === 'speech') return <div key={hit.id} className="absolute z-50 text-center whitespace-nowrap animate-[float-up_1.5s_linear_forwards] pointer-events-none font-bold text-yellow-400 text-xs drop-shadow-[1px_1px_0_#000]" style={{ top: `calc(-25% + ${randomY}px)`, left: `50%`, transform: 'translateX(-50%)' }}>{hit.value}</div>;
          
          let leftPos = '50%';
          let topPos = '30%'; 
          let displayValue = String(hit.value);
 
          if (target === 'player') {
-             if (hit.type === 'heal') {
-                 leftPos = '-15%'; 
-                 displayValue = `+${hit.value} HP`;
+             // ORDEM REQUERIDA: Dano em primeiro (topo), depois Vida, depois Mana
+             if (hit.type === 'damage') {
+                 topPos = '5%'; // Mais alto
+             } else if (hit.type === 'heal') {
+                 topPos = '35%'; // Meio
              } else if (hit.type === 'mana') {
-                 leftPos = '115%'; 
-                 displayValue = `+${hit.value} MP`;
+                 topPos = '65%'; // Base
              }
          } else if (target === 'monster' && hit.type === 'damage') {
              if (hit.source === 'basic') leftPos = '25%';

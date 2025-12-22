@@ -1,6 +1,5 @@
-
 import { Item, EquipmentSlot, NpcType, SkillType, Vocation, DamageType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const AXE_LIST: Item[] = [
   // TIER 1
@@ -22,6 +21,7 @@ export const AXE_LIST: Item[] = [
   { id: 'crystalline_axe', name: 'Crystalline Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 72, defense: 8, price: 0, sellPrice: 45000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Machado cristalino (Tier 6).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Crystalline_Axe.gif`, requiredLevel: 200 },
 
   // TIER 7
+  { id: 'cobra_axe', name: 'Cobra Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 105, defense: 8, price: 0, sellPrice: 120000, soldTo: [NpcType.RASHID], description: 'Machado da cobra (Tier 7).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${OUT_BASE}Cobra_Axe.gif`, requiredLevel: 300 },
   { id: 'demonwing_axe', name: 'Demonwing Axe', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 90, defense: 10, price: 0, sellPrice: 80000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Machado asa de demônio (Tier 7).', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Demonwing_Axe.gif`, requiredLevel: 300 },
 
   // TIER 8

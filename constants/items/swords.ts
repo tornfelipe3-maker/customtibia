@@ -1,6 +1,5 @@
-
 import { Item, EquipmentSlot, NpcType, SkillType, Vocation, DamageType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const SWORD_LIST: Item[] = [
   // TIER 1
@@ -22,6 +21,7 @@ export const SWORD_LIST: Item[] = [
   { id: 'shiny_blade', name: 'Shiny Blade', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 72, defense: 8, price: 0, sellPrice: 60000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Lâmina brilhante (Tier 6).', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Shiny_Blade.gif`, requiredLevel: 200 },
 
   // TIER 7
+  { id: 'cobra_sword', name: 'Cobra Sword', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 105, defense: 8, price: 0, sellPrice: 120000, soldTo: [NpcType.RASHID], description: 'Lâmina das areias (Tier 7).', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], image: `${OUT_BASE}Cobra_Sword.gif`, requiredLevel: 300 },
   { id: 'tagralt_blade', name: 'Tagralt Blade', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 90, defense: 10, price: 0, sellPrice: 100000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Lâmina de Tagralt (Tier 7).', scalingStat: SkillType.SWORD, damageType: DamageType.EARTH, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Tagralt_Blade.gif`, requiredLevel: 300 },
 
   // TIER 8

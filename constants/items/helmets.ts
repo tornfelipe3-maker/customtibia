@@ -1,4 +1,3 @@
-
 import { Item, EquipmentSlot, NpcType } from '../../types';
 import { IMG_BASE, OUT_BASE } from '../config';
 
@@ -25,6 +24,7 @@ export const HELMETS_LIST: Item[] = [
   { id: 'rift_helmet', name: 'Rift Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 6, price: 0, sellPrice: 60000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo da fenda (Tier 6).', image: `${OUT_BASE}Green_Demon_Helmet.gif`, requiredLevel: 200 },
 
   // TIER 7
+  { id: 'cobra_hood', name: 'Cobra Hood', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 8, price: 0, sellPrice: 150000, soldTo: [NpcType.RASHID], description: 'Capuz das serpentes (Tier 7).', image: `${OUT_BASE}Cobra_Hood.gif`, requiredLevel: 300 },
   { id: 'prismatic_helmet', name: 'Prismatic Helmet', type: 'equipment', slot: EquipmentSlot.HEAD, armor: 7, price: 0, sellPrice: 80000, soldTo: [NpcType.RASHID, NpcType.GREEN_DJINN, NpcType.BLUE_DJINN], description: 'Elmo prismático (Tier 7).', image: `${IMG_BASE}Prismatic_Helmet.gif`, requiredLevel: 300 },
 
   // TIER 8

@@ -1,6 +1,5 @@
-
 import { Item, EquipmentSlot, NpcType, SkillType, Vocation, DamageType } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const CLUB_LIST: Item[] = [
   // TIER 1
@@ -22,6 +21,7 @@ export const CLUB_LIST: Item[] = [
   { id: 'mycological_mace', name: 'Mycological Mace', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 72, defense: 8, price: 0, sellPrice: 60000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Maça micológica (Tier 6).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Mycological_Mace.gif`, requiredLevel: 200 },
 
   // TIER 7
+  { id: 'cobra_club', name: 'Cobra Club', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 105, defense: 8, price: 0, sellPrice: 120000, soldTo: [NpcType.RASHID], description: 'Maça da cobra (Tier 7).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${OUT_BASE}Cobra_Club.gif`, requiredLevel: 300 },
   { id: 'umbral_mace', name: 'Umbral Mace', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 90, defense: 10, price: 0, sellPrice: 100000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Maça sombria (Tier 7).', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], image: `${IMG_BASE}Umbral_Mace.gif`, requiredLevel: 300 },
 
   // TIER 8

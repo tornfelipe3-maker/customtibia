@@ -1,6 +1,5 @@
-
 import { Item, EquipmentSlot, NpcType, SkillType, Vocation } from '../../types';
-import { IMG_BASE } from '../config';
+import { IMG_BASE, OUT_BASE } from '../config';
 
 export const DISTANCE_LIST: Item[] = [
   // TIER 1 (Lvl 1-8) -> Item Lvl 2
@@ -26,8 +25,8 @@ export const DISTANCE_LIST: Item[] = [
   { id: 'rift_crossbow', name: 'Rift Crossbow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 50000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Besta da fenda.', scalingStat: SkillType.DISTANCE, weaponType: 'crossbow', requiredVocation: [Vocation.PALADIN], requiredLevel: 200, image: `${IMG_BASE}Rift_Crossbow.gif` },
   { id: 'rift_bow', name: 'Rift Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 60000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco da fenda (Tier 6).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 200, image: `${IMG_BASE}Rift_Bow.gif` },
 
-  // TIER 7 (Lvl 300-400) -> Item Lvl 300
-  // Removido Umbral Bow daqui pois foi movido para o Tier 5 conforme solicitado
+  // TIER 7
+  { id: 'cobra_crossbow', name: 'Cobra Crossbow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 150000, soldTo: [NpcType.RASHID], description: 'Besta da cobra (Tier 7).', scalingStat: SkillType.DISTANCE, weaponType: 'crossbow', requiredVocation: [Vocation.PALADIN], image: `${OUT_BASE}Cobra_Crossbow.gif`, requiredLevel: 300 },
 
   // TIER 8 (Lvl 400+) -> Item Lvl 400
   { id: 'falcon_bow', name: 'Falcon Bow', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 0, defense: 0, price: 0, sellPrice: 300000, soldTo: [NpcType.GREEN_DJINN, NpcType.BLUE_DJINN, NpcType.RASHID], description: 'Arco do Falcão (Tier 8).', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 400, image: `${IMG_BASE}Falcon_Bow.gif` },

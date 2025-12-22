@@ -1,3 +1,4 @@
+
 import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType, DeathReport } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
@@ -140,7 +141,6 @@ export const processGameTick = (
     const hazardCritChance = Math.min(0.5, hazard * 0.005); 
     const hazardCritDmg = 1.5 + (hazard * 0.01);
     const hazardDodgeChance = Math.min(0.25, hazard * 0.0025); 
-    // Fix: Define hazardXpBonus and hazardLootBonus which were used but missing
     const hazardXpBonus = 1 + (hazard * 0.10);
     const hazardLootBonus = hazard * 5;
 
@@ -423,7 +423,6 @@ export const processGameTick = (
                 finalXpMultiplier *= (1 + (getAscensionBonusValue(p, 'xp_boost') / 100));
                 const eqXp = getPlayerModifier(p, 'xpBoost'); if (eqXp > 0) finalXpMultiplier *= (1 + (eqXp / 100));
                 if (p.premiumUntil > now) finalXpMultiplier *= 2.0; if (p.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
-                // Fix: hazardXpBonus is now defined earlier in the scope
                 finalXpMultiplier *= hazardXpBonus;
 
                 const xpGained = Math.floor(monster.exp * effectiveHuntCount * finalXpMultiplier);
@@ -434,7 +433,6 @@ export const processGameTick = (
                 const finalGold = Math.floor(goldDrop * (1 + (getAscensionBonusValue(p, 'gold_boost') / 100)) * (1 + (getPlayerModifier(p, 'goldFind') / 100)));
                 p.gold += finalGold; stats.goldGained += finalGold; stats.profitGained += finalGold;
 
-                // Fix: hazardLootBonus is now defined earlier in the scope
                 let lootBonus = getAscensionBonusValue(p, 'loot_boost') + getPlayerModifier(p, 'lootBoost') + hazardLootBonus;
                 const activePreyLoot = p.prey.slots.find(s => s.monsterId === monster.id && s.active && s.bonusType === 'loot');
                 if (activePreyLoot) lootBonus += activePreyLoot.bonusValue;
@@ -460,7 +458,9 @@ export const processGameTick = (
                     if (p.inventory[id]) { p.inventory[id] += qty; lootMsg += `, ${qty}x ${name}`; } 
                     else { if (currentSlots < MAX_BACKPACK_SLOTS) { p.inventory[id] = qty; currentSlots++; lootMsg += `, ${qty}x ${name}`; } else if (!bpFull) { log("Backpack full!", 'danger'); bpFull = true; } }
                 });
-                if (lootMsg) log(`Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}.`, 'loot');
+                
+                // Mensagem de loot atualizada para incluir sempre GP e XP
+                log(`Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (XP: ${xpGained.toLocaleString()})`, 'loot');
 
                 p.taskOptions.forEach(task => { if (task.status === 'active' && !task.isComplete && task.type === 'kill' && task.monsterId === monster.id) { task.killsCurrent = (task.killsCurrent || 0) + effectiveHuntCount; if (task.killsCurrent >= (task.killsRequired || task.amountRequired)) task.isComplete = true; } });
                 const relevantQuests = QUESTS.filter(q => q.targetMonsterId === monster.id || (q.targetMonsterId === 'ANY_RARE' && monster.isInfluenced));

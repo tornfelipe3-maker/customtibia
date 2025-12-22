@@ -1,4 +1,3 @@
-
 import { Boss } from '../types';
 import { IMG_BASE } from './config';
 
@@ -18,7 +17,6 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
-            { itemId: 'nose_ring', chance: 1.0, maxAmount: 1 },
             { itemId: 'gold_token', chance: 0.5, maxAmount: 1 }
         ], 
         image: `${IMG_BASE}The_Horned_Fox.gif` 
@@ -40,7 +38,6 @@ export const BOSSES: Boss[] = [
         isDaily: true, 
         lootTable: [
             { itemId: 'dragon_claw', chance: 1.0, maxAmount: 1 }, 
-            { itemId: 'gold_ingot', chance: 0.3, maxAmount: 1 }, 
             { itemId: 'red_dragon_leather', chance: 1.0, maxAmount: 2 },
             { itemId: 'gold_token', chance: 0.8, maxAmount: 1 }
         ], 
@@ -68,14 +65,11 @@ export const BOSSES: Boss[] = [
             { itemId: 'cobra_amulet', chance: 0.02, maxAmount: 1 }, 
             { itemId: 'cobra_crossbow', chance: 0.015, maxAmount: 1 }, 
             { itemId: 'cobra_axe', chance: 0.01, maxAmount: 1 }, 
+            { itemId: 'cobra_club', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'cobra_rod', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'cobra_wand', chance: 0.01, maxAmount: 1 }, 
             { itemId: 'cobra_sword', chance: 0.01, maxAmount: 1 }, 
-            { itemId: 'giant_cobra_scale', chance: 0.7, maxAmount: 2 }, 
-            { itemId: 'cobra_tongue', chance: 0.7, maxAmount: 2 },
-            { itemId: 'gold_ingot', chance: 0.5, maxAmount: 3 },
             { itemId: 'blue_gem', chance: 0.4, maxAmount: 2 },
-            { itemId: 'violet_gem', chance: 0.2, maxAmount: 1 },
             { itemId: 'red_gem', chance: 0.5, maxAmount: 3 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 2 }
         ], 
@@ -107,11 +101,6 @@ export const BOSSES: Boss[] = [
             { itemId: 'falcon_mace', chance: 0.015, maxAmount: 1 }, 
             { itemId: 'falcon_rod', chance: 0.015, maxAmount: 1 }, 
             { itemId: 'falcon_wand', chance: 0.015, maxAmount: 1 }, 
-            { itemId: 'grant_of_arms', chance: 0.4, maxAmount: 1 },
-            { itemId: 'spatial_warp_almanac', chance: 0.1, maxAmount: 1 },
-            { itemId: 'violet_gem', chance: 0.3, maxAmount: 2 },
-            { itemId: 'giant_shimmering_pearl', chance: 0.4, maxAmount: 2 },
-            { itemId: 'gold_ingot', chance: 0.5, maxAmount: 2 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 2 }
         ], 
         image: `${IMG_BASE}Grand_Master_Oberon.gif` 
@@ -133,7 +122,6 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
-            { itemId: 'gold_ingot', chance: 0.6, maxAmount: 3 },
             { itemId: 'red_gem', chance: 0.4, maxAmount: 3 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 2 }
         ],
@@ -156,8 +144,6 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
-            { itemId: 'gold_ingot', chance: 1.0, maxAmount: 10 },
-            { itemId: 'violet_gem', chance: 0.7, maxAmount: 5 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 5 }
         ],
         image: `${IMG_BASE}Goshnar%27s_Megalomania.gif`
@@ -179,9 +165,7 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
-            { itemId: 'gold_ingot', chance: 1.0, maxAmount: 8 },
             { itemId: 'red_gem', chance: 0.7, maxAmount: 5 },
-            { itemId: 'violet_gem', chance: 0.5, maxAmount: 4 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 3 }
         ],
         image: `${IMG_BASE}The_Primal_Menace.gif`
@@ -201,9 +185,8 @@ export const BOSSES: Boss[] = [
         damageMax: 15000, 
         attackSpeedMs: 2000, 
         cooldownSeconds: 72000, 
-        isDaily: true,
+        isDaily: true, 
         lootTable: [
-            { itemId: 'gold_ingot', chance: 1.0, maxAmount: 20 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 8 }
         ],
         image: `${IMG_BASE}Bakragore.gif`
@@ -226,11 +209,7 @@ export const BOSSES: Boss[] = [
         isDaily: true, 
         lootTable: [
             { itemId: 'werewolf_amulet', chance: 0.05, maxAmount: 1 }, 
-            { itemId: 'moonlight_crystals', chance: 1.0, maxAmount: 10 }, 
             { itemId: 'wolf_paw', chance: 1.0, maxAmount: 3 },
-            { itemId: 'black_pearl', chance: 0.6, maxAmount: 6 },
-            { itemId: 'white_pearl', chance: 0.6, maxAmount: 10 },
-            { itemId: 'gold_ingot', chance: 0.3, maxAmount: 1 },
             { itemId: 'gold_token', chance: 1.0, maxAmount: 1 }
         ], 
         image: `${IMG_BASE}Feroxa.gif` 

@@ -1,4 +1,3 @@
-
 import { Item, EquipmentSlot, NpcType } from '../../types';
 import { IMG_BASE, OUT_BASE } from '../config';
 
@@ -22,6 +21,7 @@ export const BOOTS_LIST: Item[] = [
   { id: 'depth_calcei', name: 'Depth Calcei', type: 'equipment', slot: EquipmentSlot.FEET, armor: 6, price: 0, sellPrice: 60000, soldTo: [NpcType.RASHID], description: 'Botas das profundezas (Tier 6).', image: `${IMG_BASE}Depth_Calcei.gif`, requiredLevel: 200 },
 
   // TIER 7
+  { id: 'cobra_boots', name: 'Cobra Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 5, price: 0, sellPrice: 150000, soldTo: [NpcType.RASHID], description: 'Botas das serpentes (Tier 7).', image: `${OUT_BASE}Cobra_Boots.gif`, requiredLevel: 300 },
   { id: 'prismatic_boots', name: 'Prismatic Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 7, price: 0, sellPrice: 120000, soldTo: [NpcType.RASHID], description: 'Botas prismáticas (Tier 7).', image: `${IMG_BASE}Prismatic_Boots.gif`, requiredLevel: 300 },
 
   // TIER 8

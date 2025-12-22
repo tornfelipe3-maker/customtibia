@@ -731,6 +731,7 @@ export const useGameActions = (
                     premiumUntil: prev.premiumUntil, xpBoostUntil: prev.xpBoostUntil, soulPoints: prev.soulPoints + points,
                     uniqueInventory: recoveredUnique, uniqueDepot: prev.uniqueDepot, tutorials: prev.tutorials,
                     taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive,
+                    hazardLevel: prev.hazardLevel, activeHazardLevel: prev.activeHazardLevel, // PRESERVA O PROGRESSO DO HAZARD
                     attackCooldown: now,
                     spellCooldowns: {}
                 };

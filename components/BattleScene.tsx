@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Player, Monster, HitSplat, Vocation } from '../types';
+import React from 'react';
+import { Player, Monster, HitSplat } from '../types';
 import { VOCATION_SPRITES } from '../constants';
 import { getEffectiveMaxHp } from '../services';
-import { Skull, Octagon, Sparkles, AlertTriangle, Crown, Flame, Search } from 'lucide-react';
+import { Skull, Octagon, Flame, Search } from 'lucide-react';
 import { Sprite } from './common/Sprite';
 
 interface BattleSceneProps {
@@ -15,13 +15,6 @@ interface BattleSceneProps {
   onStopHunt: () => void;
   isHunting?: boolean;
 }
-
-const FLOOR_ASSETS = {
-    default: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Dirt_(Tile).gif',
-    enraged: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Lava_Tile.gif',
-    blessed: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Ancient_Paving.gif',
-    corrupted: 'https://www.tibiawiki.com.br/wiki/Special:FilePath/Slate_Floor.gif'
-};
 
 export const BattleScene: React.FC<BattleSceneProps> = ({
   player,
@@ -95,23 +88,18 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
       });
   };
 
-  const displayHuntCount = activeMonster && activeMonster.isInfluenced ? 1 : activeHuntCount;
-  const playerEffMaxHp = getEffectiveMaxHp(player);
   const activeInfluencedType = activeMonster?.isInfluenced ? activeMonster.influencedType : null;
   const borderClass = activeInfluencedType ? `border-${activeInfluencedType}` : (hazardLevel > 0 ? 'border-hazard' : 'border-black');
   const atmosphereClass = activeInfluencedType ? `atmosphere-${activeInfluencedType}` : (hazardLevel > 0 ? 'atmosphere-hazard' : '');
-
-  // Determinar o asset de chão
-  const floorImage = activeInfluencedType ? FLOOR_ASSETS[activeInfluencedType] : FLOOR_ASSETS.default;
+  
+  // Define a classe do chão baseada no arquivo local via CSS
+  const floorClass = activeInfluencedType ? `floor-${activeInfluencedType}` : 'floor-default';
 
   return (
       <div className={`h-80 game-window-bg relative border-b-2 shadow-md shrink-0 flex items-center justify-center overflow-hidden group transition-all duration-300 ${borderClass}`}>
          
-         {/* Seamless Tile Floor Layer (64x64) */}
-         <div 
-            className="tile-floor" 
-            style={{ backgroundImage: `url('${floorImage}')` }}
-         />
+         {/* Seamless Tile Floor Layer - Referenciando arquivos locais via classe CSS */}
+         <div className={`tile-floor ${floorClass}`} />
 
          {activeMonster && atmosphereClass && (
              <div className={`atmosphere ${atmosphereClass}`} />
@@ -136,7 +124,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                      <Sprite src={VOCATION_SPRITES[player.vocation]} type="outfit" className="scale-[2]" size={40} />
                   </div>
                   <div className="mt-6 w-16 h-2 bg-black border border-black/50 shadow">
-                     <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${(player.hp / playerEffMaxHp) * 100}%` }}></div>
+                     <div className="h-full bg-green-500 transition-all duration-300" style={{ width: `${(player.hp / getEffectiveMaxHp(player)) * 100}%` }}></div>
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                       <span className="text-[11px] font-bold text-white drop-shadow-md bg-black/40 px-2 py-0.5 rounded">{player.name || 'Hero'}</span>
@@ -150,7 +138,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                   <div className="mb-2 text-center flex flex-col items-center min-h-[30px] justify-end">
                      <div className="flex items-center justify-center gap-1.5 bg-black/60 px-3 py-1 rounded border border-black/20">
                         <span className={`text-xs font-bold drop-shadow-[1px_1px_0_#000] ${activeMonster.isInfluenced ? 'text-yellow-400' : 'text-[#0f0]'}`}>{activeMonster.name}</span>
-                        {displayHuntCount > 1 && <span className="text-red-500 text-[10px] font-bold ml-1">x{displayHuntCount}</span>}
+                        {(!activeMonster.isInfluenced && activeHuntCount > 1) && <span className="text-red-500 text-[10px] font-bold ml-1">x{activeHuntCount}</span>}
                      </div>
                   </div>
                   
@@ -172,7 +160,7 @@ export const BattleScene: React.FC<BattleSceneProps> = ({
                   </div>
 
                   <div className="mt-6 w-20 h-2 bg-black border border-black/50 shadow">
-                     <div className="h-full transition-all duration-200" style={{ width: `${Math.max(0, ((currentMonsterHp || 0) / (activeMonster.maxHp * displayHuntCount)) * 100)}%`, backgroundColor: (currentMonsterHp || 0) < (activeMonster.maxHp * displayHuntCount) * 0.2 ? '#d00' : (currentMonsterHp || 0) < (activeMonster.maxHp * displayHuntCount) * 0.5 ? '#dd0' : '#0c0' }}></div>
+                     <div className="h-full transition-all duration-200" style={{ width: `${Math.max(0, ((currentMonsterHp || 0) / (activeMonster.maxHp * (activeMonster.isInfluenced ? 1 : activeHuntCount))) * 100)}%`, backgroundColor: (currentMonsterHp || 0) < (activeMonster.maxHp * (activeMonster.isInfluenced ? 1 : activeHuntCount)) * 0.2 ? '#d00' : (currentMonsterHp || 0) < (activeMonster.maxHp * (activeMonster.isInfluenced ? 1 : activeHuntCount)) * 0.5 ? '#dd0' : '#0c0' }}></div>
                   </div>
                </div>
 

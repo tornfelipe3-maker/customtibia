@@ -53,38 +53,38 @@ const BotSelector: React.FC<{
       {enabled && (
           <div className="space-y-3 bg-[#1a1a1a] p-3 rounded border border-[#333]">
               
-              {/* Threshold Slider */}
+              {/* Threshold Slider - Now with 1% Precision (1-99) */}
               {type !== 'rune' && type !== 'spell' && ( 
                  <div>
                     <div className="flex justify-between text-[10px] text-gray-500 font-bold mb-1 uppercase">
                        <span>Threshold</span>
-                       <span>{value}%</span>
+                       <span className="text-white font-mono text-xs">{value}%</span>
                     </div>
                     <input 
                        type="range" 
-                       min="0" 
-                       max="95" 
-                       step="5"
-                       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                       min="1" 
+                       max="99" 
+                       step="1"
+                       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
                        value={value}
                        onChange={(e) => onThresholdChange(parseInt(e.target.value))}
                     />
                  </div>
               )}
               
-              {/* Only Heal spells need threshold */}
+              {/* Only Heal spells need threshold - Now with 1% Precision (1-99) */}
               {type === 'spell' && label.includes("Heal") && (
                  <div>
                     <div className="flex justify-between text-[10px] text-gray-500 font-bold mb-1 uppercase">
                        <span>HP Threshold</span>
-                       <span>{value}%</span>
+                       <span className="text-white font-mono text-xs">{value}%</span>
                     </div>
                     <input 
                        type="range" 
-                       min="0" 
-                       max="95" 
-                       step="5"
-                       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                       min="1" 
+                       max="99" 
+                       step="1"
+                       className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500"
                        value={value}
                        onChange={(e) => onThresholdChange(parseInt(e.target.value))}
                     />

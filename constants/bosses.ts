@@ -14,7 +14,7 @@ export const BOSSES: Boss[] = [
         damageMin: 450, 
         damageMax: 900, 
         attackSpeedMs: 2000, 
-        cooldownSeconds: 72000, 
+        cooldownSeconds: 7200, 
         isDaily: true, 
         lootTable: [
             { itemId: 'gold_token', chance: 0.5, maxAmount: 1 }
@@ -34,7 +34,7 @@ export const BOSSES: Boss[] = [
         damageMin: 900, 
         damageMax: 1800, 
         attackSpeedMs: 2000, 
-        cooldownSeconds: 72000, 
+        cooldownSeconds: 7200, 
         isDaily: true, 
         lootTable: [
             { itemId: 'dragon_claw', chance: 1.0, maxAmount: 1 }, 
@@ -205,7 +205,7 @@ export const BOSSES: Boss[] = [
         damageMin: 1500, 
         damageMax: 3000, 
         attackSpeedMs: 2000, 
-        cooldownSeconds: 72000, 
+        cooldownSeconds: 7200, 
         isDaily: true, 
         lootTable: [
             { itemId: 'werewolf_amulet', chance: 0.05, maxAmount: 1 }, 

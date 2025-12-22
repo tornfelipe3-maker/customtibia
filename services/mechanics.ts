@@ -1,4 +1,3 @@
-
 import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss, Vocation } from "../types";
 import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES, getXpForLevel } from "../constants";
 import { getEffectiveSkill } from "./progression";
@@ -88,7 +87,7 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
         variant.maxHp = Math.floor(baseMonster.maxHp * 4.0);
         variant.damageMin = Math.floor(baseMonster.damageMin * 1.5); 
         variant.damageMax = Math.floor(baseMonster.damageMax * 1.8);
-        variant.exp = Math.floor(baseMonster.exp * 6); 
+        variant.exp = Math.floor(baseMonster.exp * 20); 
         
     } else if (type === 'enraged') {
         variant.influencedType = 'enraged';
@@ -98,7 +97,7 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
         variant.damageMin = Math.floor(baseMonster.damageMin * 2.0); 
         variant.damageMax = Math.floor(baseMonster.damageMax * 3.2); 
         variant.attackSpeedMs = Math.max(400, Math.floor(baseMonster.attackSpeedMs * 0.6)); 
-        variant.exp = Math.floor(baseMonster.exp * 12); 
+        variant.exp = Math.floor(baseMonster.exp * 40); 
 
     } else if (type === 'blessed') {
         variant.influencedType = 'blessed';
@@ -107,7 +106,7 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
         variant.maxHp = Math.floor(baseMonster.maxHp * 15.0);
         variant.damageMin = Math.floor(baseMonster.damageMin * 1.8);
         variant.damageMax = Math.floor(baseMonster.damageMax * 2.2);
-        variant.exp = Math.floor(baseMonster.exp * 40);
+        variant.exp = Math.floor(baseMonster.exp * 100);
         variant.minGold = baseMonster.minGold * 15;
         variant.maxGold = baseMonster.maxGold * 15;
     }

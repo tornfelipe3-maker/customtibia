@@ -128,10 +128,12 @@ export const INITIAL_PLAYER_STATS: Player = {
         slots: [
             { monsterId: null, bonusType: 'xp', bonusValue: 0, active: false, startTime: 0, duration: 0 },
             { monsterId: null, bonusType: 'loot', bonusValue: 0, active: false, startTime: 0, duration: 0 },
-            { monsterId: null, bonusType: 'damage', bonusValue: 0, active: false, startTime: 0, duration: 0 }
+            { monsterId: null, bonusType: 'damage', bonusValue: 0, active: false, startTime: 0, duration: 0 },
+            { monsterId: null, bonusType: 'xp', bonusValue: 0, active: false, startTime: 0, duration: 0 },
+            { monsterId: null, bonusType: 'loot', bonusValue: 0, active: false, startTime: 0, duration: 0 }
         ],
         nextFreeReroll: 0,
-        rerollsAvailable: 3
+        rerollsAvailable: 5
     },
     imbuements: {
         [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },

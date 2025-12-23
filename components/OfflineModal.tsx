@@ -2,7 +2,7 @@
 import React from 'react';
 import { OfflineReport } from '../types';
 import { SHOP_ITEMS } from '../constants';
-import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle, AlertOctagon } from 'lucide-react';
+import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle, AlertOctagon, HeartCrack } from 'lucide-react';
 
 interface OfflineModalProps {
   report: OfflineReport;
@@ -19,17 +19,20 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
 
   const hasLoot = Object.keys(report.lootObtained).length > 0;
   const netProfit = report.goldGained - (report.waste || 0);
+  const died = !!report.deathReport;
 
   return (
     <div className="fixed inset-0 z-[300] bg-black/95 flex items-center justify-center p-4 backdrop-blur-md animate-in fade-in zoom-in duration-300">
       <div className="tibia-panel w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-[#444] relative flex flex-col bg-[#1a1a1a]">
         
         {/* Header */}
-        <div className="bg-[#2d2d2d] border-b border-[#111] px-4 py-3 flex items-center justify-between shadow-md">
+        <div className={`bg-[#2d2d2d] border-b ${died ? 'border-red-900/50' : 'border-[#111]'} px-4 py-3 flex items-center justify-between shadow-md`}>
             <div className="flex items-center gap-2">
-                <Clock size={20} className="text-yellow-500" />
+                {died ? <Skull size={20} className="text-red-500 animate-pulse" /> : <Clock size={20} className="text-yellow-500" />}
                 <div>
-                    <h2 className="text-lg font-bold text-[#eee] font-serif tracking-wide leading-none">Welcome Back</h2>
+                    <h2 className={`text-lg font-bold ${died ? 'text-red-400' : 'text-[#eee]'} font-serif tracking-wide leading-none`}>
+                        {died ? 'YOU DIED OFFLINE' : 'Welcome Back'}
+                    </h2>
                     <span className="text-[10px] text-gray-500 uppercase tracking-widest">Offline Progress Report</span>
                 </div>
             </div>
@@ -40,10 +43,34 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
 
         {/* Content */}
         <div className="p-6 bg-[url('https://tibia.fandom.com/wiki/Special:FilePath/Background_Artwork_Texture.jpg')] bg-cover relative overflow-y-auto custom-scrollbar max-h-[70vh]">
-            <div className="absolute inset-0 bg-black/85 pointer-events-none"></div>
+            <div className={`absolute inset-0 ${died ? 'bg-red-950/85' : 'bg-black/85'} pointer-events-none transition-colors`}></div>
             
             <div className="relative z-10 space-y-6">
                 
+                {/* 0. DEATH REPORT SECTION */}
+                {died && report.deathReport && (
+                    <div className="bg-black/60 border-2 border-red-600 rounded-lg p-4 shadow-[0_0_15px_rgba(220,38,38,0.3)] animate-in shake duration-500">
+                        <div className="flex items-center gap-2 mb-3 text-red-500 font-black uppercase text-xs border-b border-red-900/50 pb-2">
+                            <HeartCrack size={16}/> Alas! You were slain by {report.deathReport.killerName}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
+                                <div className="text-gray-500 font-bold uppercase">Experience Lost</div>
+                                <div className="text-white font-mono font-bold">-{report.deathReport.xpLoss.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
+                                <div className="text-gray-500 font-bold uppercase">Gold Lost</div>
+                                <div className="text-white font-mono font-bold">-{report.deathReport.goldLoss.toLocaleString()} gp</div>
+                            </div>
+                        </div>
+                        <div className="mt-2 text-[9px] text-red-300 italic text-center">
+                            {report.deathReport.hasBlessing 
+                                ? "Blessings of the gods protected you, reducing your losses." 
+                                : "No blessings were active. Penalties were severe."}
+                        </div>
+                    </div>
+                )}
+
                 {/* 1. Training Section */}
                 {report.skillTrained && (
                     <div className="bg-[#222]/90 border border-blue-900/50 rounded-lg p-4 shadow-lg">
@@ -61,7 +88,7 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                 {(report.xpGained > 0 || report.goldGained > 0) && (
                     <div className="bg-[#222]/90 border border-red-900/50 rounded-lg p-4 shadow-lg">
                         <h3 className="text-red-400 font-bold text-sm uppercase mb-3 flex items-center gap-2 border-b border-red-900/30 pb-2">
-                            <Swords size={16}/> Hunt Results
+                            <Swords size={16}/> Hunt Results {died && "(Before Death)"}
                         </h3>
                         
                         <div className="grid grid-cols-2 gap-4 mb-4">
@@ -134,7 +161,7 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                 )}
 
                 {/* If nothing happened */}
-                {report.xpGained === 0 && !report.skillTrained && (
+                {report.xpGained === 0 && !report.skillTrained && !died && (
                     <div className="text-center text-gray-500 py-8 italic">
                         No significant progress was made while offline.
                     </div>
@@ -147,9 +174,9 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
         <div className="p-4 bg-[#222] border-t border-[#444]">
             <button 
                 onClick={onClose}
-                className="tibia-btn w-full py-3 font-bold text-sm bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 border-green-700 text-white shadow-lg flex items-center justify-center gap-2"
+                className={`tibia-btn w-full py-3 font-bold text-sm shadow-lg flex items-center justify-center gap-2 border transition-all ${died ? 'bg-red-900 hover:bg-red-800 text-white border-red-700' : 'bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 border-green-700 text-white'}`}
             >
-                <CheckCircle size={16}/> Claim Progress
+                <CheckCircle size={16}/> {died ? 'Respawn in Temple' : 'Claim Progress'}
             </button>
         </div>
 

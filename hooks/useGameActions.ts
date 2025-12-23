@@ -805,6 +805,45 @@ export const useGameActions = (
             });
             addLog("Prey slot rerolled.", 'info');
         },
+        rerollAllPrey: () => {
+            updatePlayerState(prev => {
+                const slotsToRoll = 5;
+                const freeAvailable = prev.prey.rerollsAvailable || 0;
+                const paidNeeded = Math.max(0, slotsToRoll - freeAvailable);
+                const cost = paidNeeded * (prev.level * 100);
+                const totalFunds = prev.gold + prev.bankGold;
+
+                if (totalFunds < cost) {
+                    addLog(`Insufficient gold to reroll all (Need ${cost}).`, 'danger');
+                    return prev;
+                }
+
+                let newGold = prev.gold;
+                let newBank = prev.bankGold;
+                if (cost > 0) {
+                    let remaining = cost;
+                    if (newGold >= remaining) {
+                        newGold -= remaining;
+                        remaining = 0;
+                    } else {
+                        remaining -= newGold;
+                        newGold = 0;
+                    }
+                    if (remaining > 0) newBank -= remaining;
+                }
+
+                const newSlots = prev.prey.slots.map(() => generatePreyCard(prev.level));
+                const newRerollCount = Math.max(0, freeAvailable - slotsToRoll);
+
+                addLog("Rerolled all prey slots.", 'info');
+                return { 
+                    ...prev, 
+                    gold: newGold, 
+                    bankGold: newBank, 
+                    prey: { ...prev.prey, slots: newSlots, rerollsAvailable: newRerollCount } 
+                };
+            });
+        },
         gmLevelUp: () => updatePlayerState(p => ({ ...p, level: p.level + 1 })),
         gmSkillUp: () => updatePlayerState(p => {
             const newSkills = { ...p.skills };

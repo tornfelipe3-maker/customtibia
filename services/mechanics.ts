@@ -1,3 +1,4 @@
+
 import { Monster, HuntingTask, Player, EquipmentSlot, SkillType, PreySlot, PreyBonusType, AscensionPerk, Item, Rarity, ItemModifiers, Boss, Vocation } from "../types";
 import { MONSTERS, SHOP_ITEMS, BOSSES, REGEN_RATES, getXpForLevel } from "../constants";
 import { getEffectiveSkill } from "./progression";
@@ -137,15 +138,32 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
     return level * 5; 
 };
 
+/** Helper to identify monster tier by level range */
+const getTierByLevel = (level: number): number => {
+    if (level <= 8) return 1;
+    if (level <= 19) return 2;
+    if (level <= 39) return 3;
+    if (level <= 99) return 4;
+    if (level <= 199) return 5;
+    if (level <= 299) return 6;
+    if (level <= 399) return 7;
+    return 8;
+};
+
 export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
     const rollSelection = Math.random();
     let monster;
     
-    if (rollSelection < 0.70) {
-        const suitable = MONSTERS.filter(m => m.level >= playerLevel - 15);
+    // RNG 60% Tier do Player / 40% Demais
+    if (rollSelection < 0.60) {
+        // Define o tier como monstros próximos ao level do jogador (-20 a +50)
+        const minLvl = Math.max(1, playerLevel - 20);
+        const maxLvl = playerLevel + 50;
+        const suitable = MONSTERS.filter(m => m.level >= minLvl && m.level <= maxLvl);
         const pool = suitable.length > 0 ? suitable : MONSTERS;
         monster = pool[Math.floor(Math.random() * pool.length)];
     } else {
+        // Pool geral
         monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
     }
 
@@ -179,19 +197,34 @@ export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
 };
 
 export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'collect'): HuntingTask => {
-    const suitableMonsters = MONSTERS.filter(m => {
-        if (playerLevel < 10) return m.level <= 10;
-        if (playerLevel < 40) return m.level >= 10 && m.level <= 50;
-        return m.level >= playerLevel - 40 && m.level <= playerLevel + 100;
-    });
-
-    const pool = suitableMonsters.length > 0 ? suitableMonsters : MONSTERS;
-    const monster = pool[Math.floor(Math.random() * pool.length)];
-
+    // 1. Decide o tipo da task
     let taskType: 'kill' | 'collect' = forcedType || (Math.random() < 0.5 ? 'kill' : 'collect');
 
-    if (taskType === 'collect' && (!monster.lootTable || monster.lootTable.filter(l => SHOP_ITEMS.find(i=>i.id===l.itemId)?.type === 'loot').length === 0)) {
+    // 2. Filtra os monstros que podem servir para esse tipo de task
+    // Se for collect, o mob precisa ter itens do tipo 'loot' na tabela
+    let pool = MONSTERS.filter(m => {
+        if (taskType === 'kill') return true;
+        return m.lootTable && m.lootTable.some(l => SHOP_ITEMS.find(i => i.id === l.itemId)?.type === 'loot');
+    });
+
+    if (pool.length === 0) {
+        pool = MONSTERS;
         taskType = 'kill';
+    }
+
+    // 3. Aplica o RNG de Tier (60/40)
+    const playerTier = getTierByLevel(playerLevel);
+    const tierPool = pool.filter(m => getTierByLevel(m.level) === playerTier);
+    const otherPool = pool.filter(m => getTierByLevel(m.level) !== playerTier);
+
+    let monster;
+    if (tierPool.length > 0 && Math.random() < 0.6) {
+        // 60% Tier Atual
+        monster = tierPool[Math.floor(Math.random() * tierPool.length)];
+    } else {
+        // 40% Outros Tiers (ou fallback se o tier atual não tiver mobs válidos)
+        const finalPool = otherPool.length > 0 ? otherPool : pool;
+        monster = finalPool[Math.floor(Math.random() * finalPool.length)];
     }
 
     let targetId = monster.id;

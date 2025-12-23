@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
-import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState } from '../services';
+import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, generatePreyCard } from '../services';
 import { BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
@@ -92,7 +92,21 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
           if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
           if (!migratedPlayer.skippedLoot) migratedPlayer.skippedLoot = [];
-          if (migratedPlayer.prey && migratedPlayer.prey.rerollsAvailable === undefined) migratedPlayer.prey.rerollsAvailable = 3;
+          
+          // --- MIGRATION: PREY (5 slots e 5 rerolls) ---
+          if (!migratedPlayer.prey) {
+              migratedPlayer.prey = { ...INITIAL_PLAYER_STATS.prey };
+          } else {
+              if (migratedPlayer.prey.slots.length < 5) {
+                  while(migratedPlayer.prey.slots.length < 5) {
+                      migratedPlayer.prey.slots.push(generatePreyCard(migratedPlayer.level));
+                  }
+              }
+              if (migratedPlayer.prey.rerollsAvailable === undefined || migratedPlayer.prey.rerollsAvailable < 5) {
+                  migratedPlayer.prey.rerollsAvailable = 5;
+              }
+          }
+
           if (migratedPlayer.taskNextFreeReroll === undefined) migratedPlayer.taskNextFreeReroll = 0;
           if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
           if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;

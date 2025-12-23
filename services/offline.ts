@@ -1,6 +1,7 @@
-import { Player, SkillType, Vocation, OfflineReport } from '../types';
-import { MONSTERS, SHOP_ITEMS } from '../constants';
-import { estimateHuntStats, getAscensionBonusValue } from './mechanics';
+
+import { Player, SkillType, Vocation, OfflineReport, ImbuType, DeathReport } from '../types';
+import { MONSTERS, SHOP_ITEMS, getXpForLevel, REGEN_RATES } from '../constants';
+import { estimateHuntStats, getAscensionBonusValue, getEffectiveMaxHp, getEffectiveMaxMana } from './mechanics';
 import { processSkillTraining, checkForLevelUp } from './progression';
 
 const MAX_OFFLINE_SEC = 12 * 3600; // 12 Hours Cap
@@ -25,6 +26,7 @@ export const calculateOfflineProgress = (
     if (diffSeconds > 10) {
         const potentialTime = Math.min(diffSeconds, MAX_OFFLINE_SEC);
         let effectiveTime = potentialTime; 
+        let diedOffline = false;
         
         report = {
             secondsOffline: diffSeconds,
@@ -43,19 +45,49 @@ export const calculateOfflineProgress = (
             if (monster) {
                 const stats = estimateHuntStats(modifiedPlayer, monster, huntCount);
                 
-                let maxDurationBySupplies = MAX_OFFLINE_SEC * 2; 
+                // --- SURVIVAL CHECK: Can the player survive the DPS? ---
+                // monsterDPS is calculated in estimateHuntStats
+                const monsterDPS = ((monster.damageMin + monster.damageMax) / 2) * huntCount / (monster.attackSpeedMs / 1000);
+                
+                // Mitigation (Armor)
+                let armorTotal = 0;
+                Object.values(modifiedPlayer.equipment).forEach(i => { if (i && i.armor) armorTotal += i.armor; });
+                const mitigation = armorTotal * 0.8;
+                
+                // Healing Per Second
+                const baseRegen = REGEN_RATES[modifiedPlayer.vocation] || REGEN_RATES[Vocation.NONE];
+                const regenMult = modifiedPlayer.promoted ? 1.8 : 1.0;
+                const hpsRegen = baseRegen.hp * regenMult;
+                
+                let hpsPotion = 0;
+                if (modifiedPlayer.settings.selectedHealthPotionId) {
+                    const potion = SHOP_ITEMS.find(i => i.id === modifiedPlayer.settings.selectedHealthPotionId);
+                    if (potion && potion.restoreAmount) {
+                        const boost = 1 + (getAscensionBonusValue(modifiedPlayer, 'potion_hp_boost') / 100);
+                        hpsPotion = (potion.restoreAmount * boost) / 1.0; // 1s CD
+                    }
+                }
+                
+                const totalHPS = hpsRegen + hpsPotion;
+                const netDamagePerSec = Math.max(0, monsterDPS - mitigation - totalHPS);
+                
+                if (netDamagePerSec > 0) {
+                    const timeToDie = modifiedPlayer.hp / netDamagePerSec;
+                    if (timeToDie < effectiveTime) {
+                        effectiveTime = Math.max(0, timeToDie);
+                        diedOffline = true;
+                        stopHunt = true;
+                    }
+                }
 
+                // Supplies Limiting Factor
                 const checkResource = (itemId: string | undefined, usagePerHour: number) => {
                     if (!itemId || usagePerHour <= 0) return MAX_OFFLINE_SEC * 2;
-                    
                     const inventoryCount = modifiedPlayer.inventory[itemId] || 0;
                     const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 999999;
-                    
                     const totalGold = modifiedPlayer.gold + modifiedPlayer.bankGold;
                     const affordableCount = Math.floor(totalGold / itemPrice);
-                    // Fixed: Removed invalid spaces in variable declaration name
                     const hoursOnGold = (inventoryCount + affordableCount) / usagePerHour;
-                    
                     return hoursOnGold * 3600; 
                 };
 
@@ -64,28 +96,84 @@ export const calculateOfflineProgress = (
                 const limitHP = checkResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
                 const limitMP = checkResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
 
-                const limitingFactor = Math.min(limitAmmo, limitRune, limitHP, limitMP);
+                const supplyLimitingFactor = Math.min(limitAmmo, limitRune, limitHP, limitMP);
                 
-                if (limitingFactor < effectiveTime) {
-                    effectiveTime = limitingFactor;
-                    if (limitingFactor < diffSeconds) {
+                if (supplyLimitingFactor < effectiveTime) {
+                    effectiveTime = supplyLimitingFactor;
+                    diedOffline = false; // If out of supplies before dying, you just stop hunting safely
+                    if (supplyLimitingFactor < diffSeconds) {
                         stopHunt = true; 
                     }
                 }
 
-                if (effectiveTime < 10) {
+                if (effectiveTime < 10 && !diedOffline) {
                     return { player: modifiedPlayer, report, stopHunt: true, stopTrain };
                 }
 
                 report.secondsOffline = effectiveTime; 
 
+                // Process Death Penalty
+                if (diedOffline) {
+                    let penaltyRate = 0.10; 
+                    const hadBlessing = modifiedPlayer.hasBlessing;
+                    if (hadBlessing) { 
+                        penaltyRate = 0.04; 
+                        modifiedPlayer.hasBlessing = false; // CONSUME BLESSING
+                    }
+                    
+                    const xpLoss = Math.floor(modifiedPlayer.maxXp * penaltyRate);
+                    const goldLoss = Math.floor(modifiedPlayer.gold * penaltyRate);
+                    
+                    let levelWasReduced = false;
+                    if (modifiedPlayer.currentXp >= xpLoss) {
+                        modifiedPlayer.currentXp -= xpLoss;
+                    } else {
+                        if (modifiedPlayer.level > 1) {
+                            const debt = xpLoss - modifiedPlayer.currentXp;
+                            modifiedPlayer.level--;
+                            levelWasReduced = true;
+                            modifiedPlayer.maxXp = getXpForLevel(modifiedPlayer.level + 1);
+                            modifiedPlayer.currentXp = Math.max(0, modifiedPlayer.maxXp - debt);
+                        } else {
+                            modifiedPlayer.currentXp = 0;
+                        }
+                    }
+                    
+                    modifiedPlayer.gold = Math.max(0, modifiedPlayer.gold - goldLoss);
+                    modifiedPlayer.hp = getEffectiveMaxHp(modifiedPlayer);
+                    modifiedPlayer.mana = getEffectiveMaxMana(modifiedPlayer);
+                    
+                    // Skill Loss
+                    Object.keys(modifiedPlayer.skills).forEach(key => {
+                        const skill = modifiedPlayer.skills[key as SkillType];
+                        const loss = 100 * penaltyRate;
+                        skill.progress -= loss;
+                        if (skill.progress < 0) {
+                            if (skill.level > 10) {
+                                skill.level--;
+                                skill.progress += 100;
+                            } else {
+                                skill.progress = 0;
+                            }
+                        }
+                    });
+
+                    report.deathReport = {
+                        xpLoss,
+                        goldLoss,
+                        levelDown: levelWasReduced,
+                        vocation: modifiedPlayer.vocation,
+                        killerName: monster.name,
+                        hasBlessing: hadBlessing
+                    };
+                }
+
+                // Consume Supplies
                 const consumeResource = (itemId: string | undefined, usagePerHour: number) => {
                     if (!itemId || usagePerHour <= 0) return;
-                    
                     const totalNeeded = Math.ceil(usagePerHour * (effectiveTime / 3600));
                     let remainingNeeded = totalNeeded;
                     const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 0;
-
                     const inBag = modifiedPlayer.inventory[itemId] || 0;
                     if (inBag >= remainingNeeded) {
                         modifiedPlayer.inventory[itemId] -= remainingNeeded;
@@ -95,18 +183,11 @@ export const calculateOfflineProgress = (
                         remainingNeeded -= inBag;
                         delete modifiedPlayer.inventory[itemId];
                     }
-
                     if (remainingNeeded > 0) {
                         const cost = remainingNeeded * itemPrice;
                         report!.waste += cost; 
-                        
-                        if (modifiedPlayer.gold >= cost) {
-                            modifiedPlayer.gold -= cost;
-                        } else {
-                            const debt = cost - modifiedPlayer.gold;
-                            modifiedPlayer.gold = 0;
-                            modifiedPlayer.bankGold = Math.max(0, modifiedPlayer.bankGold - debt);
-                        }
+                        if (modifiedPlayer.gold >= cost) { modifiedPlayer.gold -= cost; } 
+                        else { const debt = cost - modifiedPlayer.gold; modifiedPlayer.gold = 0; modifiedPlayer.bankGold = Math.max(0, modifiedPlayer.bankGold - debt); }
                     }
                 };
 
@@ -115,6 +196,7 @@ export const calculateOfflineProgress = (
                 consumeResource(stats.healthPotionId, stats.healthPotionUsagePerHour);
                 consumeResource(stats.manaPotionId, stats.manaPotionUsagePerHour);
 
+                // Gains until Death/End
                 const hoursPassed = effectiveTime / 3600;
                 let totalCycles = Math.floor(stats.cyclesPerHour * hoursPassed);
                 if (totalCycles === 0 && effectiveTime > 30 && stats.cyclesPerHour > 0) totalCycles = 1;
@@ -149,12 +231,9 @@ export const calculateOfflineProgress = (
                     let lootMult = 1;
                     const activePrey = modifiedPlayer.prey.slots.find(s => s.monsterId === monster.id && s.active);
                     if (activePrey && activePrey.bonusType === 'loot') lootMult += (activePrey.bonusValue / 100);
-                    
                     lootMult += (getAscensionBonusValue(modifiedPlayer, 'loot_boost') / 100);
                     if (modifiedPlayer.premiumUntil > now) lootMult += 0.20; 
                     const isBoss = !!(monster as any).cooldownSeconds;
-                    
-                    // NOVO: 5% Loot por nível de Hazard offline
                     const hazardLoot = isBoss ? 0 : (modifiedPlayer.activeHazardLevel || 0) * 5;
                     lootMult += (hazardLoot / 100);
                     
@@ -163,11 +242,9 @@ export const calculateOfflineProgress = (
                     if (monster.lootTable) {
                         monster.lootTable.forEach(drop => {
                             if (modifiedPlayer.skippedLoot && modifiedPlayer.skippedLoot.includes(drop.itemId)) return;
-
                             const chance = drop.chance * lootMult * GLOBAL_DROP_RATE;
                             const avgAmount = (1 + drop.maxAmount) / 2;
                             const totalDrops = Math.floor(totalKills * chance * avgAmount);
-                            
                             if (totalDrops > 0) {
                                 const item = SHOP_ITEMS.find(i => i.id === drop.itemId);
                                 if (item) {
@@ -194,32 +271,32 @@ export const calculateOfflineProgress = (
         } else if (modifiedPlayer.activeTrainingSkill) {
             const skill = modifiedPlayer.activeTrainingSkill;
             let pointsGained = effectiveTime; 
-            
-            if (skill === SkillType.MAGIC) {
-                pointsGained *= 25; 
-            }
-            
+            if (skill === SkillType.MAGIC) pointsGained *= 25; 
             const startLevel = modifiedPlayer.skills[skill].level;
             const startPct = modifiedPlayer.skills[skill].progress;
-            
             const result = processSkillTraining(modifiedPlayer, skill, pointsGained);
             modifiedPlayer = result.player;
-            
             const endLevel = modifiedPlayer.skills[skill].level;
             const endPct = modifiedPlayer.skills[skill].progress;
-            
             const levelsGained = endLevel - startLevel;
             const pctGained = (levelsGained * 100) + (endPct - startPct);
-
             report.skillTrained = skill;
             report.skillGain = pctGained;
-            
-            if (diffSeconds >= MAX_OFFLINE_SEC) {
-                stopTrain = true;
-            } else {
-                modifiedPlayer.activeTrainingStartTime = Date.now();
-            }
-        } 
+            if (diffSeconds >= MAX_OFFLINE_SEC) stopTrain = true;
+            else modifiedPlayer.activeTrainingStartTime = Date.now();
+        }
+
+        // --- IMBUEMENT OFFLINE TICK ---
+        if (modifiedPlayer.imbuActive && modifiedPlayer.imbuements) {
+            const secondsToSubtract = Math.floor(effectiveTime);
+            Object.keys(modifiedPlayer.imbuements).forEach(key => {
+                const imbu = modifiedPlayer.imbuements[key as ImbuType];
+                if (imbu && imbu.tier > 0 && imbu.timeRemaining > 0) {
+                    imbu.timeRemaining = Math.max(0, imbu.timeRemaining - secondsToSubtract);
+                    if (imbu.timeRemaining === 0) imbu.tier = 0;
+                }
+            });
+        }
     }
 
     return { player: modifiedPlayer, report, stopHunt, stopTrain };

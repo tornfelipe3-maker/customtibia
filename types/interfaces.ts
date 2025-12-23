@@ -179,6 +179,7 @@ export interface OfflineReport {
     skillTrained?: SkillType;
     skillGain?: number;
     waste: number;
+    deathReport?: DeathReport;
 }
 
 export interface DeathReport {

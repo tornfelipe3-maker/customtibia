@@ -1,3 +1,4 @@
+
 import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType, DeathReport } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
@@ -147,8 +148,8 @@ export const processGameTick = (
     const hazardLootBonus = hazard * 5;
 
     if (p.prey.nextFreeReroll <= now) {
-        if (p.prey.rerollsAvailable < 3) {
-            p.prey.rerollsAvailable = 3;
+        if (p.prey.rerollsAvailable < 5) {
+            p.prey.rerollsAvailable = 5;
         }
         p.prey.nextFreeReroll = now + (20 * 60 * 60 * 1000); 
     }
@@ -206,7 +207,6 @@ export const processGameTick = (
                     log(`Warning! A ${currentMonsterInstance.name} appeared!`, 'danger');
                     monsterHp = currentMonsterInstance.maxHp * 1;
                 } else {
-                    // Fix: replaced 'font' with 'spawnTime' to match the Monster interface
                     currentMonsterInstance = { ...baseMonster, guid: instanceId, spawnTime: now };
                     monsterHp = currentMonsterInstance.maxHp * settingsHuntCount;
                 }

@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Player, PreySlot, PreyBonusType } from '../types';
 import { MONSTERS } from '../constants';
-import { RefreshCw, Star, Swords, Shield, Coins, Skull, Clock, Sparkles, PlayCircle, Timer, XCircle } from 'lucide-react';
+import { RefreshCw, Star, Swords, Shield, Coins, Skull, Clock, Sparkles, PlayCircle, Timer, XCircle, Layers } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface PreyPanelProps {
   player: Player;
   onReroll: (slotIndex: number) => void;
+  onRerollAll: () => void;
   onActivate: (slotIndex: number) => void;
   onCancel: (slotIndex: number) => void;
 }
@@ -248,7 +250,8 @@ const PreyCard: React.FC<{
     );
 };
 
-export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onActivate, onCancel }) => {
+export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onRerollAll, onActivate, onCancel }) => {
+  const { t } = useLanguage();
   const [timeUntilFree, setTimeUntilFree] = useState<string>("");
 
   useEffect(() => {
@@ -268,13 +271,21 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onActiva
 
   const rerollsLeft = player.prey.rerollsAvailable || 0;
   const isFree = rerollsLeft > 0;
+  
+  // Reroll All Logic
+  const slotsToRoll = 5;
+  const paidNeeded = Math.max(0, slotsToRoll - rerollsLeft);
+  const rerollAllCost = paidNeeded * (player.level * 100);
+  const totalFunds = player.gold + player.bankGold;
+  const canAffordAll = totalFunds >= rerollAllCost;
+  const isRerollAllFree = rerollsLeft >= slotsToRoll;
 
   return (
     <div className="h-full flex flex-col bg-[#121212]">
         {/* Header */}
         <div className="p-4 bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between shadow-md shrink-0">
             <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gradient-to-br from-purple-900 to-purple-950 border border-purple-700/50 rounded-lg text-purple-300 shadow-lg">
+                <div className="p-2 bg-gradient-to-br from-blue-900 to-blue-950 border border-blue-700/50 rounded-lg text-blue-300 shadow-lg">
                     <Star size={24} />
                 </div>
                 <div>
@@ -287,7 +298,7 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onActiva
                 <Clock size={16} />
                 <div className="flex flex-col items-end">
                     <span className="text-[9px] uppercase font-bold opacity-70">Free Rerolls</span>
-                    <span className="text-sm font-mono font-bold leading-none">{rerollsLeft} / 3 <span className="text-[9px] ml-1 opacity-50">({timeUntilFree})</span></span>
+                    <span className="text-sm font-mono font-bold leading-none">{rerollsLeft} / 5 <span className="text-[9px] ml-1 opacity-50">({timeUntilFree})</span></span>
                 </div>
             </div>
         </div>
@@ -295,13 +306,13 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onActiva
         {/* Info Banner */}
         <div className="bg-gradient-to-r from-blue-950/20 via-blue-900/10 to-blue-950/20 border-b border-blue-900/20 p-2 text-center">
             <p className="text-[10px] text-blue-300/80 uppercase tracking-widest font-bold">
-                Activate a prey to gain bonuses for 2 hours
+                Activate a prey to gain bonuses for 2 hours (60% weight for current Tier)
             </p>
         </div>
 
         {/* Cards Grid */}
         <div className="flex-1 p-6 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#000_100%)]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-center">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 max-w-7xl mx-auto items-center">
                 {player.prey.slots.map((slot, index) => (
                     <PreyCard 
                         key={index} 
@@ -315,6 +326,34 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onActiva
                     />
                 ))}
             </div>
+        </div>
+
+        {/* Footer Reroll All (Identical to Task Panel Style) */}
+        <div className="p-4 border-t border-[#333] bg-[#1a1a1a] flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative z-20">
+            <button 
+                onClick={onRerollAll}
+                disabled={!isRerollAllFree && !canAffordAll}
+                className={`
+                    flex items-center justify-center gap-3 px-8 py-3 rounded-lg border shadow-lg transition-all w-full max-w-md
+                    ${isRerollAllFree 
+                        ? 'bg-gradient-to-r from-green-800 to-green-700 hover:brightness-110 text-white border-green-600' 
+                        : (canAffordAll 
+                            ? 'bg-[#2a2a2a] hover:bg-[#333] border-[#444] hover:border-gray-500 text-gray-300' 
+                            : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed')
+                    }
+                `}
+            >
+                <RefreshCw size={18} className={isRerollAllFree ? 'animate-spin-slow' : ''} />
+                <div className="flex flex-col items-start leading-none">
+                    <span className="text-xs font-bold uppercase tracking-wider">Reroll All Slots</span>
+                    {!isRerollAllFree && (
+                        <span className="text-[10px] opacity-60 mt-1">Cost: {rerollAllCost.toLocaleString()} gp</span>
+                    )}
+                    {isRerollAllFree && (
+                        <span className="text-[10px] opacity-90 mt-1 text-green-100">Free Rolls Available</span>
+                    )}
+                </div>
+            </button>
         </div>
     </div>
   );

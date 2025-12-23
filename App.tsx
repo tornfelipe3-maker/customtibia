@@ -189,7 +189,8 @@ const App = () => {
                     />
                 )}
                 
-                {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
+                {/* FIXED: Added missing onRerollAll prop to PreyPanel call */}
+                {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onRerollAll={actions.rerollAllPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
                 {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={handleChallengeBoss} />} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
                 {activeTab === 'imbuement' && <ImbuementPanel player={player} onImbu={actions.handleImbu} onToggleActive={actions.handleToggleImbuActive} />}

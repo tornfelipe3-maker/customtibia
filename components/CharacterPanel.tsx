@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Player, EquipmentSlot, Item, SkillType, PlayerSettings, Vocation, Rarity } from '../types';
 import { SHOP_ITEMS, MAX_BACKPACK_SLOTS } from '../constants';
 import { getReforgeCost, getEffectiveMaxHp, getEffectiveMaxMana } from '../services';
-import { Shield, Backpack, User, EyeOff, Trash2, Sun, Sparkles, Sword, Crosshair, Zap, Hammer, HandMetal, RefreshCw, BarChart2 } from 'lucide-react';
+import { Shield, Backpack, User, EyeOff, Trash2, Sun, Sparkles, Sword, Crosshair, Zap, Hammer, HandMetal, RefreshCw, BarChart2, Activity } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 import { useLanguage } from '../contexts/LanguageContext';
 import { EquipmentSlotView } from './EquipmentSlot';
@@ -19,6 +19,7 @@ interface CharacterPanelProps {
   onUnequipItem?: (slot: EquipmentSlot) => void;
   onReforgeItem?: (item: Item) => void;
   onToggleAnalyzer?: () => void; 
+  onToggleStats?: () => void; // Novo
 }
 
 const getRarityColor = (rarity?: Rarity) => {
@@ -31,7 +32,10 @@ const getRarityColor = (rarity?: Rarity) => {
     }
 };
 
-export const CharacterPanel: React.FC<CharacterPanelProps> = ({ player, onUpdateSettings, onEquipItem, onDepositItem, onDiscardItem, onToggleSkippedLoot, onUnequipItem, onReforgeItem, onToggleAnalyzer }) => {
+export const CharacterPanel: React.FC<CharacterPanelProps> = ({ 
+    player, onUpdateSettings, onEquipItem, onDepositItem, onDiscardItem, 
+    onToggleSkippedLoot, onUnequipItem, onReforgeItem, onToggleAnalyzer, onToggleStats 
+}) => {
   const { t } = useLanguage();
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [menuPosition, setMenuPosition] = useState<{x: number, y: number} | null>(null);
@@ -188,15 +192,26 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({ player, onUpdate
                  <div className="flex items-center gap-2">
                     <Backpack size={12} className="text-gray-500" /> {t('char_backpack')}
                  </div>
-                 {onToggleAnalyzer && (
-                     <button 
-                        onClick={onToggleAnalyzer} 
-                        className="tibia-btn px-2 py-0.5 text-[9px] flex items-center gap-1 bg-[#2a2a2a] hover:bg-[#333] border-gray-600 text-gray-300 hover:text-white" 
-                        title="Hunt Analytics"
-                     >
-                         <BarChart2 size={10} /> ANALYZER
-                     </button>
-                 )}
+                 <div className="flex gap-1">
+                    {onToggleStats && (
+                        <button 
+                            onClick={onToggleStats} 
+                            className="tibia-btn px-2 py-0.5 text-[9px] flex items-center gap-1 bg-[#2a2a2a] hover:bg-[#333] border-gray-600 text-cyan-300 hover:text-white" 
+                            title="Live Bonus Stats"
+                        >
+                            <Activity size={10} /> STATS
+                        </button>
+                    )}
+                    {onToggleAnalyzer && (
+                        <button 
+                            onClick={onToggleAnalyzer} 
+                            className="tibia-btn px-2 py-0.5 text-[9px] flex items-center gap-1 bg-[#2a2a2a] hover:bg-[#333] border-gray-600 text-gray-300 hover:text-white" 
+                            title="Hunt Analytics"
+                        >
+                            <BarChart2 size={10} /> ANALYZER
+                        </button>
+                    )}
+                 </div>
              </div>
              
              {/* 

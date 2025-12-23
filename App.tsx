@@ -26,6 +26,7 @@ import { ReforgeModal } from './components/ReforgeModal';
 import { TutorialModal } from './components/TutorialModal';
 import { WikiModal } from './components/WikiModal';
 import { HuntAnalyzer } from './components/HuntAnalyzer'; 
+import { StatsPanel } from './components/StatsPanel'; 
 import { HazardPanel } from './components/HazardPanel'; 
 import { OfflineModal } from './components/OfflineModal'; 
 import { DeathModal } from './components/DeathModal'; 
@@ -47,6 +48,7 @@ const App = () => {
   const [showHighscores, setShowHighscores] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
+  const [showStats, setShowStats] = useState(false); 
   const [highscoresData, setHighscoresData] = useState(null);
 
   const fetchHighscores = () => {
@@ -221,6 +223,7 @@ const App = () => {
                     onUnequipItem={actions.unequipItem}
                     onReforgeItem={actions.reforgeItem}
                     onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)}
+                    onToggleStats={() => setShowStats(!showStats)}
                 />
             </div>
         </div>
@@ -234,6 +237,12 @@ const App = () => {
             onReset={actions.resetAnalyzer}
             history={analyzerHistory} 
             killCounts={sessionKills}
+        />
+
+        <StatsPanel 
+            player={player}
+            isOpen={showStats}
+            onClose={() => setShowStats(false)}
         />
         
         {reforgeResult && (

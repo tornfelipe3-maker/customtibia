@@ -26,6 +26,7 @@ import { ReforgeModal } from './ReforgeModal';
 import { TutorialModal } from './TutorialModal';
 import { WikiModal } from './WikiModal';
 import { HuntAnalyzer } from './HuntAnalyzer'; 
+import { StatsPanel } from './StatsPanel'; // Novo
 import { HazardPanel } from './HazardPanel'; 
 import { OfflineModal } from './OfflineModal'; 
 /* Added missing DeathModal import */
@@ -48,6 +49,7 @@ const App = () => {
   const [showHighscores, setShowHighscores] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
+  const [showStats, setShowStats] = useState(false); // Novo
   const [highscoresData, setHighscoresData] = useState(null);
 
   const fetchHighscores = () => {
@@ -92,7 +94,7 @@ const App = () => {
               { id: 'hunt', label: t('menu_hunt'), icon: Swords, color: 'text-red-400' },
               { id: 'tasks', label: t('menu_tasks'), icon: Skull, color: 'text-orange-400' },
               { id: 'prey', label: t('menu_prey'), icon: Compass, color: 'text-blue-300' },
-              { id: 'hazard', label: t('menu_hazard'), icon: AlertTriangle, color: 'text-red-600' }, 
+              { id: 'hazard', label: 'Hazard System', icon: AlertTriangle, color: 'text-red-600' }, 
               { id: 'quests', label: t('menu_quests'), icon: Map, color: 'text-yellow-600' },
           ]
       },
@@ -110,7 +112,7 @@ const App = () => {
           title: t('cat_char'),
           items: [
               { id: 'train', label: t('menu_train'), icon: Shield, color: 'text-gray-400' },
-              { id: 'imbuement', label: t('menu_imbuement'), icon: Sparkles, color: 'text-purple-400' },
+              { id: 'imbuement', label: 'Imbuements', icon: Sparkles, color: 'text-purple-400' },
               { id: 'ascension', label: t('menu_ascension'), icon: Ghost, color: 'text-purple-300' },
               { id: 'bot', label: t('menu_bot'), icon: Bot, color: 'text-cyan-400' },
           ]
@@ -222,6 +224,7 @@ const App = () => {
                     onUnequipItem={actions.unequipItem}
                     onReforgeItem={actions.reforgeItem}
                     onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)}
+                    onToggleStats={() => setShowStats(!showStats)} // Novo
                 />
             </div>
         </div>
@@ -235,6 +238,12 @@ const App = () => {
             onReset={actions.resetAnalyzer}
             history={analyzerHistory} 
             killCounts={sessionKills}
+        />
+
+        <StatsPanel // Novo
+            player={player}
+            isOpen={showStats}
+            onClose={() => setShowStats(false)}
         />
         
         {reforgeResult && (

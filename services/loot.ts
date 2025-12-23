@@ -55,25 +55,26 @@ export const GENERATE_MODIFIERS = (item: Item, rarity: Rarity): ItemModifiers =>
     const mods: ItemModifiers = {};
     const itemPotential = GET_ITEM_POTENTIAL(item);
     
-    // --- VARIANCE LOGIC ---
-    // A quality roll between 0.7 (Poor) and 1.3 (Perfect)
+    // Variância de Qualidade: 0.7 (Ruim) a 1.3 (Perfeito)
     const qualityFactor = 0.7 + (Math.random() * 0.6);
 
+    // --- NOVO BALANCEAMENTO SUAVE: ATRIBUTOS BASE ---
+    // Multiplicadores baseados no acréscimo médio sugerido (Uncommon ~5%, Rare ~14%, Epic ~31%, Leg ~60%)
     const multiplier = {
         'common': 1,
-        'uncommon': 1.15,
-        'rare': 1.35,
-        'epic': 1.60,
-        'legendary': 2.20
+        'uncommon': 1.05,
+        'rare': 1.14,
+        'epic': 1.31,
+        'legendary': 1.60
     }[rarity];
 
     const calcBonus = (baseValue: number) => {
         if (!baseValue || baseValue <= 0) return 0;
         
-        // Base bonus scaled by rarity
+        // Bônus base escalado pela raridade
         const rawIncrease = baseValue * (multiplier - 1);
         
-        // Applied variance and item potential
+        // Aplica potencial do item e variância de qualidade
         const variantIncrease = rawIncrease * itemPotential * qualityFactor;
 
         if (variantIncrease < 1 && rarity !== 'common') return 1;
@@ -81,12 +82,12 @@ export const GENERATE_MODIFIERS = (item: Item, rarity: Rarity): ItemModifiers =>
         return Math.ceil(variantIncrease);
     };
 
-    // 1. Basic Stats (Atk/Def/Arm)
+    // 1. Atributos Básicos (Atk/Def/Arm)
     if (item.attack && item.attack > 0 && !item.isRune) mods.attack = calcBonus(item.attack);
     if (item.armor && item.armor > 0) mods.armor = calcBonus(item.armor);
     if (item.defense && item.defense > 0) mods.defense = calcBonus(item.defense);
 
-    // 2. Special Affix Pool
+    // 2. Afixos Especiais (RNG)
     const specialChance = {
         'common': 0,
         'uncommon': 0.35, 
@@ -98,34 +99,41 @@ export const GENERATE_MODIFIERS = (item: Item, rarity: Rarity): ItemModifiers =>
     let rollCount = Math.floor(specialChance);
     if (Math.random() < (specialChance - rollCount)) rollCount++;
 
+    // --- NOVO BALANCEAMENTO SUAVE: INTERVALOS DE AFIXOS ---
+    // Intervalos base que serão multiplicados pelo rarityBaseMult (Un:1x, Ra:2x, Ep:4x, Leg:7x)
     const possibleBonuses: Array<{ key: keyof ItemModifiers, type: 'flat' | 'percent', min: number, max: number }> = [
-        // Increased min/max ranges for higher RNG variance
-        { key: 'xpBoost', type: 'percent', min: 1, max: 3 }, 
-        { key: 'lootBoost', type: 'percent', min: 1, max: 3 },
-        { key: 'attackSpeed', type: 'percent', min: 1, max: 3 },
-        { key: 'blessedChance', type: 'percent', min: 1, max: 2 }, 
-        { key: 'critChance', type: 'percent', min: 1, max: 3 },
-        { key: 'bossSlayer', type: 'percent', min: 2, max: 8 },
-        { key: 'dodgeChance', type: 'percent', min: 1, max: 2 },
-        { key: 'goldFind', type: 'percent', min: 3, max: 10 },
-        { key: 'executioner', type: 'percent', min: 1, max: 2 },
-        { key: 'reflection', type: 'percent', min: 4, max: 12 },
+        { key: 'xpBoost', type: 'percent', min: 1, max: 1.2 },        // Leg: ~7-12%
+        { key: 'lootBoost', type: 'percent', min: 1, max: 1.2 },      // Leg: ~7-12%
+        { key: 'attackSpeed', type: 'percent', min: 1, max: 1.2 },    // Haste
+        { key: 'blessedChance', type: 'percent', min: 0.5, max: 0.8 }, 
+        { key: 'critChance', type: 'percent', min: 0.8, max: 1 },     // Leg: ~6-8%
+        { key: 'bossSlayer', type: 'percent', min: 1, max: 1.5 },
+        { key: 'dodgeChance', type: 'percent', min: 0.8, max: 1 },    // Leg: ~6-10%
+        { key: 'goldFind', type: 'percent', min: 3, max: 4.5 },       // Leg: ~25-40%
+        { key: 'executioner', type: 'percent', min: 0.8, max: 1 },
+        { key: 'reflection', type: 'percent', min: 4, max: 6 },        // Thorns (Leg: ~35-50%)
     ];
 
+    // Adiciona Skills ao pool se for equipamento
     if (item.scalingStat) {
-        for(let i=0; i<3; i++) possibleBonuses.push({ key: item.scalingStat, type: 'flat', min: 1, max: 2 });
+        for(let i=0; i<3; i++) possibleBonuses.push({ key: item.scalingStat, type: 'flat', min: 0.8, max: 1.2 });
     }
-    possibleBonuses.push({ key: SkillType.DEFENSE, type: 'flat', min: 1, max: 2 });
-    possibleBonuses.push({ key: SkillType.MAGIC, type: 'flat', min: 1, max: 2 });
+    possibleBonuses.push({ key: SkillType.DEFENSE, type: 'flat', min: 0.8, max: 1.2 });
+    possibleBonuses.push({ key: SkillType.MAGIC, type: 'flat', min: 0.8, max: 1.2 });
 
-    const rarityBaseMult = { 'common': 0, 'uncommon': 1, 'rare': 2, 'epic': 3.5, 'legendary': 6 }[rarity];
+    const rarityBaseMult = { 
+        'common': 0, 
+        'uncommon': 1, 
+        'rare': 2, 
+        'epic': 4, 
+        'legendary': 7 
+    }[rarity];
 
     for (let i = 0; i < rollCount; i++) {
         const bonus = possibleBonuses[Math.floor(Math.random() * possibleBonuses.length)];
+        let baseVal = (Math.random() * (bonus.max - bonus.min)) + bonus.min;
         
-        let baseVal = Math.floor(Math.random() * (bonus.max - bonus.min + 1)) + bonus.min;
-        
-        // Final value = base * rarity * potential * quality
+        // Valor Final = Base * Multiplicador Raridade * Potencial * Qualidade
         let finalVal = Math.floor(baseVal * rarityBaseMult * itemPotential * qualityFactor);
 
         if (finalVal < 1) finalVal = 1;
@@ -136,6 +144,7 @@ export const GENERATE_MODIFIERS = (item: Item, rarity: Rarity): ItemModifiers =>
         }
     }
 
+    // Fallback: garante que todo item raro tenha pelo menos algo
     if (Object.keys(mods).length === 0 && rarity !== 'common') {
         if (item.slot === EquipmentSlot.RING || item.slot === EquipmentSlot.NECK) {
             mods.armor = 1;
@@ -177,7 +186,6 @@ export const generateLootWithRarity = (
                         const newSkillBonus: any = { ...(itemDef.skillBonus || {}) };
                         
                         Object.keys(modifiers).forEach(key => {
-                            // Fix: Don't add base stats (attack, defense, armor) to skill bonus even if keys match enum
                             if (['attack', 'defense', 'armor'].includes(key)) return;
 
                             if (Object.values(SkillType).includes(key as SkillType)) {

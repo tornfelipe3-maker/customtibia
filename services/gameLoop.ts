@@ -1,9 +1,8 @@
-
 import { Player, Monster, Boss, LogEntry, HitSplat, EquipmentSlot, SkillType, Vocation, Rarity, ImbuType, DeathReport } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS, SPELLS, QUESTS, getXpForLevel, MAX_BACKPACK_SLOTS } from '../constants'; 
 import { calculatePlayerDamage, calculateSpellDamage, calculateRuneDamage, calculatePlayerDefense } from './combat';
 import { processSkillTraining, checkForLevelUp, getEffectiveSkill } from './progression';
-import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue, getPlayerModifier } from './mechanics';
+import { getXpStageMultiplier, createInfluencedMonster, getAscensionBonusValue, getPlayerModifier, getEffectiveMaxHp, getEffectiveMaxMana } from './mechanics';
 import { generateLootWithRarity, calculateLootValue } from './loot'; 
 
 import { processRegeneration } from './tick/regeneration';
@@ -73,6 +72,9 @@ export const processGameTick = (
     let bossDefeatedId: string | undefined = undefined;
     let monsterHp = currentMonsterHp;
 
+    const effMaxHp = getEffectiveMaxHp(p);
+    const effMaxMana = getEffectiveMaxMana(p);
+
     // --- TURN DAMAGE ACCUMULATORS ---
     let turnBasicDmg = 0;
     let turnSpellDmg = 0;
@@ -104,7 +106,7 @@ export const processGameTick = (
         if (ls && ls.tier > 0 && ls.timeRemaining > 0) {
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
             if (heal > 0) {
-                p.hp = Math.min(p.maxHp, p.hp + heal);
+                p.hp = Math.min(effMaxHp, p.hp + heal);
                 totalHealValue += heal;
             }
         }
@@ -113,7 +115,7 @@ export const processGameTick = (
         if (ml && ml.tier > 0 && ml.timeRemaining > 0) {
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
             if (manaGain > 0) {
-                p.mana = Math.min(p.maxMana, p.mana + manaGain);
+                p.mana = Math.min(effMaxMana, p.mana + manaGain);
                 totalManaValue += manaGain;
             }
         }
@@ -204,6 +206,7 @@ export const processGameTick = (
                     log(`Warning! A ${currentMonsterInstance.name} appeared!`, 'danger');
                     monsterHp = currentMonsterInstance.maxHp * 1;
                 } else {
+                    // Fix: replaced 'font' with 'spawnTime' to match the Monster interface
                     currentMonsterInstance = { ...baseMonster, guid: instanceId, spawnTime: now };
                     monsterHp = currentMonsterInstance.maxHp * settingsHuntCount;
                 }
@@ -289,7 +292,10 @@ export const processGameTick = (
                             } else { p.currentXp = 0; }
                         }
                         const deathReport: DeathReport = { xpLoss: xpLossAmount, goldLoss: goldLoss, levelDown: levelWasReduced, vocation: p.vocation, killerName: monster.name, hasBlessing: hadBlessing };
-                        p.hp = p.maxHp; p.mana = p.maxMana; p.activeHuntId = null; p.magicShieldUntil = 0; stopHunt = true; p.gold = Math.max(0, p.gold - goldLoss);
+                        // Respawn with Effective Totals
+                        p.hp = getEffectiveMaxHp(p); 
+                        p.mana = getEffectiveMaxMana(p); 
+                        p.activeHuntId = null; p.magicShieldUntil = 0; stopHunt = true; p.gold = Math.max(0, p.gold - goldLoss);
                         Object.keys(p.skills).forEach(key => { const skill = p.skills[key as SkillType]; const loss = 100 * penaltyRate; skill.progress -= loss; if (skill.progress < 0) { if (skill.level > 10) { skill.level--; skill.progress += 100; } else { skill.progress = 0; } } });
                         log(`You are dead. Lost ${xpLossAmount.toLocaleString()} XP, ${goldLoss.toLocaleString()} Gold.`, 'danger');
                         triggers.death = deathReport;
@@ -459,7 +465,6 @@ export const processGameTick = (
                     else { if (currentSlots < MAX_BACKPACK_SLOTS) { p.inventory[id] = qty; currentSlots++; lootMsg += `, ${qty}x ${name}`; } else if (!bpFull) { log("Backpack full!", 'danger'); bpFull = true; } }
                 });
                 
-                // Mensagem de loot atualizada para incluir sempre GP e XP
                 log(`Loot x${effectiveHuntCount} ${monster.name}: ${finalGold} gp${lootMsg}. (XP: ${xpGained.toLocaleString()})`, 'loot');
 
                 p.taskOptions.forEach(task => { if (task.status === 'active' && !task.isComplete && task.type === 'kill' && task.monsterId === monster.id) { task.killsCurrent = (task.killsCurrent || 0) + effectiveHuntCount; if (task.killsCurrent >= (task.killsRequired || task.amountRequired)) task.isComplete = true; } });

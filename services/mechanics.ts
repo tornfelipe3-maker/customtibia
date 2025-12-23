@@ -52,8 +52,13 @@ export const reforgeItemStats = (item: Item): Item => {
     const baseItemDef = SHOP_ITEMS.find(i => i.id === item.id) || item;
     const modifiers = GENERATE_MODIFIERS(baseItemDef, item.rarity);
     
-    const newSkillBonus = { ...(baseItemDef.skillBonus || {}) };
+    const newSkillBonus: any = { ...(baseItemDef.skillBonus || {}) };
+    
     Object.keys(modifiers).forEach(key => {
+        // FIX: Se a chave for attack, defense ou armor, NÃO adiciona ao skillBonus.
+        // Isso evita que o item ganhe +29 de skill de Shielding quando tem +29 de Defesa do Item.
+        if (['attack', 'defense', 'armor'].includes(key)) return;
+
         if (Object.values(SkillType).includes(key as SkillType)) {
             const skillKey = key as SkillType;
             newSkillBonus[skillKey] = (newSkillBonus[skillKey] || 0) + (modifiers[key] || 0);
@@ -154,16 +159,13 @@ export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
     const rollSelection = Math.random();
     let monster;
     
-    // RNG 60% Tier do Player / 40% Demais
     if (rollSelection < 0.60) {
-        // Define o tier como monstros próximos ao level do jogador (-20 a +50)
         const minLvl = Math.max(1, playerLevel - 20);
         const maxLvl = playerLevel + 50;
         const suitable = MONSTERS.filter(m => m.level >= minLvl && m.level <= maxLvl);
         const pool = suitable.length > 0 ? suitable : MONSTERS;
         monster = pool[Math.floor(Math.random() * pool.length)];
     } else {
-        // Pool geral
         monster = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
     }
 
@@ -197,11 +199,8 @@ export const generatePreyCard = (playerLevel: number = 1): PreySlot => {
 };
 
 export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'collect'): HuntingTask => {
-    // 1. Decide o tipo da task
     let taskType: 'kill' | 'collect' = forcedType || (Math.random() < 0.5 ? 'kill' : 'collect');
 
-    // 2. Filtra os monstros que podem servir para esse tipo de task
-    // Se for collect, o mob precisa ter itens do tipo 'loot' na tabela
     let pool = MONSTERS.filter(m => {
         if (taskType === 'kill') return true;
         return m.lootTable && m.lootTable.some(l => SHOP_ITEMS.find(i => i.id === l.itemId)?.type === 'loot');
@@ -212,17 +211,14 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
         taskType = 'kill';
     }
 
-    // 3. Aplica o RNG de Tier (60/40)
     const playerTier = getTierByLevel(playerLevel);
     const tierPool = pool.filter(m => getTierByLevel(m.level) === playerTier);
     const otherPool = pool.filter(m => getTierByLevel(m.level) !== playerTier);
 
     let monster;
     if (tierPool.length > 0 && Math.random() < 0.6) {
-        // 60% Tier Atual
         monster = tierPool[Math.floor(Math.random() * tierPool.length)];
     } else {
-        // 40% Outros Tiers (ou fallback se o tier atual não tiver mobs válidos)
         const finalPool = otherPool.length > 0 ? otherPool : pool;
         monster = finalPool[Math.floor(Math.random() * finalPool.length)];
     }
@@ -374,7 +370,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   const finalAvgGoldPerMob = avgGoldPerMob * (1 + (ascGoldBonus / 100)) * (1 + (goldFindBonus / 100));
   const rawGoldPerCycle = finalAvgGoldPerMob * huntCount;
 
-  // --- MULTIPLICATIVE XP CALCULATION (MATCHING GAMELOOP) ---
   let finalXpMultiplier = 1.0;
   
   finalXpMultiplier *= getXpStageMultiplier(player.level);
@@ -388,7 +383,6 @@ export const estimateHuntStats = (player: Player, monster: Monster, huntCount: n
   if (player.premiumUntil > now) finalXpMultiplier *= 2.0; 
   if (player.xpBoostUntil > now) finalXpMultiplier *= 3.0; 
   
-  // NOVO: 10% XP por nível de Hazard nas estimativas
   const isBoss = !!(monster as Boss).cooldownSeconds;
   const hazardXpMult = isBoss ? 1.0 : (1 + ((player.activeHazardLevel || 0) * 0.10));
   finalXpMultiplier *= hazardXpMult;

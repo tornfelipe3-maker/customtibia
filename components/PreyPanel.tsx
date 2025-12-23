@@ -272,13 +272,14 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onReroll
   const rerollsLeft = player.prey.rerollsAvailable || 0;
   const isFree = rerollsLeft > 0;
   
-  // Reroll All Logic
-  const slotsToRoll = 5;
-  const paidNeeded = Math.max(0, slotsToRoll - rerollsLeft);
+  // Reroll All Logic: Apenas slots que NÃO estão ativos
+  const inactiveSlotsCount = player.prey.slots.filter(s => !s.active).length;
+  const paidNeeded = Math.max(0, inactiveSlotsCount - rerollsLeft);
   const rerollAllCost = paidNeeded * (player.level * 100);
   const totalFunds = player.gold + player.bankGold;
   const canAffordAll = totalFunds >= rerollAllCost;
-  const isRerollAllFree = rerollsLeft >= slotsToRoll;
+  const isRerollAllFree = rerollsLeft >= inactiveSlotsCount;
+  const noInactiveSlots = inactiveSlotsCount === 0;
 
   return (
     <div className="h-full flex flex-col bg-[#121212]">
@@ -328,28 +329,32 @@ export const PreyPanel: React.FC<PreyPanelProps> = ({ player, onReroll, onReroll
             </div>
         </div>
 
-        {/* Footer Reroll All (Identical to Task Panel Style) */}
+        {/* Footer Reroll All */}
         <div className="p-4 border-t border-[#333] bg-[#1a1a1a] flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative z-20">
             <button 
                 onClick={onRerollAll}
-                disabled={!isRerollAllFree && !canAffordAll}
+                disabled={noInactiveSlots || (!isRerollAllFree && !canAffordAll)}
                 className={`
                     flex items-center justify-center gap-3 px-8 py-3 rounded-lg border shadow-lg transition-all w-full max-w-md
-                    ${isRerollAllFree 
-                        ? 'bg-gradient-to-r from-green-800 to-green-700 hover:brightness-110 text-white border-green-600' 
-                        : (canAffordAll 
-                            ? 'bg-[#2a2a2a] hover:bg-[#333] border-[#444] hover:border-gray-500 text-gray-300' 
-                            : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed')
+                    ${noInactiveSlots 
+                        ? 'bg-gray-900 border-gray-800 text-gray-700 cursor-not-allowed'
+                        : isRerollAllFree 
+                            ? 'bg-gradient-to-r from-green-800 to-green-700 hover:brightness-110 text-white border-green-600' 
+                            : (canAffordAll 
+                                ? 'bg-[#2a2a2a] hover:bg-[#333] border-[#444] hover:border-gray-500 text-gray-300' 
+                                : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed')
                     }
                 `}
             >
-                <RefreshCw size={18} className={isRerollAllFree ? 'animate-spin-slow' : ''} />
+                <RefreshCw size={18} className={isRerollAllFree && !noInactiveSlots ? 'animate-spin-slow' : ''} />
                 <div className="flex flex-col items-start leading-none">
-                    <span className="text-xs font-bold uppercase tracking-wider">Reroll All Slots</span>
-                    {!isRerollAllFree && (
+                    <span className="text-xs font-bold uppercase tracking-wider">
+                        {noInactiveSlots ? 'All Slots Active' : `Reroll ${inactiveSlotsCount} Available Slots`}
+                    </span>
+                    {!noInactiveSlots && !isRerollAllFree && (
                         <span className="text-[10px] opacity-60 mt-1">Cost: {rerollAllCost.toLocaleString()} gp</span>
                     )}
-                    {isRerollAllFree && (
+                    {!noInactiveSlots && isRerollAllFree && (
                         <span className="text-[10px] opacity-90 mt-1 text-green-100">Free Rolls Available</span>
                     )}
                 </div>

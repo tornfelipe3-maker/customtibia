@@ -807,14 +807,19 @@ export const useGameActions = (
         },
         rerollAllPrey: () => {
             updatePlayerState(prev => {
-                const slotsToRoll = 5;
+                const inactiveSlots = prev.prey.slots.filter(s => !s.active);
+                if (inactiveSlots.length === 0) {
+                    addLog("All prey slots are currently active.", "info");
+                    return prev;
+                }
+
                 const freeAvailable = prev.prey.rerollsAvailable || 0;
-                const paidNeeded = Math.max(0, slotsToRoll - freeAvailable);
+                const paidNeeded = Math.max(0, inactiveSlots.length - freeAvailable);
                 const cost = paidNeeded * (prev.level * 100);
                 const totalFunds = prev.gold + prev.bankGold;
 
                 if (totalFunds < cost) {
-                    addLog(`Insufficient gold to reroll all (Need ${cost}).`, 'danger');
+                    addLog(`Insufficient gold to reroll available slots (Need ${cost}).`, 'danger');
                     return prev;
                 }
 
@@ -832,10 +837,14 @@ export const useGameActions = (
                     if (remaining > 0) newBank -= remaining;
                 }
 
-                const newSlots = prev.prey.slots.map(() => generatePreyCard(prev.level));
-                const newRerollCount = Math.max(0, freeAvailable - slotsToRoll);
+                // Apenas gera novos cards para slots INATIVOS
+                const newSlots = prev.prey.slots.map(slot => 
+                    slot.active ? slot : generatePreyCard(prev.level)
+                );
+                
+                const newRerollCount = Math.max(0, freeAvailable - inactiveSlots.length);
 
-                addLog("Rerolled all prey slots.", 'info');
+                addLog(`Rerolled ${inactiveSlots.length} prey slots.`, 'info');
                 return { 
                     ...prev, 
                     gold: newGold, 

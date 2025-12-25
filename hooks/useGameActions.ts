@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation, GmFlags, HuntingTask, AscensionPerk, LogEntry, OfflineReport, ImbuType, DeathReport } from '../types';
-import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp, getEffectiveMaxHp, getEffectiveMaxMana } from '../services';
-import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS } from '../constants';
+import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp, getEffectiveMaxHp, getEffectiveMaxMana, GENERATE_MODIFIERS } from '../services';
+import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS, SOULWAR_SET, SANGUINE_SET } from '../constants';
 
 export const useGameActions = (
     playerRef: React.MutableRefObject<Player | null>,
@@ -249,6 +249,41 @@ export const useGameActions = (
             }
         },
         equipItem: (item: Item) => {
+            // LÓGICA DE ABRIR BAG (NOVO)
+            if (item.isBag) {
+                updatePlayerState(prev => {
+                    if ((prev.inventory[item.id] || 0) <= 0) return prev;
+                    const pool = item.id === 'bag_desire' ? SOULWAR_SET : SANGUINE_SET;
+                    const randomBaseItem = pool[Math.floor(Math.random() * pool.length)];
+                    
+                    // Garante que o item vindo da bag seja LENDÁRIO e tenha o modificador de Soul Gain
+                    const rarity = 'legendary';
+                    const baseMods = GENERATE_MODIFIERS(randomBaseItem, rarity);
+                    const soulBonus = Math.floor(Math.random() * 10) + 1; // 1-10%
+                    
+                    const newItem: Item = {
+                        ...randomBaseItem,
+                        uniqueId: Math.random().toString(36).substr(2, 9),
+                        rarity,
+                        modifiers: { ...baseMods, soulGain: soulBonus },
+                        sellPrice: randomBaseItem.sellPrice * 50
+                    };
+
+                    const newInv = { ...prev.inventory };
+                    newInv[item.id]--;
+                    if (newInv[item.id] <= 0) delete newInv[item.id];
+
+                    addLog(`You opened ${item.name} and found ${newItem.name} (Legendary)!`, 'magic', 'legendary');
+                    
+                    return {
+                        ...prev,
+                        inventory: newInv,
+                        uniqueInventory: [...(prev.uniqueInventory || []), newItem]
+                    };
+                });
+                return;
+            }
+
             updatePlayerState(prev => {
                 if (!item.slot) return prev;
                 if (item.requiredVocation && prev.vocation !== Vocation.NONE && !item.requiredVocation.includes(prev.vocation)) {
@@ -731,7 +766,7 @@ export const useGameActions = (
                     premiumUntil: prev.premiumUntil, xpBoostUntil: prev.xpBoostUntil, soulPoints: prev.soulPoints + points,
                     uniqueInventory: recoveredUnique, uniqueDepot: prev.uniqueDepot, tutorials: prev.tutorials,
                     taskOptions: newTasks, taskNextFreeReroll: 0, imbuements: prev.imbuements, imbuActive: prev.imbuActive,
-                    hazardLevel: prev.hazardLevel, activeHazardLevel: prev.activeHazardLevel, // PRESERVA O PROGRESSO DO HAZARD
+                    hazardLevel: prev.hazardLevel, activeHazardLevel: prev.activeHazardLevel, 
                     attackCooldown: now,
                     spellCooldowns: {}
                 };
@@ -740,7 +775,6 @@ export const useGameActions = (
         },
         upgradeAscension: (perk: AscensionPerk) => {
             updatePlayerState(prev => {
-                // FALLBACK: Garante que o nível atual seja pelo menos 0 para evitar NaN
                 const currentLvl = prev.ascension[perk] || 0;
                 const cost = getAscensionUpgradeCost(perk, currentLvl);
                 
@@ -837,7 +871,6 @@ export const useGameActions = (
                     if (remaining > 0) newBank -= remaining;
                 }
 
-                // Apenas gera novos cards para slots INATIVOS
                 const newSlots = prev.prey.slots.map(slot => 
                     slot.active ? slot : generatePreyCard(prev.level)
                 );
@@ -867,6 +900,13 @@ export const useGameActions = (
             return { ...p, inventory: newInv };
         }),
         gmAddSoulPoints: () => updatePlayerState(p => ({ ...p, soulPoints: p.soulPoints + 1000 })),
+        gmAddBags: (id: string, amount: number) => updatePlayerState(p => {
+            const newInv = { ...p.inventory };
+            newInv[id] = (newInv[id] || 0) + amount;
+            const bagName = id === 'bag_desire' ? 'Bag You Desire' : 'Bag You Covet';
+            addLog(`GM: Added ${amount}x ${bagName}.`, "gain");
+            return { ...p, inventory: newInv };
+        }),
         gmSetHazardLevel: (val: number) => updatePlayerState(p => ({ ...p, hazardLevel: val })),
         gmSetRarity: (rarity: GmFlags['forceRarity']) => updatePlayerState(p => ({ ...p, gmExtra: { ...p.gmExtra, forceRarity: rarity } })),
         chooseName: (newName: string) => {

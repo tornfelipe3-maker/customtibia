@@ -55,8 +55,6 @@ export const reforgeItemStats = (item: Item): Item => {
     const newSkillBonus: any = { ...(baseItemDef.skillBonus || {}) };
     
     Object.keys(modifiers).forEach(key => {
-        // FIX: Se a chave for attack, defense ou armor, NÃO adiciona ao skillBonus.
-        // Isso evita que o item ganhe +29 de skill de Shielding quando tem +29 de Defesa do Item.
         if (['attack', 'defense', 'armor'].includes(key)) return;
 
         if (Object.values(SkillType).includes(key as SkillType)) {
@@ -123,8 +121,15 @@ export const createInfluencedMonster = (baseMonster: Monster, forceType?: 'enrag
 export const calculateSoulPointsToGain = (player: Player): number => {
     if (player.level < 30) return 0;
     const base = (1 + Math.floor((player.level - 30) / 10)) * 10;
-    const multiplier = 1 + ((player.ascension?.soul_gain || 0) / 20); 
-    return Math.floor(base * multiplier);
+    
+    // Bônus da Árvore de Ascensão
+    const treeMultiplier = 1 + ((player.ascension?.soul_gain || 0) / 20); 
+    
+    // Bônus dos Itens (Soulwar / Sanguine)
+    const itemBonusPercent = getPlayerModifier(player, 'soulGain');
+    const itemMultiplier = 1 + (itemBonusPercent / 100);
+
+    return Math.floor(base * treeMultiplier * itemMultiplier);
 };
 
 export const getAscensionUpgradeCost = (perk: AscensionPerk, currentLevel: number): number => {

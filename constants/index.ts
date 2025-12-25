@@ -17,13 +17,16 @@ import { ACCESSORIES_LIST } from './items/accessories';
 import { SWORD_LIST } from './items/swords';
 import { AXE_LIST } from './items/axes';
 import { CLUB_LIST } from './items/clubs';
-// import { FIST_LIST } from './items/fists'; // REMOVED MONK
 import { DISTANCE_LIST } from './items/distance';
 import { AMMUNITION_LIST } from './items/ammunition';
 import { WANDS_LIST } from './items/wands';
 import { SPELLBOOK_LIST } from './items/spellbooks';
 import { POTION_LIST } from './items/potions';
 import { RUNE_LIST } from './items/runes';
+import { SOULWAR_SET, SANGUINE_SET } from './items/soul_sanguine';
+
+// Add exports for the sets used in hooks/useGameActions.ts
+export { SOULWAR_SET, SANGUINE_SET };
 
 // Aggregate Shop Items
 export const SHOP_ITEMS = [
@@ -37,11 +40,12 @@ export const SHOP_ITEMS = [
     ...SWORD_LIST,
     ...AXE_LIST,
     ...CLUB_LIST,
-    // ...FIST_LIST, // REMOVED MONK
     ...DISTANCE_LIST,
     ...AMMUNITION_LIST,
     ...WANDS_LIST,
     ...SPELLBOOK_LIST,
     ...POTION_LIST,
-    ...RUNE_LIST
+    ...RUNE_LIST,
+    ...SOULWAR_SET,
+    ...SANGUINE_SET
 ];

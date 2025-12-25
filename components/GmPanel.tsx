@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Player, GmFlags } from '../types';
-import { Zap, ArrowUpCircle, Coins, ShieldAlert, Skull, AlertTriangle, Sparkles, Crown, FastForward, Ghost, Flame, GripHorizontal, X, Ticket } from 'lucide-react';
+import { Zap, ArrowUpCircle, Coins, ShieldAlert, Skull, AlertTriangle, Sparkles, Crown, FastForward, Ghost, Flame, GripHorizontal, X, Ticket, Package } from 'lucide-react';
 
 interface GmPanelProps {
   player: Player;
@@ -11,12 +11,13 @@ interface GmPanelProps {
   onAddGold: () => void;
   onAddGoldTokens: () => void;
   onAddSoulPoints: () => void;
+  onAddBags: (id: string, amount: number) => void;
   onSetRarity: (rarity: GmFlags['forceRarity']) => void;
   onSetSpeed: (speed: number) => void;
   onSetHazard?: (val: number) => void;
 }
 
-export const GmPanel: React.FC<GmPanelProps> = ({ player, gameSpeed, onLevelUp, onSkillUp, onAddGold, onAddGoldTokens, onAddSoulPoints, onSetRarity, onSetSpeed, onSetHazard }) => {
+export const GmPanel: React.FC<GmPanelProps> = ({ player, gameSpeed, onLevelUp, onSkillUp, onAddGold, onAddGoldTokens, onAddSoulPoints, onAddBags, onSetRarity, onSetSpeed, onSetHazard }) => {
   const [position, setPosition] = useState({ x: window.innerWidth - 220, y: 60 });
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
@@ -123,6 +124,20 @@ export const GmPanel: React.FC<GmPanelProps> = ({ player, gameSpeed, onLevelUp, 
           className="bg-red-900/50 hover:bg-red-800 text-red-200 text-[10px] font-bold py-2 px-3 rounded border border-red-800 flex items-center gap-2"
         >
           <Ghost size={14} className="text-purple-400"/> +1.000 Soul Points
+        </button>
+
+        <button 
+          onClick={() => onAddBags('bag_desire', 5)}
+          className="bg-red-900/50 hover:bg-red-800 text-red-200 text-[10px] font-bold py-2 px-3 rounded border border-red-800 flex items-center gap-2"
+        >
+          <Package size={14} className="text-purple-400"/> +5 Bag Desire
+        </button>
+
+        <button 
+          onClick={() => onAddBags('bag_covet', 5)}
+          className="bg-red-900/50 hover:bg-red-800 text-red-200 text-[10px] font-bold py-2 px-3 rounded border border-red-800 flex items-center gap-2"
+        >
+          <Package size={14} className="text-red-500"/> +5 Bag Covet
         </button>
 
         {onSetHazard && (

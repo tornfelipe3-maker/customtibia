@@ -189,7 +189,6 @@ const App = () => {
                     />
                 )}
                 
-                {/* FIXED: Added missing onRerollAll prop to PreyPanel call */}
                 {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onRerollAll={actions.rerollAllPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
                 {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={handleChallengeBoss} />} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
@@ -276,6 +275,8 @@ const App = () => {
                 onAddGold={actions.gmAddGold}
                 onAddGoldTokens={actions.gmAddGoldTokens}
                 onAddSoulPoints={actions.gmAddSoulPoints}
+                /* Added missing onAddBags prop to GmPanel to fix line 271 error */
+                onAddBags={actions.gmAddBags}
                 onSetRarity={actions.gmSetRarity} 
                 onSetSpeed={actions.setGameSpeed}
                 onSetHazard={actions.gmSetHazardLevel}

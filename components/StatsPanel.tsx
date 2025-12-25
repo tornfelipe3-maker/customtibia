@@ -59,7 +59,6 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
   const hasStamina = player.stamina > 0;
   const hazardBonus = 1 + ((player.activeHazardLevel || 0) * 0.10);
 
-  // Cálculo do Multiplicador Final de XP (Lógica idêntica ao GameLoop)
   let totalXpMultiplier = xpStage;
   if (hasStamina) totalXpMultiplier *= 1.5;
   totalXpMultiplier *= (1 + (ascXp / 100));
@@ -67,6 +66,12 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
   if (isPremium) totalXpMultiplier *= 2.0;
   if (isXpBoost) totalXpMultiplier *= 3.0;
   totalXpMultiplier *= hazardBonus;
+
+  // Rare Mob Chance Calculation
+  const baseRareChance = 3; // 3%
+  const countBonus = Math.min(4, (player.activeHuntCount - 1) * 0.57); // Max 4%
+  const itemRareChance = getPlayerModifier(player, 'blessedChance');
+  const totalRareChance = baseRareChance + countBonus + itemRareChance;
 
   // Loot Bonuses
   const ascLoot = getAscensionBonusValue(player, 'loot_boost');
@@ -81,8 +86,10 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
   const bossSlayer = getPlayerModifier(player, 'bossSlayer');
   const goldFind = getPlayerModifier(player, 'goldFind');
   const execute = getPlayerModifier(player, 'executioner');
+  
+  // Meta-Progress
+  const soulBonus = getPlayerModifier(player, 'soulGain');
 
-  // Helper to get total equipment skill bonus
   const getSkillEqBonus = (skill: SkillType) => {
     let bonus = 0;
     Object.values(player.equipment).forEach(item => {
@@ -109,7 +116,6 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
         className="fixed z-[90] w-64 bg-[#2d2d2d] bg-opacity-95 backdrop-blur-md border border-[#444] rounded shadow-[0_0_20px_rgba(0,0,0,0.6)] flex flex-col font-mono select-none overflow-hidden"
         style={{ top: position.y, left: position.x }}
     >
-        {/* Header */}
         <div 
             onMouseDown={handleMouseDown}
             className="bg-[#222] px-3 py-2 border-b border-[#333] flex justify-between items-center cursor-move active:cursor-grabbing shadow-sm"
@@ -118,46 +124,21 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
                 <Activity size={14} className="text-cyan-400 animate-pulse"/>
                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Character Stats</span>
             </div>
-            <button 
-                onMouseDown={(e) => e.stopPropagation()} 
-                onClick={onClose} 
-                className="text-gray-500 hover:text-white p-0.5 transition-colors"
-            >
+            <button onMouseDown={(e) => e.stopPropagation()} onClick={onClose} className="text-gray-500 hover:text-white p-0.5 transition-colors">
                 <X size={14} />
             </button>
         </div>
 
-        {/* Content */}
         <div className="p-3 space-y-4 custom-scrollbar max-h-[70vh] overflow-y-auto bg-gradient-to-b from-[#2d2d2d] to-[#1a1a1a]">
-            
-            {/* PROGRESSION SECTION */}
             <div>
                 <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-widest mb-2 border-b border-cyan-900/30 pb-0.5 flex items-center gap-1">
                     <TrendingUp size={10}/> Progression
                 </div>
-                
-                {/* LINHA SOLICITADA: MULTIPLICADOR FINAL */}
-                <StatRow 
-                    label="Final XP Rate" 
-                    value={`${totalXpMultiplier.toFixed(1)}x`} 
-                    icon={<Star size={12}/>} 
-                    color="text-yellow-400" 
-                    subValue="All Bonuses Combined"
-                    isHighlight={true}
-                />
-
-                <StatRow label="Base Stage" value={`${xpStage}x`} icon={<TrendingUp size={12}/>} color="text-green-400" subValue={`Current Lvl: ${player.level}`}/>
-                <StatRow label="Stat XP Bonus" value={`+${ascXp + eqXp}%`} icon={<Zap size={12}/>} color="text-blue-400" subValue={`Eq: ${eqXp}% | Asc: ${ascXp}%`}/>
-                
-                <div className="flex flex-wrap gap-1 mt-2">
-                    {isPremium && <span className="text-[8px] bg-yellow-900/30 text-yellow-500 px-1.5 py-0.5 rounded border border-yellow-700/50 font-bold">PREMIUM (2x)</span>}
-                    {isXpBoost && <span className="text-[8px] bg-green-900/30 text-green-500 px-1.5 py-0.5 rounded border border-green-700/50 font-bold">XP BOOST (3x)</span>}
-                    {hasStamina && <span className="text-[8px] bg-blue-900/30 text-blue-500 px-1.5 py-0.5 rounded border border-blue-700/50 font-bold">STAMINA (1.5x)</span>}
-                    {player.activeHazardLevel > 0 && <span className="text-[8px] bg-orange-900/30 text-orange-400 px-1.5 py-0.5 rounded border border-orange-700/50 font-bold">HAZARD (+{player.activeHazardLevel * 10}%)</span>}
-                </div>
+                <StatRow label="Final XP Rate" value={`${totalXpMultiplier.toFixed(1)}x`} icon={<Star size={12}/>} color="text-yellow-400" subValue="All Bonuses Combined" isHighlight={true} />
+                <StatRow label="Rare Mob Chance" value={`${totalRareChance.toFixed(2)}%`} icon={<Sparkles size={12}/>} color="text-cyan-300" subValue="Includes Items & Lure" />
+                <StatRow label="Soulpoint Affinity" value={`+${soulBonus}%`} icon={<Ghost size={12}/>} color="text-purple-400" subValue="From Soulwar/Sanguine Set" />
             </div>
 
-            {/* COMBAT SECTION */}
             <div>
                 <div className="text-[9px] font-bold text-red-500 uppercase tracking-widest mb-2 border-b border-red-900/30 pb-0.5 flex items-center gap-1">
                     <Swords size={10}/> Combat Power
@@ -171,24 +152,13 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
                 <StatRow label="Boss Slayer" value={`+${bossSlayer}%`} icon={<Ghost size={12}/>} color="text-purple-400" />
             </div>
 
-            {/* SKILLS BONUS SECTION */}
             <div>
                 <div className="text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-2 border-b border-blue-900/30 pb-0.5 flex items-center gap-1">
                     <Zap size={10}/> Equipment Bonuses
                 </div>
                 <StatRow label="Magic Level" value={`+${getSkillEqBonus(SkillType.MAGIC)}`} icon={<Zap size={12}/>} color="text-purple-400" />
-                <StatRow label="Melee (Sword/Axe/Club)" value={`+${getSkillEqBonus(SkillType.SWORD) || getSkillEqBonus(SkillType.AXE) || getSkillEqBonus(SkillType.CLUB)}`} icon={<Hammer size={12}/>} color="text-gray-300" />
+                <StatRow label="Melee" value={`+${getSkillEqBonus(SkillType.SWORD) || getSkillEqBonus(SkillType.AXE) || getSkillEqBonus(SkillType.CLUB)}`} icon={<Hammer size={12}/>} color="text-gray-300" />
                 <StatRow label="Distance" value={`+${getSkillEqBonus(SkillType.DISTANCE)}`} icon={<Crosshair size={12}/>} color="text-orange-400" />
-                <StatRow label="Shielding" value={`+${getSkillEqBonus(SkillType.DEFENSE)}`} icon={<Shield size={12}/>} color="text-blue-300" />
-            </div>
-
-            {/* UTILITY SECTION */}
-            <div>
-                <div className="text-[9px] font-bold text-yellow-500 uppercase tracking-widest mb-2 border-b border-yellow-900/30 pb-0.5 flex items-center gap-1">
-                    <Coins size={10}/> Loot & Misc
-                </div>
-                <StatRow label="Loot Chance" value={`+${ascLoot + eqLoot}%`} icon={<Sparkles size={12}/>} color="text-purple-400" subValue={`Eq: ${eqLoot}% | Asc: ${ascLoot}%`}/>
-                <StatRow label="Gold Find" value={`+${goldFind}%`} icon={<Coins size={12}/>} color="text-yellow-500" />
             </div>
             
         </div>

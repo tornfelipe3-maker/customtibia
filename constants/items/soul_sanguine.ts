@@ -1,0 +1,27 @@
+
+import { Item, EquipmentSlot, NpcType, SkillType, Vocation, DamageType } from '../../types';
+import { IMG_BASE, OUT_BASE } from '../config';
+
+// SOULWAR SET (TIER 9 - LEVEL 350)
+export const SOULWAR_SET: Item[] = [
+    { id: 'soulshredder', name: 'Soulshredder', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 120, defense: 15, price: 0, sellPrice: 250000, soldTo: [NpcType.RASHID], description: 'One-handed Soul Sword.', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Soulshredder.gif` },
+    { id: 'souleater', name: 'Souleater', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 121, defense: 15, price: 0, sellPrice: 250000, soldTo: [NpcType.RASHID], description: 'One-handed Soul Axe.', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Souleater_(Axe).gif` },
+    { id: 'soulcrusher', name: 'Soulcrusher', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 119, defense: 15, price: 0, sellPrice: 250000, soldTo: [NpcType.RASHID], description: 'One-handed Soul Club.', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Soulcrusher.gif` },
+    { id: 'soulpiercer', name: 'Soulpiercer', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 75, defense: 0, price: 0, sellPrice: 250000, soldTo: [NpcType.RASHID], description: 'Pierces through the essence of enemies.', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 350, image: `${OUT_BASE}Soulpiercer.gif` },
+    { id: 'soultainter', name: 'Soultainter', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 160, defense: 0, price: 0, sellPrice: 250000, soldTo: [NpcType.RASHID], description: 'A wand tainted with dark wisdom.', scalingStat: SkillType.MAGIC, requiredVocation: [Vocation.SORCERER, Vocation.DRUID], requiredLevel: 350, image: `${OUT_BASE}Soultainter.gif` },
+    { id: 'soulmantle', name: 'Soulmantle', type: 'equipment', slot: EquipmentSlot.BODY, armor: 28, price: 0, sellPrice: 200000, soldTo: [NpcType.RASHID], description: 'Protects the soul from external corruption.', requiredLevel: 350, image: `${OUT_BASE}Soulmantle.gif` },
+    { id: 'soulshanks', name: 'Soulshanks', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 20, price: 0, sellPrice: 180000, soldTo: [NpcType.RASHID], description: 'Ancient leg protectors.', requiredLevel: 350, image: `${OUT_BASE}Soulshanks.gif` },
+    { id: 'soulstrider', name: 'Soulstrider', type: 'equipment', slot: EquipmentSlot.FEET, armor: 12, price: 0, sellPrice: 150000, soldTo: [NpcType.RASHID], description: 'Walk through the spiritual world.', requiredLevel: 350, image: `${OUT_BASE}Soulstrider.gif` },
+];
+
+// SANGUINE SET (TIER 10 - LEVEL 350)
+export const SANGUINE_SET: Item[] = [
+    { id: 'sanguine_blade', name: 'Sanguine Blade', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 132, defense: 18, price: 0, sellPrice: 500000, soldTo: [NpcType.RASHID], description: 'One-handed sword pulsing with blood.', scalingStat: SkillType.SWORD, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Sanguine_Blade.gif` },
+    { id: 'sanguine_hatchet', name: 'Sanguine Hatchet', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 133, defense: 18, price: 0, sellPrice: 500000, soldTo: [NpcType.RASHID], description: 'One-handed axe forged in ritual.', scalingStat: SkillType.AXE, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Sanguine_Hatchet.gif` },
+    { id: 'sanguine_cudgel', name: 'Sanguine Cudgel', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 131, defense: 18, price: 0, sellPrice: 500000, soldTo: [NpcType.RASHID], description: 'Heavy sanguine mace.', scalingStat: SkillType.CLUB, requiredVocation: [Vocation.KNIGHT], requiredLevel: 350, image: `${OUT_BASE}Sanguine_Cudgel.gif` },
+    { id: 'sanguine_galosh', name: 'Sanguine Galosh', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 85, defense: 0, price: 0, sellPrice: 500000, soldTo: [NpcType.RASHID], description: 'Bloodstained master bow.', scalingStat: SkillType.DISTANCE, weaponType: 'bow', requiredVocation: [Vocation.PALADIN], requiredLevel: 350, image: `${OUT_BASE}Sanguine_Bow.gif` },
+    { id: 'sanguine_coil', name: 'Sanguine Coil', type: 'equipment', slot: EquipmentSlot.HAND_RIGHT, attack: 180, defense: 0, price: 0, sellPrice: 500000, soldTo: [NpcType.RASHID], description: 'Focuses magic through sacrifice.', scalingStat: SkillType.MAGIC, requiredVocation: [Vocation.SORCERER, Vocation.DRUID], requiredLevel: 350, image: `${OUT_BASE}Sanguine_Coil.gif` },
+    { id: 'sanguine_breastplate', name: 'Sanguine Breastplate', type: 'equipment', slot: EquipmentSlot.BODY, armor: 34, price: 0, sellPrice: 400000, soldTo: [NpcType.RASHID], description: 'Armor made of reinforced blood-glass.', requiredLevel: 350, image: `${OUT_BASE}Fireheart_Hauberk.gif` },
+    { id: 'sanguine_greaves', name: 'Sanguine Greaves', type: 'equipment', slot: EquipmentSlot.LEGS, armor: 26, price: 0, sellPrice: 350000, soldTo: [NpcType.RASHID], description: 'Ultimate vampiric leg guards.', requiredLevel: 350, image: `${OUT_BASE}Sanguine_Greaves.gif` },
+    { id: 'sanguine_boots', name: 'Sanguine Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 18, price: 0, sellPrice: 300000, soldTo: [NpcType.RASHID], description: 'Steps that leave blood behind.', requiredLevel: 350, image: `${OUT_BASE}Sanguine_Boots.gif` },
+];

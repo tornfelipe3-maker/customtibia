@@ -90,6 +90,11 @@ export const StorageService = {
             hp: 2000,
             maxMana: 1000,
             mana: 1000,
+            inventory: {
+                ...INITIAL_PLAYER_STATS.inventory,
+                'bag_desire': 5,
+                'bag_covet': 5
+            }
         };
         
         // Save it so state persists

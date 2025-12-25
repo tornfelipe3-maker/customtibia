@@ -1,3 +1,4 @@
+
 import { Item, NpcType } from '../../types';
 import { IMG_BASE, OUT_BASE } from '../config';
 
@@ -5,6 +6,10 @@ export const PRODUCTS_LIST: Item[] = [
   // SPECIAL
   { id: 'forge_token', name: 'Forge Token', type: 'loot', price: 0, sellPrice: 500, soldTo: [NpcType.TRADER], description: 'Used to reforge rare equipment attributes.', image: `${IMG_BASE}Gold_Nugget.gif` },
   { id: 'gold_token', name: 'Gold Token', type: 'loot', price: 0, sellPrice: 5000, soldTo: [NpcType.TRADER], description: 'Used for powerful Imbuements at NPC Imbu.', image: `${IMG_BASE}Gold_Token.gif` },
+
+  // BAGS (NEW)
+  { id: 'bag_desire', name: 'Bag You Desire', type: 'loot', isBag: true, price: 0, sellPrice: 100000, soldTo: [NpcType.RASHID], description: 'A shadowy bag dropped by Goshnar. Contains a piece of Soulwar Set.', image: `${OUT_BASE}Bag_You_Desire.gif` },
+  { id: 'bag_covet', name: 'Bag You Covet', type: 'loot', isBag: true, price: 0, sellPrice: 200000, soldTo: [NpcType.RASHID], description: 'A blood-pulsing bag dropped by Bakragore. Contains a piece of Sanguine Set.', image: `${OUT_BASE}Bag_You_Covet.gif` },
 
   // Creature Products - TIER 1 & 2 (Starters)
   { id: 'rat_tail', name: 'Rat Tail', type: 'loot', price: 0, sellPrice: 2, soldTo: [NpcType.TRADER, NpcType.YASIR], description: 'Tail of a rat.', image: `${OUT_BASE}Mutated_Rat_Tail.gif` },

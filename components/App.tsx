@@ -276,6 +276,7 @@ const App = () => {
                 onAddGold={actions.gmAddGold}
                 onAddGoldTokens={actions.gmAddGoldTokens}
                 onAddSoulPoints={actions.gmAddSoulPoints}
+                onAddBags={actions.gmAddBags}
                 onSetRarity={actions.gmSetRarity} 
                 onSetSpeed={actions.setGameSpeed}
                 onSetHazard={actions.gmSetHazardLevel}

@@ -1,3 +1,4 @@
+
 import { Boss } from '../types';
 import { IMG_BASE } from './config';
 
@@ -144,6 +145,7 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true,
         lootTable: [
+            { itemId: 'bag_desire', chance: 0.001, maxAmount: 1 }, // 0.1% Chance
             { itemId: 'gold_token', chance: 1.0, maxAmount: 5 }
         ],
         image: `${IMG_BASE}Goshnar%27s_Megalomania.gif`
@@ -187,6 +189,7 @@ export const BOSSES: Boss[] = [
         cooldownSeconds: 72000, 
         isDaily: true, 
         lootTable: [
+            { itemId: 'bag_covet', chance: 0.001, maxAmount: 1 }, // 0.1% Chance
             { itemId: 'gold_token', chance: 1.0, maxAmount: 8 }
         ],
         image: `${IMG_BASE}Bakragore.gif`

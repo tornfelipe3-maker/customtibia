@@ -11,27 +11,23 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [adjustedStyle, setAdjustedStyle] = useState<React.CSSProperties>({});
 
-  // Use LayoutEffect to adjust position after render but before paint to know dimensions
   useLayoutEffect(() => {
     if (item && position && tooltipRef.current) {
         const rect = tooltipRef.current.getBoundingClientRect();
         const winW = window.innerWidth;
         const winH = window.innerHeight;
 
-        let left = position.x + 12; // Offset from cursor
+        let left = position.x + 12; 
         let top = position.y + 12;
 
-        // Check Right Edge
         if (left + rect.width > winW) {
             left = position.x - rect.width - 12;
         }
 
-        // Check Bottom Edge
         if (top + rect.height > winH) {
             top = position.y - rect.height - 12;
         }
 
-        // Ensure it doesn't go off top/left
         if (left < 0) left = 10;
         if (top < 0) top = 10;
 
@@ -41,21 +37,17 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
 
   if (!item || !position) return null;
 
-  // Optimization: Just calculate X based on window width immediately since width is fixed (w-40 = 160px).
-  // This avoids the 'flicker' of waiting for Ref.
-  const TOOLTIP_WIDTH = 170; // 160px + padding/border margin safety
+  const TOOLTIP_WIDTH = 170; 
   let safeLeft = position.x + 12;
   if (typeof window !== 'undefined' && safeLeft + TOOLTIP_WIDTH > window.innerWidth) {
       safeLeft = position.x - TOOLTIP_WIDTH;
   }
   
-  // Use calculated safe X, but try to clamp Y
   const style = {
       top: position.y + 12,
       left: safeLeft
   };
 
-  // Add simple Y clamp logic roughly
   if (typeof window !== 'undefined' && style.top + 250 > window.innerHeight) {
       style.top = Math.max(10, window.innerHeight - 250);
   }
@@ -69,10 +61,8 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
             {item.name} {item.rarity && <span className="uppercase text-[8px] font-normal opacity-70 ml-1">({item.rarity})</span>}
         </div>
         
-        {/* Description - very small */}
         <div className="text-gray-500 italic text-[9px] leading-tight">{item.description}</div>
         
-        {/* Stats Grid - Compact */}
         <div className="grid grid-cols-2 gap-x-1 text-gray-300 leading-tight">
             {item.attack ? <span>Atk: <span className="text-white">{item.attack}</span> 
                 {item.modifiers?.attack ? <span className="text-blue-400 ml-0.5">(+{item.modifiers.attack})</span> : ''}
@@ -86,19 +76,16 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
                 {item.modifiers?.armor ? <span className="text-blue-400 ml-0.5">(+{item.modifiers.armor})</span> : ''}
             </span> : null}
             
-            {/* Full width stats */}
             {item.manaCost ? <span className="text-blue-400 col-span-2 font-bold">Mana Cost: {item.manaCost}</span> : null}
 
             {item.requiredLevel ? <span className="text-red-400 col-span-2">Level: {item.requiredLevel}</span> : null}
             
             {item.scalingStat ? <span className="text-blue-400 col-span-2 capitalize">Use: {item.scalingStat}</span> : null}
             
-            {/* Standard Skill Bonuses */}
             {item.skillBonus && Object.entries(item.skillBonus).map(([k,v]) => (
                 <span key={k} className="text-green-400 col-span-2">+{v} {k}</span>
             ))}
 
-            {/* Special Modifiers Display */}
             {item.modifiers && (
                 <>
                     {item.modifiers.xpBoost && <span className="text-purple-300 col-span-2 font-bold">+{item.modifiers.xpBoost}% XP Gain</span>}
@@ -106,13 +93,12 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
                     {item.modifiers.attackSpeed && <span className="text-orange-400 col-span-2 font-bold">+{item.modifiers.attackSpeed}% Multi-Hit</span>}
                     {item.modifiers.blessedChance && <span className="text-cyan-400 col-span-2 font-bold">+{item.modifiers.blessedChance}% Blessed Mob</span>}
                     {item.modifiers.critChance && <span className="text-red-400 col-span-2 font-bold">+{item.modifiers.critChance}% Crit Chance</span>}
-                    
-                    {/* NEW MODIFIERS */}
                     {item.modifiers.bossSlayer && <span className="text-red-500 col-span-2 font-bold">+{item.modifiers.bossSlayer}% Boss Dmg</span>}
                     {item.modifiers.dodgeChance && <span className="text-white col-span-2 font-bold">+{item.modifiers.dodgeChance}% Dodge</span>}
                     {item.modifiers.goldFind && <span className="text-yellow-500 col-span-2 font-bold">+{item.modifiers.goldFind}% Gold Find</span>}
                     {item.modifiers.executioner && <span className="text-red-600 col-span-2 font-bold">+{item.modifiers.executioner}% Execute</span>}
                     {item.modifiers.reflection && <span className="text-green-500 col-span-2 font-bold">+{item.modifiers.reflection}% Reflect</span>}
+                    {item.modifiers.soulGain && <span className="text-purple-400 col-span-2 font-bold">+{item.modifiers.soulGain}% Soulpoint Gain</span>}
                 </>
             )}
             
@@ -124,7 +110,6 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({ item, position }) => {
             ) : null}
         </div>
 
-        {/* Price Footer */}
         <div className="text-[9px] text-gray-500 border-t border-[#333] pt-0.5 flex justify-between mt-auto">
             <span className="text-yellow-600 font-bold">{item.sellPrice} gp</span>
             <span>{item.price > 0 ? `${item.price} gp` : ''}</span>

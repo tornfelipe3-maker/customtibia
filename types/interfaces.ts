@@ -17,6 +17,7 @@ export interface ItemModifiers {
     goldFind?: number;
     executioner?: number;
     reflection?: number;
+    soulGain?: number; // Novo: Bônus de ganho de Soulpoints
     [key: string]: number | undefined;
 }
 
@@ -58,6 +59,7 @@ export interface Item {
   runeType?: 'single' | 'area';
   count?: number;
   manaCost?: number;
+  isBag?: boolean; // Novo: Identifica se o item é uma bag de set
 }
 
 export interface LootDrop {

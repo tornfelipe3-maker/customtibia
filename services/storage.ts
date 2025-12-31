@@ -15,7 +15,14 @@ export interface HighscoresData {
 }
 
 export const StorageService = {
-  async login(account: string, pass: string): Promise<{ success: boolean; data?: Player; error?: string }> {
+  // Novo: Obtém a hora exata do servidor Supabase
+  async getServerTime(): Promise<number> {
+    const { data, error } = await supabase.rpc('get_server_time');
+    if (error || !data) return Date.now();
+    return new Date(data).getTime();
+  },
+
+  async login(account: string, pass: string): Promise<{ success: boolean; data?: Player; serverTime?: number; error?: string }> {
     const email = account.includes('@') ? account : `${account.toLowerCase()}@tibiaidle.com`;
     
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -30,23 +37,26 @@ export const StorageService = {
         return { success: false, error: authError.message };
     }
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('data')
-      .eq('id', authData.user.id)
-      .single();
+    // Buscamos os dados e o tempo atual do servidor simultaneamente
+    const [profileRes, serverTime] = await Promise.all([
+      supabase.from('profiles').select('data').eq('id', authData.user.id).single(),
+      this.getServerTime()
+    ]);
 
-    if (profileError || !profileData) {
-      return { success: false, error: "Perfil não encontrado. Verifique se o RLS está configurado." };
+    if (profileRes.error || !profileRes.data) {
+      return { success: false, error: "Perfil não encontrado." };
     }
 
-    return { success: true, data: profileData.data as Player };
+    return { 
+      success: true, 
+      data: profileRes.data.data as Player,
+      serverTime 
+    };
   },
 
   async register(account: string, pass: string): Promise<{ success: boolean; data?: Player; error?: string }> {
     const email = account.includes('@') ? account : `${account.toLowerCase()}@tibiaidle.com`;
     
-    // 1. Criar usuário no Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: pass,
@@ -55,11 +65,10 @@ export const StorageService = {
     if (authError) return { success: false, error: `Erro no Auth: ${authError.message}` };
     if (!authData.user) return { success: false, error: "Falha ao criar usuário." };
 
-    // 2. Criar perfil inicial
     const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
     newPlayer.name = account;
+    newPlayer.lastSaveTime = Date.now();
     
-    // Configura GM se o nome for admin
     if (account.toLowerCase() === 'admin') {
         newPlayer.isGm = true;
     }
@@ -73,19 +82,22 @@ export const StorageService = {
       });
 
     if (profileError) {
-        console.error("Erro de RLS detectado:", profileError);
-        return { success: false, error: `Erro de Permissão (RLS): ${profileError.message}. Execute o SQL de políticas no painel do Supabase.` };
+        return { success: false, error: `Erro de Permissão (RLS): ${profileError.message}` };
     }
 
     return { success: true, data: newPlayer };
   },
 
   async save(userId: string, data: Player): Promise<boolean> {
+    // Ao salvar, garantimos que o lastSaveTime seja o tempo do servidor para evitar manipulação local
+    const serverTime = await this.getServerTime();
+    const dataWithTimestamp = { ...data, lastSaveTime: serverTime };
+
     const { error } = await supabase
       .from('profiles')
       .update({ 
-        data: data,
-        updated_at: new Date().toISOString()
+        data: dataWithTimestamp,
+        updated_at: new Date(serverTime).toISOString()
       })
       .eq('id', userId);
 
@@ -94,15 +106,6 @@ export const StorageService = {
       return false;
     }
     return true;
-  },
-
-  exportSaveString(data: Player): string {
-    try {
-      return btoa(JSON.stringify(data));
-    } catch (e) {
-      console.error("Failed to export save string", e);
-      return "";
-    }
   },
 
   async getHighscores(): Promise<HighscoresData | null> {

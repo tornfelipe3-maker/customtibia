@@ -60,10 +60,17 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
       setDeathReport
   );
 
+  // Efeito de Inicialização e Sincronização com o Servidor
   useEffect(() => {
+    const syncAndStart = async () => {
       if (initialPlayer) {
           const migratedPlayer = { ...initialPlayer };
+          
+          // Sincroniza o relógio interno com o servidor imediatamente
+          const serverNow = await StorageService.getServerTime();
+          lastTickRef.current = serverNow;
 
+          // Migrações de dados (Retrocompatibilidade)
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
                   [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
@@ -72,85 +79,45 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               };
           }
           if (migratedPlayer.imbuActive === undefined) migratedPlayer.imbuActive = true;
-          
-          if (!migratedPlayer.ascension) {
-              migratedPlayer.ascension = { ...INITIAL_PLAYER_STATS.ascension };
-          } else {
-              Object.keys(INITIAL_PLAYER_STATS.ascension).forEach(perk => {
-                  if (migratedPlayer.ascension[perk as AscensionPerk] === undefined) {
-                      migratedPlayer.ascension[perk as AscensionPerk] = 0;
-                  }
-              });
-          }
-
+          if (!migratedPlayer.ascension) migratedPlayer.ascension = { ...INITIAL_PLAYER_STATS.ascension };
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
-          if (!migratedPlayer.relics) migratedPlayer.relics = [];
-          if (!migratedPlayer.runeCooldown) migratedPlayer.runeCooldown = 0;
-          if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
-          if (!migratedPlayer.skippedLoot) migratedPlayer.skippedLoot = [];
-          
-          if (!migratedPlayer.prey) {
-              migratedPlayer.prey = { ...INITIAL_PLAYER_STATS.prey };
-          } else {
-              if (migratedPlayer.prey.slots.length < 5) {
-                  while(migratedPlayer.prey.slots.length < 5) {
-                      migratedPlayer.prey.slots.push(generatePreyCard(migratedPlayer.level));
-                  }
-              }
-              if (migratedPlayer.prey.rerollsAvailable === undefined || migratedPlayer.prey.rerollsAvailable < 5) {
-                  migratedPlayer.prey.rerollsAvailable = 5;
-              }
-          }
-
-          if (migratedPlayer.taskNextFreeReroll === undefined) migratedPlayer.taskNextFreeReroll = 0;
-          if (!migratedPlayer.settings.attackSpellRotation) migratedPlayer.settings.attackSpellRotation = [];
-          if (migratedPlayer.isNameChosen === undefined) migratedPlayer.isNameChosen = migratedPlayer.level > 2;
-          
-          if (migratedPlayer.healthPotionCooldown === undefined) migratedPlayer.healthPotionCooldown = 0;
-          if (migratedPlayer.manaPotionCooldown === undefined) migratedPlayer.manaPotionCooldown = 0;
-
-          if (!migratedPlayer.tutorials) {
-              migratedPlayer.tutorials = { 
-                  introCompleted: false, seenRareMob: false, seenRareItem: false, 
-                  seenAscension: false, seenLevel12: false, seenMenus: []
-              };
-          }
-
+          if (!migratedPlayer.tutorials) migratedPlayer.tutorials = { ...INITIAL_PLAYER_STATS.tutorials };
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
           
-          const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime);
+          // --- CÁLCULO DE PROGRESSO SERVER-AUTHORITATIVE ---
+          // Usamos o serverNow capturado para calcular quanto tempo passou desde o último save verificado
+          const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime, serverNow);
           
-          if (report) {
+          if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
               setOfflineReport(report); 
               setIsPaused(true); 
           }
           if (stopHunt) updatedPlayer.activeHuntId = null;
           if (stopTrain) updatedPlayer.activeTrainingSkill = null;
           
+          // Atualiza refs e estado
+          updatedPlayer.lastSaveTime = serverNow;
           setPlayer(updatedPlayer);
           playerRef.current = updatedPlayer;
-          lastTickRef.current = Date.now();
       }
+    };
+    syncAndStart();
   }, [initialPlayer]);
 
-  useEffect(() => {
-      if (offlineReport !== null || deathReport !== null) setIsPaused(true);
-  }, [offlineReport, deathReport]);
-
-  // AUTO-SAVE EM NUVEM (ASSÍNCRONO)
+  // AUTO-SAVE EM NUVEM
   useEffect(() => {
       if (!userId) return;
       const timer = setInterval(async () => {
-          if (playerRef.current) {
-              const toSave = { ...playerRef.current, lastSaveTime: Date.now() };
-              await StorageService.save(userId, toSave);
+          if (playerRef.current && !isPaused) {
+              // O StorageService.save agora pega o tempo do servidor automaticamente
+              await StorageService.save(userId, playerRef.current);
           }
-      }, 30000); // Salva a cada 30 segundos
+      }, 60000); // Salva a cada 1 minuto para reduzir carga, mas com autoridade
       return () => clearInterval(timer);
-  }, [userId]);
+  }, [userId, isPaused]);
 
   useEffect(() => {
       if (!player) return;
@@ -173,37 +140,15 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          const MAX_SIMULATION_MS = 15 * 60 * 1000; 
+          // Se o delta for muito grande (lag ou aba inativa), processamos como offline progress
+          const MAX_SIMULATION_MS = 30000; // 30 segundos de tolerância no browser
 
           if (delta > MAX_SIMULATION_MS) { 
-              const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current);
+              const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current, now);
               
-              if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
-                  const xp = report.xpGained;
-                  const gold = report.goldGained;
-                  const waste = report.waste || 0;
-                  
-                  setAnalyzerHistory(prev => {
-                      const newEntry = { timestamp: now, xp, profit: gold, waste };
-                      const newHistory = [...prev, newEntry];
-                      if (newHistory.length > 3600) return newHistory.slice(-3600);
-                      return newHistory;
-                  });
-
-                  const timeAway = Math.floor(report.secondsOffline);
-                  if (timeAway > 60) {
-                      addLog(`Deep Sleep (${Math.floor(timeAway/60)}m): +${xp.toLocaleString()} XP, +${gold.toLocaleString()} Gold.`, 'info');
-                  }
-                  
-                  if (stopHunt) {
-                      fastForwardedPlayer.activeHuntId = null;
-                      setActiveMonster(undefined);
-                      setCurrentMonsterHp(0);
-                      monsterHpRef.current = 0;
-                  }
-                  if (stopTrain) {
-                      fastForwardedPlayer.activeTrainingSkill = null;
-                  }
+              if (report && (report.xpGained > 0 || report.goldGained > 0)) {
+                  addLog(`Lag compensation: +${report.xpGained.toLocaleString()} XP.`, 'info');
+                  if (stopHunt) fastForwardedPlayer.activeHuntId = null;
               }
 
               setPlayer(fastForwardedPlayer);
@@ -221,11 +166,9 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           
           let batchLogs: LogEntry[] = [];
           let batchHits: HitSplat[] = [];
-          let batchKills: { [name: string]: number } = {};
           let batchStats = { xp: 0, profit: 0, waste: 0 };
           
           let stopBatchHunt = false;
-          let stopBatchTrain = false;
           let triggerUpdate = null;
 
           for (let i = 0; i < ticksToProcess; i++) {
@@ -239,19 +182,12 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
               if (result.newHits.length > 0) batchHits.push(...result.newHits);
               
-              if (result.killedMonsters.length > 0) {
-                  result.killedMonsters.forEach(kill => {
-                      batchKills[kill.name] = (batchKills[kill.name] || 0) + kill.count;
-                  });
-              }
-
               batchStats.xp += result.stats.xpGained;
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
               if (result.triggers.tutorial || result.triggers.oracle || result.triggers.death) triggerUpdate = result.triggers;
               if (result.stopHunt) { stopBatchHunt = true; break; }
-              if (result.stopTrain) { stopBatchTrain = true; break; }
           }
 
           lastTickRef.current += (ticksToProcess * tickDuration);
@@ -259,35 +195,17 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (batchLogs.length > 0) setLogs(prev => [...prev, ...batchLogs].slice(-100));
           if (batchHits.length > 0) setHits(prev => [...prev, ...batchHits].filter(h => h.id > now - 2000).slice(-50));
 
-          if (Object.keys(batchKills).length > 0) {
-              setSessionKills(prev => {
-                  const newState = { ...prev };
-                  Object.entries(batchKills).forEach(([name, count]) => {
-                      newState[name] = (newState[name] || 0) + count;
-                  });
-                  return newState;
-              });
-          }
-
-          if (batchStats.xp > 0 || batchStats.profit > 0 || batchStats.waste > 0) {
+          if (batchStats.xp > 0 || batchStats.profit > 0) {
               setAnalyzerHistory(prev => {
                   const newEntry = { timestamp: now, xp: batchStats.xp, profit: batchStats.profit, waste: batchStats.waste };
                   const newHistory = [...prev, newEntry];
-                  if (newHistory.length > 3600) return newHistory.slice(-3600);
-                  return newHistory;
+                  return newHistory.slice(-3600);
               });
           }
 
           if (triggerUpdate) {
-              if (triggerUpdate.tutorial) {
-                  setIsPaused(true);
-                  setActiveTutorial(triggerUpdate.tutorial);
-              } else if (triggerUpdate.oracle) {
-                  setIsPaused(true);
-              } else if (triggerUpdate.death) {
-                  setIsPaused(true);
-                  setDeathReport(triggerUpdate.death);
-              }
+              if (triggerUpdate.tutorial) { setIsPaused(true); setActiveTutorial(triggerUpdate.tutorial); }
+              else if (triggerUpdate.death) { setIsPaused(true); setDeathReport(triggerUpdate.death); }
           }
 
           playerRef.current = tempPlayer; 
@@ -305,9 +223,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
       };
 
       worker.onmessage = () => runGameLoop();
-
-      const interval = 1000 / gameSpeed;
-      worker.postMessage({ type: 'START', interval });
+      worker.postMessage({ type: 'START', interval: 1000 / gameSpeed });
 
       return () => {
           worker.postMessage({ type: 'STOP' });

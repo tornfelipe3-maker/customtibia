@@ -52,7 +52,8 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState<any>(null);
 
   const fetchHighscores = async () => {
-      const data = await StorageService.getHighscores();
+      // Pass currentAccount (string | null) to getHighscores as required by its signature
+      const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data);
       setShowHighscores(true);
   };

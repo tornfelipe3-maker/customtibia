@@ -15,7 +15,6 @@ export interface HighscoresData {
 }
 
 export const StorageService = {
-  // Novo: Obtém a hora exata do servidor Supabase
   async getServerTime(): Promise<number> {
     const { data, error } = await supabase.rpc('get_server_time');
     if (error || !data) return Date.now();
@@ -37,7 +36,6 @@ export const StorageService = {
         return { success: false, error: authError.message };
     }
 
-    // Buscamos os dados e o tempo atual do servidor simultaneamente
     const [profileRes, serverTime] = await Promise.all([
       supabase.from('profiles').select('data').eq('id', authData.user.id).single(),
       this.getServerTime()
@@ -89,7 +87,6 @@ export const StorageService = {
   },
 
   async save(userId: string, data: Player): Promise<boolean> {
-    // Ao salvar, garantimos que o lastSaveTime seja o tempo do servidor para evitar manipulação local
     const serverTime = await this.getServerTime();
     const dataWithTimestamp = { ...data, lastSaveTime: serverTime };
 
@@ -108,36 +105,48 @@ export const StorageService = {
     return true;
   },
 
-  async getHighscores(): Promise<HighscoresData | null> {
+  async getHighscores(currentUserId: string | null): Promise<HighscoresData | null> {
+    // Para um ranking real, buscamos os TOP 100 ordenados por LEVEL e XP no banco
+    // O Supabase permite ordenar por campos dentro do JSON usando a sintaxe ->>
     const { data: allProfiles, error } = await supabase
       .from('profiles')
-      .select('username, data')
+      .select('id, username, data')
+      // Ordena primeiro por level, depois por XP (desempate)
+      .order('data->level', { ascending: false })
+      .order('data->currentXp', { ascending: false })
       .limit(100);
 
-    if (error || !allProfiles) return null;
+    if (error || !allProfiles) {
+        console.error("Erro ao buscar Highscores:", error);
+        return null;
+    }
 
-    const players = allProfiles.map(p => p.data as Player);
+    const entries = allProfiles.map(p => ({
+        id: p.id,
+        name: p.username,
+        data: p.data as Player
+    }));
 
     const getTop = (getValue: (p: Player) => number) => {
-        return players
-            .sort((a, b) => getValue(b) - getValue(a))
+        return entries
+            .sort((a, b) => getValue(b.data) - getValue(a.data))
             .slice(0, 10)
-            .map(p => ({
-                name: p.name,
-                vocation: p.vocation,
-                value: Math.floor(getValue(p)),
-                isPlayer: false
+            .map(e => ({
+                name: e.name,
+                vocation: e.data.vocation,
+                value: Math.floor(getValue(e.data)),
+                isPlayer: e.id === currentUserId
             }));
     };
 
     return {
-        'Level': getTop(p => p.level + (p.currentXp / p.maxXp)),
-        'Magic Level': getTop(p => p.skills[SkillType.MAGIC].level + (p.skills[SkillType.MAGIC].progress / 100)),
-        'Sword Fighting': getTop(p => p.skills[SkillType.SWORD].level + (p.skills[SkillType.SWORD].progress / 100)),
-        'Axe Fighting': getTop(p => p.skills[SkillType.AXE].level + (p.skills[SkillType.AXE].progress / 100)),
-        'Club Fighting': getTop(p => p.skills[SkillType.CLUB].level + (p.skills[SkillType.CLUB].progress / 100)),
-        'Distance Fighting': getTop(p => p.skills[SkillType.DISTANCE].level + (p.skills[SkillType.DISTANCE].progress / 100)),
-        'Shielding': getTop(p => p.skills[SkillType.DEFENSE].level + (p.skills[SkillType.DEFENSE].progress / 100)),
+        'Level': getTop(p => p.level),
+        'Magic Level': getTop(p => p.skills[SkillType.MAGIC].level),
+        'Sword Fighting': getTop(p => p.skills[SkillType.SWORD].level),
+        'Axe Fighting': getTop(p => p.skills[SkillType.AXE].level),
+        'Club Fighting': getTop(p => p.skills[SkillType.CLUB].level),
+        'Distance Fighting': getTop(p => p.skills[SkillType.DISTANCE].level),
+        'Shielding': getTop(p => p.skills[SkillType.DEFENSE].level),
     };
   }
 };

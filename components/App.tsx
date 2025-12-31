@@ -52,7 +52,8 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState(null);
 
   const fetchHighscores = async () => {
-      const data = await StorageService.getHighscores();
+      // Passamos o currentAccount (que é o ID do usuário no Supabase)
+      const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data as any);
       setShowHighscores(true);
   };
@@ -123,7 +124,6 @@ const App = () => {
         
         <Sidebar 
             activeTab={activeTab} 
-            // FIX: Use the local setActiveTab state instead of a non-existent actions property
             onMenuClick={setActiveTab}
             menuCategories={MENU_CATEGORIES}
         />
@@ -240,7 +240,6 @@ const App = () => {
                 onAddSoulPoints={actions.gmAddSoulPoints} 
                 onAddBags={actions.gmAddBags} 
                 onSetRarity={actions.gmSetRarity} 
-                // FIX: Pass the setGameSpeed function from actions to the GmPanel
                 onSetSpeed={actions.setGameSpeed} 
                 onSetHazard={actions.gmSetHazardLevel} 
             />

@@ -26,10 +26,9 @@ import { ReforgeModal } from './ReforgeModal';
 import { TutorialModal } from './TutorialModal';
 import { WikiModal } from './WikiModal';
 import { HuntAnalyzer } from './HuntAnalyzer'; 
-import { StatsPanel } from './StatsPanel'; // Novo
+import { StatsPanel } from './StatsPanel'; 
 import { HazardPanel } from './HazardPanel'; 
 import { OfflineModal } from './OfflineModal'; 
-/* Added missing DeathModal import */
 import { DeathModal } from './DeathModal';
 import { Sidebar } from './Sidebar'; 
 import { StorageService } from '../services/storage';
@@ -42,47 +41,38 @@ import {
 } from 'lucide-react';
 
 const App = () => {
-  const { isAuthenticated, loadedPlayer, currentAccount, login, register, importSave, authError, isAuthLoading, logout } = useAuth();
+  const { isAuthenticated, loadedPlayer, currentAccount, currentAccountName, login, register, authError, isAuthLoading, logout } = useAuth();
   const { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, deathReport, gameSpeed } = useGameEngine(loadedPlayer, currentAccount);
   const { t, language } = useLanguage(); 
   const [activeTab, setActiveTab] = useState('hunt'); 
   const [showHighscores, setShowHighscores] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
-  const [showStats, setShowStats] = useState(false); // Novo
+  const [showStats, setShowStats] = useState(false); 
   const [highscoresData, setHighscoresData] = useState(null);
 
-  const fetchHighscores = () => {
-      const data = StorageService.getHighscores();
-      // @ts-ignore
-      setHighscoresData(data);
+  const fetchHighscores = async () => {
+      const data = await StorageService.getHighscores();
+      setHighscoresData(data as any);
       setShowHighscores(true);
   };
 
-  const handleMenuClick = (menuId: string) => {
-      setActiveTab(menuId);
-  };
-
-  if (!isAuthenticated || !player) {
-    return <AuthScreen onLogin={login} onRegister={register} onImport={importSave} errorMsg={authError} isLoading={isAuthLoading} />;
+  if (isAuthLoading) {
+      return (
+          <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-gray-500">
+              <div className="w-12 h-12 border-4 border-t-yellow-500 border-gray-800 rounded-full animate-spin mb-4"></div>
+              <span className="text-xs uppercase tracking-widest font-bold">Connecting to Game Server...</span>
+          </div>
+      );
   }
 
-  const exportSave = () => {
-      if (currentAccount) {
-          const str = StorageService.exportSaveString(currentAccount);
-          if (str) navigator.clipboard.writeText(str).then(() => alert("Save string copied to clipboard!"));
-      }
-  };
+  if (!isAuthenticated || !player) {
+    return <AuthScreen onLogin={login} onRegister={register} onImport={()=>{}} errorMsg={authError} isLoading={isAuthLoading} />;
+  }
 
-  const handleChallengeBoss = (id: string, name: string, cost: number) => {
-      actions.removeGold(cost);
-      actions.startHunt(id, name, true, 1);
-      setActiveTab('hunt');
-  };
-
-  const handleLogout = () => {
+  const handleLogout = async () => {
       if (currentAccount && player) {
-          StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
+          await StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
       }
       logout();
   };
@@ -123,7 +113,6 @@ const App = () => {
               { id: 'store', label: t('menu_store'), icon: ShoppingBag, color: 'text-green-500' },
               { id: 'highscores', label: t('menu_highscores'), icon: Trophy, color: 'text-yellow-500', action: fetchHighscores },
               { id: 'wiki', label: t('menu_wiki'), icon: BookOpen, color: 'text-blue-300', action: () => setShowWiki(true) },
-              { id: 'save', label: t('menu_save'), icon: Save, color: 'text-blue-400', action: exportSave },
               { id: 'logout', label: t('menu_logout'), icon: LogOut, color: 'text-red-500', action: handleLogout },
           ]
       }
@@ -134,7 +123,8 @@ const App = () => {
         
         <Sidebar 
             activeTab={activeTab} 
-            onMenuClick={handleMenuClick}
+            // FIX: Use the local setActiveTab state instead of a non-existent actions property
+            onMenuClick={setActiveTab}
             menuCategories={MENU_CATEGORIES}
         />
 
@@ -191,7 +181,7 @@ const App = () => {
                 )}
                 
                 {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onRerollAll={actions.rerollAllPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
-                {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={handleChallengeBoss} />} 
+                {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={(id, name, cost) => { actions.removeGold(cost); actions.startHunt(id, name, true, 1); setActiveTab('hunt'); }} />} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
                 {activeTab === 'imbuement' && <ImbuementPanel player={player} onImbu={actions.handleImbu} onToggleActive={actions.handleToggleImbuActive} />}
 
@@ -213,7 +203,10 @@ const App = () => {
         </div>
 
         <div className="w-[300px] flex flex-col bg-[#222] border-l border-[#111] shadow-2xl shrink-0 z-20 h-full">
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative text-center pt-2">
+                <span className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded border border-yellow-900/30">
+                   Logged as: {currentAccountName}
+                </span>
                 <CharacterPanel 
                     player={player} 
                     onUpdateSettings={actions.updateSettings} 
@@ -231,71 +224,29 @@ const App = () => {
 
         <HighscoresModal isOpen={showHighscores} onClose={() => setShowHighscores(false)} data={highscoresData} />
         <WikiModal isOpen={showWiki} onClose={() => setShowWiki(false)} />
-        
-        <HuntAnalyzer 
-            isOpen={showAnalyzer} 
-            onClose={() => setShowAnalyzer(false)} 
-            onReset={actions.resetAnalyzer}
-            history={analyzerHistory} 
-            killCounts={sessionKills}
-        />
-
-        <StatsPanel 
-            player={player}
-            isOpen={showStats}
-            onClose={() => setShowStats(false)}
-        />
-        
-        {reforgeResult && (
-            <ReforgeModal 
-                oldItem={reforgeResult.oldItem} 
-                newItem={reforgeResult.newItem} 
-                onClose={actions.closeReforgeModal} 
-            />
-        )}
-
-        {activeTutorial && (
-            <TutorialModal 
-                type={activeTutorial} 
-                onClose={actions.closeTutorial} 
-            />
-        )}
-
-        <OracleModal 
-            player={player} 
-            onChooseName={actions.chooseName} 
-            onChooseVocation={actions.chooseVocation} 
-        />
-        
+        <HuntAnalyzer isOpen={showAnalyzer} onClose={() => setShowAnalyzer(false)} onReset={actions.resetAnalyzer} history={analyzerHistory} />
+        <StatsPanel player={player} isOpen={showStats} onClose={() => setShowStats(false)} />
+        {reforgeResult && <ReforgeModal oldItem={reforgeResult.oldItem} newItem={reforgeResult.newItem} onClose={actions.closeReforgeModal} />}
+        {activeTutorial && <TutorialModal type={activeTutorial} onClose={actions.closeTutorial} />}
+        <OracleModal player={player} onChooseName={actions.chooseName} onChooseVocation={actions.chooseVocation} />
         {player.isGm && (
             <GmPanel 
                 player={player} 
-                gameSpeed={gameSpeed}
+                gameSpeed={gameSpeed} 
                 onLevelUp={actions.gmLevelUp} 
                 onSkillUp={actions.gmSkillUp} 
-                onAddGold={actions.gmAddGold}
-                onAddGoldTokens={actions.gmAddGoldTokens}
-                onAddSoulPoints={actions.gmAddSoulPoints}
-                onAddBags={actions.gmAddBags}
+                onAddGold={actions.gmAddGold} 
+                onAddGoldTokens={actions.gmAddGoldTokens} 
+                onAddSoulPoints={actions.gmAddSoulPoints} 
+                onAddBags={actions.gmAddBags} 
                 onSetRarity={actions.gmSetRarity} 
-                onSetSpeed={actions.setGameSpeed}
-                onSetHazard={actions.gmSetHazardLevel}
+                // FIX: Pass the setGameSpeed function from actions to the GmPanel
+                onSetSpeed={actions.setGameSpeed} 
+                onSetHazard={actions.gmSetHazardLevel} 
             />
         )}
-
-        {offlineReport && (
-            <OfflineModal 
-                report={offlineReport} 
-                onClose={actions.closeOfflineModal}
-            />
-        )}
-
-        {deathReport && (
-            <DeathModal 
-                report={deathReport} 
-                onClose={actions.closeDeathModal}
-            />
-        )}
+        {offlineReport && <OfflineModal report={offlineReport} onClose={actions.closeOfflineModal} />}
+        {deathReport && <DeathModal report={deathReport} onClose={actions.closeDeathModal} />}
     </div>
   );
 };

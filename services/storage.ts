@@ -1,256 +1,132 @@
 
 import { Player, SkillType, Vocation } from '../types';
 import { INITIAL_PLAYER_STATS } from '../constants';
-
-const ACCOUNTS_KEY = 'tibia_idle_accounts_v1';
-
-interface AccountDb {
-  [accountName: string]: {
-    password: string;
-    data: Player;
-  }
-}
+import { supabase } from '../lib/supabase';
 
 export interface HighscoreEntry {
     name: string;
     vocation: string;
     value: number;
-    isPlayer: boolean; // To highlight the player in the list
+    isPlayer: boolean;
 }
 
 export interface HighscoresData {
     [category: string]: HighscoreEntry[];
 }
 
-// Mock Data for "Online" feel
-const LEGEND_NAMES = [
-    'Eternal Oblivion', 'Bubble', 'Cachero', 'Mateusz Dragon Wielki', 'Setzer Gambler', 
-    'Arieswar', 'Seromontis', 'Taifun Devilry', 'Lord\'Paulistinha', 'Tripida',
-    'Kharsek', 'Moonzinn', 'Bobeek', 'Goraca', 'Dev onica'
-];
-
-const generateMockPlayers = (): Player[] => {
-    // Generates fake players to populate the leaderboard
-    return LEGEND_NAMES.map((name, index) => {
-        // Create varied levels based on "legend" status roughly
-        const baseLevel = 200 - (index * 10) + Math.floor(Math.random() * 50); 
-        const vocation = Object.values(Vocation)[Math.floor(Math.random() * 4) + 1] as Vocation; // Random voc except None/Monk occasionally
-        
-        return {
-            ...INITIAL_PLAYER_STATS,
-            name: name,
-            level: Math.max(10, baseLevel),
-            vocation: vocation,
-            // Mock skills roughly based on level
-            skills: {
-                [SkillType.MAGIC]: { level: Math.floor(baseLevel / 3), progress: 0 },
-                [SkillType.SWORD]: { level: Math.floor(baseLevel / 2), progress: 0 },
-                [SkillType.AXE]: { level: Math.floor(baseLevel / 2), progress: 0 },
-                [SkillType.CLUB]: { level: Math.floor(baseLevel / 2), progress: 0 },
-                [SkillType.DISTANCE]: { level: Math.floor(baseLevel / 2), progress: 0 },
-                [SkillType.DEFENSE]: { level: Math.floor(baseLevel / 2), progress: 0 },
-                [SkillType.FIST]: { level: Math.floor(baseLevel / 4), progress: 0 },
-            }
-        };
-    });
-};
-
 export const StorageService = {
-  async delay(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  },
-
   async login(account: string, pass: string): Promise<{ success: boolean; data?: Player; error?: string }> {
-    await this.delay(300); 
+    // Supabase usa Email para login. Para manter o estilo "Tibia", 
+    // mapeamos o username para um email fake @tibia.com internamente se desejar, 
+    // ou apenas solicitamos o email no AuthScreen.
+    const email = account.includes('@') ? account : `${account.toLowerCase()}@tibiaidle.com`;
+    
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
 
-    // --- GM BACKDOOR ---
-    if (account.toLowerCase() === 'gamemaster' && pass === 'tibia') {
-        // Check if GM data exists in local storage, if not, create a god char
-        const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-        let gmData: Player;
-        
-        if (dbStr) {
-            const db: AccountDb = JSON.parse(dbStr);
-            if (db['gamemaster']) {
-                gmData = db['gamemaster'].data;
-                gmData.isGm = true; // Ensure flag is always true
-                return { success: true, data: gmData };
-            }
-        }
+    if (authError) return { success: false, error: authError.message };
 
-        // Initialize new GM
-        gmData = {
-            ...INITIAL_PLAYER_STATS,
-            name: 'Gamemaster',
-            vocation: Vocation.KNIGHT, // Default GM voc
-            isGm: true,
-            level: 100, // Start high
-            gold: 1000000,
-            maxHp: 2000,
-            hp: 2000,
-            maxMana: 1000,
-            mana: 1000,
-            inventory: {
-                ...INITIAL_PLAYER_STATS.inventory,
-                'bag_desire': 5,
-                'bag_covet': 5
-            }
-        };
-        
-        // Save it so state persists
-        await this.save('gamemaster', gmData);
-        // Also save password for consistency
-        const currentDbStr = localStorage.getItem(ACCOUNTS_KEY);
-        let currentDb: AccountDb = currentDbStr ? JSON.parse(currentDbStr) : {};
-        currentDb['gamemaster'] = { password: 'tibia', data: gmData };
-        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(currentDb));
+    // Buscar dados do perfil
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('data')
+      .eq('id', authData.user.id)
+      .single();
 
-        return { success: true, data: gmData };
+    if (profileError || !profileData) {
+      return { success: false, error: "Profile not found. Contact Admin." };
     }
-    // -------------------
 
-    try {
-      const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-      if (!dbStr) return { success: false, error: 'Account not found.' };
-
-      const db: AccountDb = JSON.parse(dbStr);
-      const acc = db[account];
-
-      if (!acc) return { success: false, error: 'Account not found.' };
-      if (acc.password !== pass) return { success: false, error: 'Incorrect password.' };
-
-      return { success: true, data: acc.data };
-    } catch (e) {
-      return { success: false, error: 'Corrupted data.' };
-    }
+    return { success: true, data: profileData.data as Player };
   },
 
   async register(account: string, pass: string): Promise<{ success: boolean; data?: Player; error?: string }> {
-    await this.delay(300);
+    const email = account.includes('@') ? account : `${account.toLowerCase()}@tibiaidle.com`;
+    
+    // 1. Criar usuário no Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password: pass,
+    });
 
-    if (account.toLowerCase() === 'gamemaster') return { success: false, error: 'Name reserved.' };
+    if (authError) return { success: false, error: authError.message };
+    if (!authData.user) return { success: false, error: "Registration failed." };
 
-    try {
-      const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-      let db: AccountDb = dbStr ? JSON.parse(dbStr) : {};
+    // 2. Criar perfil inicial
+    const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
+    newPlayer.name = account;
 
-      if (db[account]) return { success: false, error: 'Account already exists.' };
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        username: account,
+        data: newPlayer
+      });
 
-      const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
+    if (profileError) return { success: false, error: profileError.message };
 
-      db[account] = { password: pass, data: newPlayer };
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-
-      return { success: true, data: newPlayer };
-    } catch (e) {
-      return { success: false, error: 'Registration failed.' };
-    }
+    return { success: true, data: newPlayer };
   },
 
-  async save(account: string, data: Player): Promise<boolean> {
-    try {
-      const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-      if (dbStr) {
-        const db: AccountDb = JSON.parse(dbStr);
-        // Use account key directly
-        if (db[account]) {
-          db[account].data = data;
-          localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-          return true;
-        } else if (data.isGm && account === 'gamemaster') {
-             // Handle GM save if key missing
-             db[account] = { password: 'tibia', data: data };
-             localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-             return true;
-        }
-      }
-      return false;
-    } catch (e) {
-      console.error("Save failed", e);
+  async save(userId: string, data: Player): Promise<boolean> {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        data: data,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error("Cloud Save Error:", error);
       return false;
     }
+    return true;
   },
 
-  exportSaveString(account: string): string | null {
-    const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-    if (!dbStr) return null;
-    const db: AccountDb = JSON.parse(dbStr);
-    const acc = db[account];
-    if (!acc) return null;
-
+  // FIX: Added missing exportSaveString method to handle synchronous generation of save codes from current player data
+  exportSaveString(data: Player): string {
     try {
-        const json = JSON.stringify(acc);
-        return btoa(unescape(encodeURIComponent(json))); 
+      return btoa(JSON.stringify(data));
     } catch (e) {
-        return null;
+      console.error("Failed to export save string", e);
+      return "";
     }
   },
 
-  importSaveString(saveString: string): { success: boolean; accountName?: string; error?: string } {
-    try {
-        const json = decodeURIComponent(escape(atob(saveString)));
-        const accData = JSON.parse(json);
+  async getHighscores(): Promise<HighscoresData | null> {
+    const { data: allProfiles, error } = await supabase
+      .from('profiles')
+      .select('username, data')
+      .limit(100);
 
-        if (!accData.data || !accData.password || !accData.data.name) {
-            return { success: false, error: 'Invalid save format.' };
-        }
+    if (error || !allProfiles) return null;
 
-        const key = accData.data.name.toLowerCase().replace(/\s/g, '_') || 'imported_user';
+    const players = allProfiles.map(p => p.data as Player);
 
-        const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-        let db: AccountDb = dbStr ? JSON.parse(dbStr) : {};
+    const getTop = (getValue: (p: Player) => number) => {
+        return players
+            .sort((a, b) => getValue(b) - getValue(a))
+            .slice(0, 10)
+            .map(p => ({
+                name: p.name,
+                vocation: p.vocation,
+                value: Math.floor(getValue(p)),
+                isPlayer: false // Ajustar dinamicamente no componente se necessário
+            }));
+    };
 
-        db[key] = accData;
-        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(db));
-
-        return { success: true, accountName: key };
-
-    } catch (e) {
-        return { success: false, error: 'Invalid save string.' };
-    }
-  },
-
-  getHighscores(): HighscoresData | null {
-      try {
-          const dbStr = localStorage.getItem(ACCOUNTS_KEY);
-          let realPlayers: Player[] = [];
-          
-          if (dbStr) {
-            const db: AccountDb = JSON.parse(dbStr);
-            realPlayers = Object.values(db).map(acc => acc.data).filter(p => p.name);
-          }
-
-          // Combine Real Players with Fake Legends to create a competitive "Online" environment
-          const mockPlayers = generateMockPlayers();
-          const allPlayers = [...realPlayers, ...mockPlayers];
-
-          // Helper to get Top 10 sorted
-          const getTop = (getValue: (p: Player) => number) => {
-              return allPlayers
-                  .sort((a, b) => getValue(b) - getValue(a))
-                  .slice(0, 10)
-                  .map(p => ({
-                      name: p.name,
-                      vocation: p.vocation,
-                      value: Math.floor(getValue(p)),
-                      isPlayer: realPlayers.some(rp => rp.name === p.name) // Check if it's a real user
-                  }));
-          };
-
-          return {
-              'Level': getTop(p => p.level + (p.currentXp / p.maxXp)),
-              'Magic Level': getTop(p => p.skills[SkillType.MAGIC].level + (p.skills[SkillType.MAGIC].progress / 100)),
-              'Sword Fighting': getTop(p => p.skills[SkillType.SWORD].level + (p.skills[SkillType.SWORD].progress / 100)),
-              'Axe Fighting': getTop(p => p.skills[SkillType.AXE].level + (p.skills[SkillType.AXE].progress / 100)),
-              'Club Fighting': getTop(p => p.skills[SkillType.CLUB].level + (p.skills[SkillType.CLUB].progress / 100)),
-              'Distance Fighting': getTop(p => p.skills[SkillType.DISTANCE].level + (p.skills[SkillType.DISTANCE].progress / 100)),
-              'Shielding': getTop(p => p.skills[SkillType.DEFENSE].level + (p.skills[SkillType.DEFENSE].progress / 100)),
-              'Fist Fighting': getTop(p => p.skills[SkillType.FIST].level + (p.skills[SkillType.FIST].progress / 100)),
-          };
-
-      } catch (e) {
-          console.error("Highscore fetch error", e);
-          return null;
-      }
+    return {
+        'Level': getTop(p => p.level + (p.currentXp / p.maxXp)),
+        'Magic Level': getTop(p => p.skills[SkillType.MAGIC].level + (p.skills[SkillType.MAGIC].progress / 100)),
+        'Sword Fighting': getTop(p => p.skills[SkillType.SWORD].level + (p.skills[SkillType.SWORD].progress / 100)),
+        'Axe Fighting': getTop(p => p.skills[SkillType.AXE].level + (p.skills[SkillType.AXE].progress / 100)),
+        'Club Fighting': getTop(p => p.skills[SkillType.CLUB].level + (p.skills[SkillType.CLUB].progress / 100)),
+        'Distance Fighting': getTop(p => p.skills[SkillType.DISTANCE].level + (p.skills[SkillType.DISTANCE].progress / 100)),
+        'Shielding': getTop(p => p.skills[SkillType.DEFENSE].level + (p.skills[SkillType.DEFENSE].progress / 100)),
+    };
   }
 };

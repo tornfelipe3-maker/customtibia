@@ -1,86 +1,109 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StorageService } from '../services/storage';
 import { Player, EquipmentSlot } from '../types';
-import { INITIAL_PLAYER_STATS, SHOP_ITEMS } from '../constants';
+import { SHOP_ITEMS } from '../constants';
+import { supabase } from '../lib/supabase';
 
 export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentAccount, setCurrentAccount] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentAccountName, setCurrentAccountName] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [loadedPlayer, setLoadedPlayer] = useState<Player | null>(null);
 
-  const handleLogin = async (acc: string, pass: string) => {
+  // Verifica se o usuário já tem uma sessão ativa ao abrir o site
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('data, username')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile && !error) {
+            setLoadedPlayer(profile.data);
+            setCurrentUserId(session.user.id);
+            setCurrentAccountName(profile.username);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (e) {
+        console.error("Session check failed", e);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const login = async (acc: string, pass: string) => {
     setAuthError(null);
     setIsAuthLoading(true);
     
     const result = await StorageService.login(acc, pass);
     
-    setIsAuthLoading(false);
-
     if (result.success && result.data) {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUserId(user?.id || null);
+      setCurrentAccountName(acc);
       setLoadedPlayer(result.data);
-      setCurrentAccount(acc);
       setIsAuthenticated(true);
     } else {
-      setAuthError(result.error || 'Login failed.');
+      setAuthError(result.error || 'Falha no login. Verifique dados.');
     }
+    setIsAuthLoading(false);
   };
 
-  const handleRegister = async (acc: string, pass: string) => {
+  const register = async (acc: string, pass: string) => {
     setAuthError(null);
     setIsAuthLoading(true);
-
-    // Initial Starter Items Logic
-    const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
-    const coat = SHOP_ITEMS.find(i => i.id === 'coat');
-    const club = SHOP_ITEMS.find(i => i.id === 'club');
-    if (coat) newPlayer.equipment[EquipmentSlot.BODY] = coat;
-    if (club) newPlayer.equipment[EquipmentSlot.HAND_RIGHT] = club;
     
     const result = await StorageService.register(acc, pass);
     
     if (result.success && result.data) {
         const starterPlayer = result.data;
+        const coat = SHOP_ITEMS.find(i => i.id === 'coat');
+        const club = SHOP_ITEMS.find(i => i.id === 'club');
         if (coat) starterPlayer.equipment[EquipmentSlot.BODY] = coat;
         if (club) starterPlayer.equipment[EquipmentSlot.HAND_RIGHT] = club;
         
-        await StorageService.save(acc, starterPlayer);
-
-        setLoadedPlayer(starterPlayer);
-        setCurrentAccount(acc);
-        setIsAuthenticated(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await StorageService.save(user.id, starterPlayer);
+            setCurrentUserId(user.id);
+            setCurrentAccountName(acc);
+            setLoadedPlayer(starterPlayer);
+            setIsAuthenticated(true);
+        }
     } else {
-        setAuthError(result.error || 'Registration failed.');
+        setAuthError(result.error || 'Erro ao registrar conta.');
     }
     setIsAuthLoading(false);
   };
 
-  const handleImportSave = (saveStr: string) => {
-      const result = StorageService.importSaveString(saveStr);
-      if (result.success && result.accountName) {
-          setAuthError(`Import successful! Login as: ${result.accountName} (use your old password)`);
-      } else {
-          setAuthError(result.error || "Import failed.");
-      }
-  };
-
-  const logout = () => {
+  const logout = async () => {
+      await supabase.auth.signOut();
       setIsAuthenticated(false);
-      setCurrentAccount(null);
+      setCurrentUserId(null);
+      setCurrentAccountName(null);
       setLoadedPlayer(null);
   };
 
   return {
       isAuthenticated,
-      currentAccount,
+      currentAccount: currentUserId,
+      currentAccountName,
       authError,
       isAuthLoading,
       loadedPlayer,
-      login: handleLogin,
-      register: handleRegister,
-      importSave: handleImportSave,
+      login,
+      register,
+      importSave: () => alert("Cloud Storage Ativo: Importação manual desativada por segurança."),
       logout
   };
 };

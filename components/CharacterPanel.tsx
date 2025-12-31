@@ -158,14 +158,14 @@ export const CharacterPanel: React.FC<CharacterPanelProps> = ({
                 <div className="bg-gradient-to-r from-blue-800 to-blue-600 h-full absolute left-0 transition-all duration-300" style={{width: `${getManaPercentage()}%`}}></div>
                 <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">{Math.floor(player.mana)} / {effMaxMana}</div>
             </div>
-            <div className="h-2 w-full bg-[#0a0a0a] border border-[#333] relative rounded-sm overflow-hidden" title="Stamina (Hunting Time)">
+            <div className="h-4 w-full bg-[#0a0a0a] border border-[#333] relative rounded-sm overflow-hidden" title={t('stamina_tooltip')}>
                 <div className="bg-gradient-to-r from-orange-800 to-orange-400 h-full absolute left-0 transition-all duration-300" style={{width: `${getStaminaPercentage()}%`}}></div>
-                <div className="absolute inset-0 text-[7px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10">STAMINA: {formatStamina(player.stamina)}</div>
+                <div className="absolute inset-0 text-[9px] flex items-center justify-center text-white font-bold leading-none drop-shadow-md z-10 uppercase">STAMINA: {formatStamina(player.stamina)}</div>
             </div>
          </div>
 
          <div className="flex justify-between items-center mt-2.5 text-[10px] text-gray-400 font-bold">
-             <div className="flex items-center gap-1"><span className={`/span> w-2 h-2 rounded-full ${totalSlotsUsed >= MAX_BACKPACK_SLOTS ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`}></span> Cap: {totalSlotsUsed}/{MAX_BACKPACK_SLOTS}</div>
+             <div className="flex items-center gap-1"><span className={`w-2 h-2 rounded-full ${totalSlotsUsed >= MAX_BACKPACK_SLOTS ? 'bg-red-500 animate-pulse' : 'bg-orange-500'}`}></span> Cap: {totalSlotsUsed}/{MAX_BACKPACK_SLOTS}</div>
              <div className="flex items-center gap-2">
                  <div className="text-purple-400 flex items-center gap-1" title="Forge Tokens">
                     <RefreshCw size={10} /> {(player.inventory['forge_token'] || 0)}

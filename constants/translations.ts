@@ -21,6 +21,7 @@ export const TRANSLATIONS = {
     skill_dist: 'Distance Fighting',
     skill_shield: 'Shielding',
     char_analyzer: 'Analyzer',
+    stamina_tooltip: 'STAMINA: Grants 150% XP Bonus. When exhausted (00:00), you can still hunt at base XP rates.',
 
     // --- HUNT PANEL ---
     hunt_confirm_title: 'Do you want to hunt',
@@ -287,7 +288,7 @@ export const TRANSLATIONS = {
 
     // --- CHAR PANEL ---
     char_backpack: 'Mochila',
-    char_skills: 'Habilidades',
+    char_skills: 'Skills',
     skill_xp: 'Experiência',
     skill_ml: 'Magic Level',
     skill_club: 'Club Fighting',
@@ -296,6 +297,7 @@ export const TRANSLATIONS = {
     skill_dist: 'Distance Fighting',
     skill_shield: 'Shielding',
     char_analyzer: 'Analisador',
+    stamina_tooltip: 'STAMINA: Garante 150% de bônus de XP. Mesmo que acabe (00:00), você pode continuar caçando com XP base.',
 
     // --- HUNT PANEL ---
     hunt_confirm_title: 'Deseja caçar',
@@ -427,13 +429,13 @@ export const TRANSLATIONS = {
     ascension_soul_name: 'Afinidade de Alma',
     ascension_soul_desc: 'Aumenta Soul Points ganhos no próximo reset.',
     ascension_soul_details: 'Invista no potencial futuro.',
-    ascension_hp_name: 'Vitalidade',
+    ascension_hp_name: 'Vitality',
     ascension_hp_desc: 'Aumenta Vida Máxima.',
-    ascension_mana_name: 'Inteligência',
+    ascension_mana_name: 'Intelligence',
     ascension_mana_desc: 'Aumenta Mana Máxima.',
-    ascension_pot_hp_name: 'Alquimista (HP)',
+    ascension_pot_hp_name: 'Alchemist (HP)',
     ascension_pot_hp_desc: 'Aumenta eficácia de poções de Vida.',
-    ascension_pot_mana_name: 'Alquimista (MP)',
+    ascension_pot_mana_name: 'Alchemist (MP)',
     ascension_pot_mana_desc: 'Aumenta eficácia de poções de Mana.',
     ascension_title: 'Sistema de Ascensão',
     ascension_points: 'Soul Points',

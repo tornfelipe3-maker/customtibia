@@ -1,3 +1,4 @@
+
 import { Item, EquipmentSlot, NpcType } from '../../types';
 import { IMG_BASE, OUT_BASE } from '../config';
 
@@ -25,5 +26,5 @@ export const BOOTS_LIST: Item[] = [
   { id: 'prismatic_boots', name: 'Prismatic Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 7, price: 0, sellPrice: 120000, soldTo: [NpcType.RASHID], description: 'Botas prismáticas (Tier 7).', image: `${IMG_BASE}Prismatic_Boots.gif`, requiredLevel: 300 },
 
   // TIER 8
-  { id: 'falcon_boots', name: 'Falcon Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 8, price: 0, sellPrice: 300000, soldTo: [NpcType.RASHID], description: 'Botas do Falcão (Tier 8).', image: `${IMG_BASE}Falcon_Greaves.gif`, requiredLevel: 400 },
+  { id: 'falcon_boots', name: 'Falcon Boots', type: 'equipment', slot: EquipmentSlot.FEET, armor: 8, price: 0, sellPrice: 300000, soldTo: [NpcType.RASHID], description: 'Botas do Falcão (Tier 8).', image: `${OUT_BASE}Boots_of_Enlightenment.gif`, requiredLevel: 400 },
 ];

@@ -18,7 +18,7 @@ self.onmessage = function(e) {
 };
 `;
 
-export const useGameEngine = (initialPlayer: Player | null, accountName: string | null) => {
+export const useGameEngine = (initialPlayer: Player | null, userId: string | null) => {
   const [player, setPlayer] = useState<Player | null>(initialPlayer);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [hits, setHits] = useState<HitSplat[]>([]);
@@ -64,7 +64,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       if (initialPlayer) {
           const migratedPlayer = { ...initialPlayer };
 
-          // --- MIGRATION: IMBUEMENTS (ANTI-CRASH) ---
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
                   [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
@@ -74,11 +73,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           }
           if (migratedPlayer.imbuActive === undefined) migratedPlayer.imbuActive = true;
           
-          // --- MIGRATION: ASCENSION PERKS (PREVENT NaN) ---
           if (!migratedPlayer.ascension) {
               migratedPlayer.ascension = { ...INITIAL_PLAYER_STATS.ascension };
           } else {
-              // Garantir que todas as chaves novas existam (HP, Mana, Potions, etc)
               Object.keys(INITIAL_PLAYER_STATS.ascension).forEach(perk => {
                   if (migratedPlayer.ascension[perk as AscensionPerk] === undefined) {
                       migratedPlayer.ascension[perk as AscensionPerk] = 0;
@@ -93,7 +90,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
           if (!migratedPlayer.gmExtra) migratedPlayer.gmExtra = { forceRarity: null };
           if (!migratedPlayer.skippedLoot) migratedPlayer.skippedLoot = [];
           
-          // --- MIGRATION: PREY (5 slots e 5 rerolls) ---
           if (!migratedPlayer.prey) {
               migratedPlayer.prey = { ...INITIAL_PLAYER_STATS.prey };
           } else {
@@ -119,24 +115,11 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                   introCompleted: false, seenRareMob: false, seenRareItem: false, 
                   seenAscension: false, seenLevel12: false, seenMenus: []
               };
-          } else {
-              const tuts = migratedPlayer.tutorials as any;
-              if (tuts.introCompleted === undefined) tuts.introCompleted = false;
-              if (tuts.seenMenus === undefined) tuts.seenMenus = [];
-              if (tuts.seenAscension === undefined) tuts.seenAscension = false;
-              if (tuts.seenLevel12 === undefined) tuts.seenLevel12 = false;
           }
-
-          if (migratedPlayer.activeHazardLevel === undefined) migratedPlayer.activeHazardLevel = 0;
 
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
-          migratedPlayer.taskOptions = migratedPlayer.taskOptions.map(t => ({
-              ...t,
-              status: t.status || 'available',
-              category: t.category || t.type 
-          }));
           
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime);
           
@@ -157,17 +140,17 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       if (offlineReport !== null || deathReport !== null) setIsPaused(true);
   }, [offlineReport, deathReport]);
 
+  // AUTO-SAVE EM NUVEM (ASSÍNCRONO)
   useEffect(() => {
-      if (!accountName) return;
-      const timer = setInterval(() => {
+      if (!userId) return;
+      const timer = setInterval(async () => {
           if (playerRef.current) {
               const toSave = { ...playerRef.current, lastSaveTime: Date.now() };
-              if (!toSave.uniqueDepot) toSave.uniqueDepot = []; 
-              StorageService.save(accountName, toSave);
+              await StorageService.save(userId, toSave);
           }
-      }, 30000);
+      }, 30000); // Salva a cada 30 segundos
       return () => clearInterval(timer);
-  }, [accountName]);
+  }, [userId]);
 
   useEffect(() => {
       if (!player) return;
@@ -214,14 +197,12 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
                   
                   if (stopHunt) {
                       fastForwardedPlayer.activeHuntId = null;
-                      addLog("Hunt stopped (Time Limit or Resource).", 'danger');
                       setActiveMonster(undefined);
                       setCurrentMonsterHp(0);
                       monsterHpRef.current = 0;
                   }
                   if (stopTrain) {
                       fastForwardedPlayer.activeTrainingSkill = null;
-                      addLog("Training stopped (Time Limit).", 'danger');
                   }
               }
 
@@ -301,10 +282,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               if (triggerUpdate.tutorial) {
                   setIsPaused(true);
                   setActiveTutorial(triggerUpdate.tutorial);
-                  if (triggerUpdate.tutorial === 'mob') tempPlayer.tutorials.seenRareMob = true;
-                  if (triggerUpdate.tutorial === 'item') tempPlayer.tutorials.seenRareItem = true;
-                  if (triggerUpdate.tutorial === 'ascension') tempPlayer.tutorials.seenAscension = true;
-                  if (triggerUpdate.tutorial === 'level12') tempPlayer.tutorials.seenLevel12 = true;
               } else if (triggerUpdate.oracle) {
                   setIsPaused(true);
               } else if (triggerUpdate.death) {
@@ -325,21 +302,9 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
               setPlayer(resetPlayer);
               monsterHpRef.current = 0;
           }
-          if (stopBatchTrain) {
-              const resetPlayer = { ...tempPlayer, activeTrainingSkill: null, activeTrainingStartTime: 0 };
-              playerRef.current = resetPlayer;
-              setPlayer(resetPlayer);
-          }
       };
 
       worker.onmessage = () => runGameLoop();
-
-      const handleVisibilityChange = () => {
-          if (document.visibilityState === 'visible') {
-              runGameLoop();
-          }
-      };
-      document.addEventListener('visibilitychange', handleVisibilityChange);
 
       const interval = 1000 / gameSpeed;
       worker.postMessage({ type: 'START', interval });
@@ -347,7 +312,6 @@ export const useGameEngine = (initialPlayer: Player | null, accountName: string 
       return () => {
           worker.postMessage({ type: 'STOP' });
           worker.terminate();
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
   }, [!!player, isPaused, gameSpeed]);
 

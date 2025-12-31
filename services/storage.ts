@@ -106,12 +106,9 @@ export const StorageService = {
   },
 
   async getHighscores(currentUserId: string | null): Promise<HighscoresData | null> {
-    // Para um ranking real, buscamos os TOP 100 ordenados por LEVEL e XP no banco
-    // O Supabase permite ordenar por campos dentro do JSON usando a sintaxe ->>
     const { data: allProfiles, error } = await supabase
       .from('profiles')
-      .select('id, username, data')
-      // Ordena primeiro por level, depois por XP (desempate)
+      .select('id, data')
       .order('data->level', { ascending: false })
       .order('data->currentXp', { ascending: false })
       .limit(100);
@@ -121,11 +118,15 @@ export const StorageService = {
         return null;
     }
 
-    const entries = allProfiles.map(p => ({
-        id: p.id,
-        name: p.username,
-        data: p.data as Player
-    }));
+    // Mapeamos os dados garantindo que 'name' venha de p.data.name (nome do personagem)
+    const entries = allProfiles.map(p => {
+        const playerData = p.data as Player;
+        return {
+            id: p.id,
+            name: playerData.name || "Unknown Hero", // Aqui pegamos o nome do personagem
+            data: playerData
+        };
+    });
 
     const getTop = (getValue: (p: Player) => number) => {
         return entries

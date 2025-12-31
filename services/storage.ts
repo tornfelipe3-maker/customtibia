@@ -16,9 +16,6 @@ export interface HighscoresData {
 
 export const StorageService = {
   async login(account: string, pass: string): Promise<{ success: boolean; data?: Player; error?: string }> {
-    // Supabase usa Email para login. Para manter o estilo "Tibia", 
-    // mapeamos o username para um email fake @tibia.com internamente se desejar, 
-    // ou apenas solicitamos o email no AuthScreen.
     const email = account.includes('@') ? account : `${account.toLowerCase()}@tibiaidle.com`;
     
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -26,9 +23,13 @@ export const StorageService = {
       password: pass,
     });
 
-    if (authError) return { success: false, error: authError.message };
+    if (authError) {
+        if (authError.message.includes("Invalid login credentials")) {
+            return { success: false, error: "Nome de conta ou senha incorretos." };
+        }
+        return { success: false, error: authError.message };
+    }
 
-    // Buscar dados do perfil
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('data')
@@ -36,7 +37,7 @@ export const StorageService = {
       .single();
 
     if (profileError || !profileData) {
-      return { success: false, error: "Profile not found. Contact Admin." };
+      return { success: false, error: "Perfil não encontrado. Verifique se o RLS está configurado." };
     }
 
     return { success: true, data: profileData.data as Player };
@@ -51,12 +52,17 @@ export const StorageService = {
       password: pass,
     });
 
-    if (authError) return { success: false, error: authError.message };
-    if (!authData.user) return { success: false, error: "Registration failed." };
+    if (authError) return { success: false, error: `Erro no Auth: ${authError.message}` };
+    if (!authData.user) return { success: false, error: "Falha ao criar usuário." };
 
     // 2. Criar perfil inicial
     const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
     newPlayer.name = account;
+    
+    // Configura GM se o nome for admin
+    if (account.toLowerCase() === 'admin') {
+        newPlayer.isGm = true;
+    }
 
     const { error: profileError } = await supabase
       .from('profiles')
@@ -66,7 +72,10 @@ export const StorageService = {
         data: newPlayer
       });
 
-    if (profileError) return { success: false, error: profileError.message };
+    if (profileError) {
+        console.error("Erro de RLS detectado:", profileError);
+        return { success: false, error: `Erro de Permissão (RLS): ${profileError.message}. Execute o SQL de políticas no painel do Supabase.` };
+    }
 
     return { success: true, data: newPlayer };
   },
@@ -87,7 +96,6 @@ export const StorageService = {
     return true;
   },
 
-  // FIX: Added missing exportSaveString method to handle synchronous generation of save codes from current player data
   exportSaveString(data: Player): string {
     try {
       return btoa(JSON.stringify(data));
@@ -115,7 +123,7 @@ export const StorageService = {
                 name: p.name,
                 vocation: p.vocation,
                 value: Math.floor(getValue(p)),
-                isPlayer: false // Ajustar dinamicamente no componente se necessário
+                isPlayer: false
             }));
     };
 

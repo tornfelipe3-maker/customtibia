@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -68,20 +69,12 @@ const App = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (showHighscores) {
-        const interval = setInterval(fetchHighscores, 300000);
-        return () => clearInterval(interval);
-    }
-  }, [showHighscores, currentAccount]);
-
   const fetchHighscores = async () => {
       const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data as any);
       setShowHighscores(true);
   };
 
-  // Fixed line 173: Implementation for onChallengeBoss callback
   const handleChallengeBoss = (id: string, name: string, cost: number) => {
       actions.removeGold(cost);
       actions.startHunt(id, name, true, 1);
@@ -143,7 +136,7 @@ const App = () => {
               { id: 'store', label: t('menu_store'), icon: ShoppingBag, color: 'text-green-500' },
               { id: 'highscores', label: t('menu_highscores'), icon: Trophy, color: 'text-yellow-500', action: fetchHighscores },
               { id: 'killstats', label: 'Kill Statistics', icon: BarChart3, color: 'text-red-500', action: () => setShowKillStats(true) },
-              { id: 'deathlog', label: 'Deathlog', icon: Skull, color: 'text-orange-600', action: () => setShowDeathLog(true) },
+              { id: 'deathlog', label: 'Deathlog Global', icon: Skull, color: 'text-orange-600', action: () => setShowDeathLog(true) },
               { id: 'wiki', label: t('menu_wiki'), icon: BookOpen, color: 'text-blue-300', action: () => setShowWiki(true) },
               { id: 'logout', label: t('menu_logout'), icon: LogOut, color: 'text-red-500', action: handleLogout },
           ]
@@ -173,7 +166,6 @@ const App = () => {
                         player={player} 
                         userId={currentAccount!} 
                         onBuyMarket={actions.buyFromMarket} 
-                        /* Fixed line 165: Added closure to provide required hidden arguments (userId, userName) */
                         onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)} 
                         onCancelMarket={actions.cancelListing} 
                     />
@@ -191,7 +183,6 @@ const App = () => {
                         onStartHunt={actions.startHunt} 
                         bossCooldowns={player.bossCooldowns} 
                         onSetActiveHazard={actions.setActiveHazardLevel} 
-                        /* Fixed line 173: Using local handleChallengeBoss handler */
                         onChallengeBoss={handleChallengeBoss} 
                     />
                 )} 

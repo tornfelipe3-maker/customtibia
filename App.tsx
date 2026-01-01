@@ -34,13 +34,14 @@ import { OfflineModal } from './components/OfflineModal';
 import { DeathModal } from './components/DeathModal'; 
 import { Sidebar } from './components/Sidebar'; 
 import { MarketPanel } from './components/MarketPanel';
+import { ChatPanel } from './components/ChatPanel';
 import { ImbuementPanel } from './components/ImbuementPanel';
 import { StorageService } from './services/storage';
 import { 
     LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, BarChart3
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, BarChart3, MessageSquare
 } from 'lucide-react';
 
 const App = () => {
@@ -96,6 +97,7 @@ const App = () => {
       {
           title: t('cat_city'),
           items: [
+              { id: 'chat', label: 'Chat Global', icon: MessageSquare, color: 'text-cyan-400' },
               { id: 'market', label: 'Mercado Global', icon: Store, color: 'text-yellow-500' },
               { id: 'shop', label: t('menu_shop'), icon: CircleDollarSign, color: 'text-green-400' },
               { id: 'bank', label: t('menu_bank'), icon: Landmark, color: 'text-yellow-500' },
@@ -136,6 +138,10 @@ const App = () => {
                 )}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
                 
+                {activeTab === 'chat' && (
+                    <ChatPanel player={player} userId={currentAccount!} />
+                )}
+
                 {activeTab === 'market' && (
                     <MarketPanel 
                         player={player} 
@@ -146,7 +152,7 @@ const App = () => {
                     />
                 )}
 
-                {activeTab === 'shop' && <ShopPanel playerGold={player.gold} playerBankGold={player.bankGold} playerLevel={player.level} playerEquipment={player.equipment} playerInventory={player.inventory} playerUniqueInventory={player.uniqueInventory} playerQuests={player.quests} skippedLoot={player.skippedLoot} onBuyItem={actions.buyItem} onSellItem={actions.sellItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onBuyBlessing={actions.handleBuyBlessing} />}
+                {activeTab === 'shop' && <ShopPanel playerGold={player.gold} playerBankGold={player.bankGold} playerLevel={player.level} playerEquipment={player.equipment} playerInventory={player.inventory} playerUniqueInventory={player.uniqueInventory} playerQuests={player.quests} skippedLoot={player.skippedLoot} playerHasBlessing={player.hasBlessing} isGm={player.isGm} onBuyItem={actions.buyItem} onSellItem={actions.sellItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'castle' && <CastlePanel player={player} onPromote={actions.promotePlayer} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'store' && <StorePanel player={player} onBuyCoins={actions.buyCoins} onBuyPremium={actions.buyPremium} onBuyBoost={actions.buyBoost} />}
                 {activeTab === 'bank' && <BankPanel playerGold={player.gold} bankGold={player.bankGold} onDeposit={actions.depositGold} onWithdraw={actions.withdrawGold} />}

@@ -34,6 +34,7 @@ import { OfflineModal } from './OfflineModal';
 import { DeathModal } from './DeathModal';
 import { Sidebar } from './Sidebar'; 
 import { MarketPanel } from './MarketPanel';
+import { ChatPanel } from './ChatPanel';
 import { StorageService } from '../services/storage';
 import { ImbuementPanel } from './ImbuementPanel';
 import { APP_VERSION } from '../constants/config';
@@ -42,7 +43,7 @@ import {
     LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3, MessageSquare
 } from 'lucide-react';
 
 const App = () => {
@@ -109,6 +110,7 @@ const App = () => {
       {
           title: t('cat_city'),
           items: [
+              { id: 'chat', label: 'Chat Global', icon: MessageSquare, color: 'text-cyan-400' },
               { id: 'market', label: 'Mercado Global', icon: Store, color: 'text-yellow-500' },
               { id: 'shop', label: t('menu_shop'), icon: CircleDollarSign, color: 'text-green-400' },
               { id: 'bank', label: t('menu_bank'), icon: Landmark, color: 'text-yellow-500' },
@@ -160,6 +162,10 @@ const App = () => {
                 )}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
                 
+                {activeTab === 'chat' && (
+                    <ChatPanel player={player} userId={currentAccount!} />
+                )}
+
                 {activeTab === 'market' && (
                     <MarketPanel 
                         player={player} 

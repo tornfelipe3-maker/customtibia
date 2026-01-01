@@ -1,11 +1,14 @@
 
 import { Player, EquipmentSlot, SkillType, Vocation, ImbuType } from '../types';
 
+// VERSÃO ATUAL DO JOGO (Mude aqui sempre que fizer um grande update)
+export const APP_VERSION = '1.0.1';
+
 // URLs mais estáveis e diretas
 export const IMG_BASE = 'https://tibia.fandom.com/wiki/Special:FilePath/';
 export const OUT_BASE = 'https://www.tibiawiki.com.br/wiki/Special:FilePath/';
 
-// Placeholder em Base64 (um quadradinho cinza pixelado de 32x32) para quando a imagem falhar
+// Placeholder em Base64
 export const ITEM_PLACEHOLDER = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAM0lEQVRYR2N89+7dfwY0wPj69WvGkSNHMo6Ojr6vAAbG0YAm0NAEGppAQxNoaAINTeBBAwAs0ycSsv66mAAAAABJRU5ErkJggg==';
 
 export const MAX_STAMINA = 10800; // 3 hours in seconds

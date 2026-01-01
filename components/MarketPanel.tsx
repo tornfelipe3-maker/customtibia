@@ -22,20 +22,30 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
     const [hoverItem, setHoverItem] = useState<Item | null>(null);
     const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
 
-    const refreshMarket = async () => {
-        setLoading(true);
+    const refreshMarket = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const data = await MarketService.getListings();
             setListings(data);
         } catch (e) {
             console.error("Erro ao carregar mercado:", e);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
 
     useEffect(() => {
         refreshMarket();
+
+        // INSCREVE PARA REALTIME
+        const subscription = MarketService.subscribeToListings(() => {
+            console.log("Mercado atualizado via Realtime!");
+            refreshMarket(true); // Atualiza silenciosamente sem mostrar loading
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     const handleHover = (item: Item | null, e: React.MouseEvent) => {
@@ -70,7 +80,9 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                     </div>
                     <div>
                         <h2 className="text-xl font-bold font-serif tracking-wide">Mercado Global</h2>
-                        <div className="text-[10px] text-gray-500 uppercase tracking-widest">Moeda Única: Tibia Coins (TC)</div>
+                        <div className="text-[10px] text-green-500 uppercase tracking-widest flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Tempo Real Ativo
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col items-end">
@@ -110,28 +122,28 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <button onClick={refreshMarket} className="tibia-btn px-4 py-2 text-xs font-bold flex items-center gap-2">
-                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''}/> Atualizar
+                            <button onClick={() => refreshMarket()} className="tibia-btn px-4 py-2 text-xs font-bold flex items-center gap-2">
+                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''}/> Forçar Refresh
                             </button>
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-20 opacity-30 uppercase font-bold">Carregando Quadro...</div>
+                            <div className="text-center py-20 opacity-30 uppercase font-bold tracking-widest">Sincronizando com o Quadro...</div>
                         ) : listings.length === 0 ? (
-                            <div className="text-center py-20 text-gray-500 italic">Nenhum item à venda.</div>
+                            <div className="text-center py-20 text-gray-500 italic">Nenhum item à venda no momento.</div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {listings.filter(l => l.item_data.name.toLowerCase().includes(searchTerm.toLowerCase())).map(listing => (
-                                    <div key={listing.id} className={`p-3 rounded border flex items-center justify-between group hover:bg-black/20 ${getRarityClass(listing.item_data.rarity)}`}>
+                                    <div key={listing.id} className={`p-3 rounded border flex items-center justify-between group hover:bg-black/40 transition-all ${getRarityClass(listing.item_data.rarity)}`}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 bg-black/60 border border-white/5 rounded flex items-center justify-center relative shadow-inner"
+                                            <div className="w-14 h-14 bg-black/60 border border-white/5 rounded flex items-center justify-center relative shadow-inner overflow-hidden"
                                                 onMouseEnter={(e) => handleHover(listing.item_data, e)}
                                                 onMouseLeave={(e) => handleHover(null, e)}
                                             >
-                                                <Sprite src={listing.item_data.image} size={40} className="pixelated drop-shadow-md" />
+                                                <Sprite src={listing.item_data.image} size={40} className="pixelated drop-shadow-md group-hover:scale-110 transition-transform" />
                                             </div>
                                             <div>
-                                                <div className="font-bold text-sm text-white">{listing.item_data.name}</div>
+                                                <div className="font-bold text-sm text-white group-hover:text-yellow-200">{listing.item_data.name}</div>
                                                 <div className="text-[10px] text-gray-500">Vendedor: {listing.seller_name}</div>
                                             </div>
                                         </div>
@@ -140,11 +152,11 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                             <button 
                                                 onClick={() => onBuyMarket(listing)}
                                                 disabled={listing.seller_id === userId || player.tibiaCoins < listing.price_tc}
-                                                className={`px-4 py-1.5 rounded font-bold text-xs uppercase tracking-tighter border shadow-lg
+                                                className={`px-4 py-1.5 rounded font-bold text-xs uppercase tracking-tighter border shadow-lg transition-all
                                                     ${listing.seller_id === userId 
                                                         ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
                                                         : player.tibiaCoins >= listing.price_tc
-                                                            ? 'bg-yellow-700 hover:bg-yellow-600 border-yellow-500 text-white'
+                                                            ? 'bg-yellow-700 hover:bg-yellow-600 border-yellow-500 text-white active:scale-95'
                                                             : 'bg-red-900/20 border-red-900/50 text-red-400 cursor-not-allowed'
                                                     }
                                                 `}

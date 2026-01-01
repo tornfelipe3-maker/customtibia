@@ -22,6 +22,20 @@ export const MarketService = {
         return data || [];
     },
 
+    // Escuta mudanças em tempo real
+    subscribeToListings(callback: () => void) {
+        return supabase
+            .channel('market-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'market_listings' },
+                () => {
+                    callback();
+                }
+            )
+            .subscribe();
+    },
+
     async listItem(userId: string, userName: string, item: Item, priceTc: number) {
         const { error } = await supabase.from('market_listings').insert({
             seller_id: userId,
@@ -33,7 +47,6 @@ export const MarketService = {
     },
 
     async buyItem(listingId: string) {
-        // Remove o item do mercado (quem chegar primeiro leva)
         const { error } = await supabase.from('market_listings').delete().eq('id', listingId);
         if (error) throw error;
         return true;

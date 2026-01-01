@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -33,23 +34,48 @@ import { Sidebar } from './Sidebar';
 import { MarketPanel } from './MarketPanel';
 import { StorageService } from '../services/storage';
 import { ImbuementPanel } from './ImbuementPanel';
+import { APP_VERSION } from '../constants/config';
+import { supabase } from '../lib/supabase';
 import { 
     Save, LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw
 } from 'lucide-react';
 
 const App = () => {
   const { isAuthenticated, loadedPlayer, currentAccount, currentAccountName, login, register, authError, isAuthLoading, logout } = useAuth();
   const { player, logs, hits, activeMonster, currentMonsterHp, reforgeResult, activeTutorial, actions, analyzerHistory, sessionKills, offlineReport, deathReport, gameSpeed } = useGameEngine(loadedPlayer, currentAccount);
-  const { t, language } = useLanguage(); 
+  const { t } = useLanguage(); 
   const [activeTab, setActiveTab] = useState('hunt'); 
   const [showHighscores, setShowHighscores] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
   const [showStats, setShowStats] = useState(false); 
   const [highscoresData, setHighscoresData] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  // --- VERSION CHECKER ---
+  useEffect(() => {
+    const checkVersion = async () => {
+        const { data } = await supabase.from('system_config').select('value').eq('key', 'min_version').single();
+        if (data && data.value !== APP_VERSION) {
+            console.log("Nova versão detectada no servidor:", data.value);
+            setUpdateAvailable(true);
+        }
+    };
+    checkVersion();
+    const interval = setInterval(checkVersion, 600000); // Checa a cada 10 min
+    return () => clearInterval(interval);
+  }, []);
+
+  // --- AUTO RANKING REFRESH ---
+  useEffect(() => {
+    if (showHighscores) {
+        const interval = setInterval(fetchHighscores, 300000); // 5 min
+        return () => clearInterval(interval);
+    }
+  }, [showHighscores, currentAccount]);
 
   const fetchHighscores = async () => {
       const data = await StorageService.getHighscores(currentAccount);
@@ -122,6 +148,20 @@ const App = () => {
   return (
     <div className="flex h-screen w-screen bg-[#0d0d0d] text-gray-200 font-sans overflow-hidden select-none">
         
+        {/* UPDATE BANNER */}
+        {updateAvailable && (
+            <div className="fixed top-0 left-0 right-0 z-[1000] bg-blue-600 text-white p-2 text-center text-xs font-bold shadow-2xl animate-in slide-in-from-top duration-500 flex items-center justify-center gap-3">
+                <Sparkles size={16} />
+                UMA NOVA VERSÃO DO JOGO ESTÁ DISPONÍVEL!
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="bg-white text-blue-600 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-blue-50"
+                >
+                    <RefreshCw size={12}/> RECARREGAR AGORA
+                </button>
+            </div>
+        )}
+
         <Sidebar 
             activeTab={activeTab} 
             onMenuClick={setActiveTab}
@@ -149,10 +189,8 @@ const App = () => {
                     <MarketPanel 
                         player={player}
                         userId={currentAccount!}
-                        // Fixed: buyFromMarket expects 1 argument but was being passed 2. Removed currentAccount!.
                         onBuyMarket={(l) => actions.buyFromMarket(l)}
                         onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)}
-                        // Fixed: cancelListing expects 1 argument but was being passed 2. Removed currentAccount!.
                         onCancelMarket={(l) => actions.cancelListing(l)}
                     />
                 )}

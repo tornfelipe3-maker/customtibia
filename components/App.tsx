@@ -39,7 +39,7 @@ import { ImbuementPanel } from './ImbuementPanel';
 import { APP_VERSION } from '../constants/config';
 import { supabase } from '../lib/supabase';
 import { 
-    Save, LogOut, Trophy, Compass, Map, 
+    LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
     Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3
@@ -56,7 +56,7 @@ const App = () => {
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
   const [showStats, setShowStats] = useState(false); 
-  const [highscoresData, setHighscoresData] = useState(null);
+  const [highscoresData, setHighscoresData] = useState<any>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
@@ -71,21 +71,15 @@ const App = () => {
 
   const fetchHighscores = async () => {
       const data = await StorageService.getHighscores(currentAccount);
-      setHighscoresData(data as any);
+      setHighscoresData(data);
       setShowHighscores(true);
-  };
-
-  const handleChallengeBoss = (id: string, name: string, cost: number) => {
-      actions.removeGold(cost);
-      actions.startHunt(id, name, true, 1);
-      setActiveTab('hunt');
   };
 
   if (isAuthLoading) {
       return (
           <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-gray-500">
               <div className="w-12 h-12 border-4 border-t-yellow-500 border-gray-800 rounded-full animate-spin mb-4"></div>
-              <span className="text-xs uppercase tracking-widest font-bold">Connecting to Game Server...</span>
+              <span className="text-xs uppercase tracking-widest font-bold">Conectando ao Servidor...</span>
           </div>
       );
   }
@@ -95,7 +89,9 @@ const App = () => {
   }
 
   const handleLogout = async () => {
-      if (currentAccount && player) await StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
+      if (currentAccount && player) {
+          await StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
+      }
       logout();
   };
 
@@ -159,8 +155,11 @@ const App = () => {
 
         <div className="flex-1 flex flex-col min-w-0 h-full relative z-10 bg-[#121212]">
             <div className="flex-1 overflow-hidden relative shadow-inner">
-                {activeTab === 'hunt' && <HuntPanel player={player} activeHunt={player.activeHuntId} activeMonster={activeMonster} bossCooldowns={player.bossCooldowns} onStartHunt={actions.startHunt} onStopHunt={actions.stopHunt} currentMonsterHp={currentMonsterHp} hits={hits} />}
+                {activeTab === 'hunt' && (
+                    <HuntPanel player={player} activeHunt={player.activeHuntId} activeMonster={activeMonster} bossCooldowns={player.bossCooldowns} onStartHunt={actions.startHunt} onStopHunt={actions.stopHunt} currentMonsterHp={currentMonsterHp} hits={hits} />
+                )}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
+                
                 {activeTab === 'market' && (
                     <MarketPanel 
                         player={player} 
@@ -170,6 +169,7 @@ const App = () => {
                         onCancelMarket={actions.cancelListing} 
                     />
                 )}
+
                 {activeTab === 'shop' && <ShopPanel playerGold={player.gold} playerBankGold={player.bankGold} playerLevel={player.level} playerEquipment={player.equipment} playerInventory={player.inventory} playerUniqueInventory={player.uniqueInventory} playerQuests={player.quests} skippedLoot={player.skippedLoot} playerHasBlessing={player.hasBlessing} isGm={player.isGm} onBuyItem={actions.buyItem} onSellItem={actions.sellItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'castle' && <CastlePanel player={player} onPromote={actions.promotePlayer} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'store' && <StorePanel player={player} onBuyCoins={actions.buyCoins} onBuyPremium={actions.buyPremium} onBuyBoost={actions.buyBoost} />}
@@ -177,15 +177,7 @@ const App = () => {
                 {activeTab === 'spells' && <SpellPanel player={player} onBuySpell={actions.buySpell} />}
                 {activeTab === 'tasks' && <TaskPanel player={player} onSelectTask={actions.selectTask} onCancelTask={actions.cancelTask} onRerollTasks={actions.rerollTasks} onClaimReward={actions.claimTaskReward} onRerollSpecific={actions.rerollSpecificTask} />}
                 {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onRerollAll={actions.rerollAllPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
-                {activeTab === 'hazard' && (
-                    <HazardPanel 
-                        player={player} 
-                        onStartHunt={actions.startHunt} 
-                        bossCooldowns={player.bossCooldowns} 
-                        onSetActiveHazard={actions.setActiveHazardLevel} 
-                        onChallengeBoss={handleChallengeBoss} 
-                    />
-                )} 
+                {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={(id, name, cost) => { actions.removeGold(cost); actions.startHunt(id, name, true, 1); setActiveTab('hunt'); }} />} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
                 {activeTab === 'imbuement' && <ImbuementPanel player={player} onImbu={actions.handleImbu} onToggleActive={actions.handleToggleImbuActive} />}
                 {activeTab === 'depot' && <DepotPanel playerDepot={player.depot} playerUniqueDepot={player.uniqueDepot} onWithdrawItem={actions.withdrawItem} />}
@@ -197,7 +189,9 @@ const App = () => {
 
         <div className="w-[300px] flex flex-col bg-[#222] border-l border-[#111] shadow-2xl shrink-0 z-20 h-full">
             <div className="flex-1 overflow-hidden relative text-center pt-2">
-                <span className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded border border-yellow-900/30">Logged as: {currentAccountName}</span>
+                <div className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded mx-4 border border-yellow-900/30 truncate">
+                   Conta: {currentAccountName}
+                </div>
                 <CharacterPanel player={player} onUpdateSettings={actions.updateSettings} onEquipItem={actions.equipItem} onDepositItem={actions.depositItem} onDiscardItem={actions.discardItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onUnequipItem={actions.unequipItem} onReforgeItem={actions.reforgeItem} onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)} onToggleStats={() => setShowStats(!showStats)} />
             </div>
         </div>

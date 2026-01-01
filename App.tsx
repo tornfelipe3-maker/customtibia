@@ -21,6 +21,8 @@ import { QuestPanel } from './components/QuestPanel';
 import { BotPanel } from './components/BotPanel';
 import { GmPanel } from './components/GmPanel';
 import { HighscoresModal } from './components/HighscoresModal';
+import { KillStatsModal } from './components/KillStatsModal';
+import { DeathLogModal } from './components/DeathLogModal';
 import { OracleModal } from './components/OracleModal';
 import { ReforgeModal } from './components/ReforgeModal';
 import { TutorialModal } from './components/TutorialModal';
@@ -38,7 +40,7 @@ import {
     LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, BarChart3
 } from 'lucide-react';
 
 const App = () => {
@@ -47,6 +49,8 @@ const App = () => {
   const { t } = useLanguage(); 
   const [activeTab, setActiveTab] = useState('hunt'); 
   const [showHighscores, setShowHighscores] = useState(false);
+  const [showKillStats, setShowKillStats] = useState(false);
+  const [showDeathLog, setShowDeathLog] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
   const [showStats, setShowStats] = useState(false); 
@@ -114,6 +118,8 @@ const App = () => {
           items: [
               { id: 'store', label: t('menu_store'), icon: ShoppingBag, color: 'text-green-500' },
               { id: 'highscores', label: t('menu_highscores'), icon: Trophy, color: 'text-yellow-500', action: fetchHighscores },
+              { id: 'killstats', label: 'Kill Statistics', icon: BarChart3, color: 'text-red-500', action: () => setShowKillStats(true) },
+              { id: 'deathlog', label: 'Deathlog Global', icon: Skull, color: 'text-orange-600', action: () => setShowDeathLog(true) },
               { id: 'wiki', label: t('menu_wiki'), icon: BookOpen, color: 'text-blue-300', action: () => setShowWiki(true) },
               { id: 'logout', label: t('menu_logout'), icon: LogOut, color: 'text-red-500', action: handleLogout },
           ]
@@ -165,6 +171,8 @@ const App = () => {
             </div>
         </div>
         <HighscoresModal isOpen={showHighscores} onClose={() => setShowHighscores(false)} data={highscoresData} />
+        <KillStatsModal isOpen={showKillStats} onClose={() => setShowKillStats(false)} />
+        <DeathLogModal isOpen={showDeathLog} onClose={() => setShowDeathLog(false)} />
         <WikiModal isOpen={showWiki} onClose={() => setShowWiki(false)} />
         <HuntAnalyzer isOpen={showAnalyzer} onClose={() => setShowAnalyzer(false)} onReset={actions.resetAnalyzer} history={analyzerHistory} />
         <StatsPanel player={player} isOpen={showStats} onClose={() => setShowStats(false)} />

@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
 import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, validateProgressSanity } from '../services';
-import { BOSSES, INITIAL_PLAYER_STATS } from '../constants';
+// Added MONSTERS to the imports from constants
+import { MONSTERS, BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
 const WORKER_CODE = `
@@ -38,27 +38,15 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   const lastTickRef = useRef<number>(Date.now());
-  const lastSuccessfulSaveTimeRef = useRef<number>(Date.now());
+  const killBatchRef = useRef<{[id: string]: number}>({}); // BATCH DE KILLS PARA PERFORMANCE
   
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
       setLogs(prev => [...prev, { id: Math.random().toString(), message, type, timestamp: Date.now(), rarity }]);
   };
 
   const actions = useGameActions(
-      playerRef, 
-      setPlayer,
-      setGameSpeed,
-      setAnalyzerHistory,
-      setIsPaused,
-      setActiveTutorial,
-      setReforgeResult,
-      addLog,
-      monsterHpRef,
-      setCurrentMonsterHp,
-      setActiveMonster,
-      setSessionKills,
-      setOfflineReport,
-      setDeathReport
+      playerRef, setPlayer, setGameSpeed, setAnalyzerHistory, setIsPaused, setActiveTutorial, setReforgeResult,
+      addLog, monsterHpRef, setCurrentMonsterHp, setActiveMonster, setSessionKills, setOfflineReport, setDeathReport
   );
 
   useEffect(() => {
@@ -67,7 +55,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const migratedPlayer = { ...initialPlayer };
           const serverNow = await StorageService.getServerTime();
           lastTickRef.current = serverNow;
-          lastSuccessfulSaveTimeRef.current = migratedPlayer.lastSaveTime || serverNow;
 
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
@@ -81,13 +68,9 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.tutorials) migratedPlayer.tutorials = { ...INITIAL_PLAYER_STATS.tutorials };
-          if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length !== 8) {
-              migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
-          }
           
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime, serverNow);
           
-          // Fixed error: Property 'skillGain' does not exist on type 'OfflineReport'. Used 'skillTrained' instead.
           if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillTrained)) {
               setOfflineReport(report); 
               setIsPaused(true); 
@@ -103,21 +86,21 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
     syncAndStart();
   }, [initialPlayer]);
 
-  // AUTO-SAVE EM NUVEM COM SEGURANÇA
+  // --- PERF: BATCH SYNC DE KILLS E SAVE ---
   useEffect(() => {
       if (!userId) return;
       const timer = setInterval(async () => {
           if (playerRef.current && !isPaused) {
-              const res = await StorageService.save(userId, playerRef.current);
-              if (res.success) {
-                  // Sincroniza o timestamp local com o sucesso do servidor
-                  lastSuccessfulSaveTimeRef.current = Date.now();
-              } else if (res.error?.includes("Speedhack")) {
-                  addLog("Erro de Sincronização: O servidor detectou manipulação de tempo.", "danger");
-                  setIsPaused(true);
+              // Envia Batch de Kills para o Global Stats
+              if (Object.keys(killBatchRef.current).length > 0) {
+                  const batch = { ...killBatchRef.current };
+                  killBatchRef.current = {};
+                  await StorageService.syncMonsterKills(batch);
               }
+              // Salva Personagem
+              await StorageService.save(userId, playerRef.current);
           }
-      }, 60000); 
+      }, 30000); // A cada 30 segundos
       return () => clearInterval(timer);
   }, [userId, isPaused]);
 
@@ -142,28 +125,11 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          const MAX_SIMULATION_MS = 30000;
-
-          if (delta > MAX_SIMULATION_MS) { 
-              const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current, now);
-              
-              if (report && (report.xpGained > 0 || report.goldGained > 0)) {
-                  addLog(`Lag compensation: +${report.xpGained.toLocaleString()} XP.`, 'info');
-                  if (stopHunt) fastForwardedPlayer.activeHuntId = null;
-              }
-
-              setPlayer(fastForwardedPlayer);
-              playerRef.current = fastForwardedPlayer;
-              lastTickRef.current = now;
-              return;
-          }
-
           let ticksToProcess = Math.floor(delta / tickDuration);
           if (ticksToProcess <= 0) return;
 
           let tempPlayer = playerRef.current;
           let tempMonsterHp = monsterHpRef.current;
-          let tempActiveMonster = activeMonster; 
           
           let batchLogs: LogEntry[] = [];
           let batchHits: HitSplat[] = [];
@@ -171,6 +137,8 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           
           let stopBatchHunt = false;
           let triggerUpdate = null;
+          // Track the active monster throughout simulated ticks
+          let currentTickActiveMonster = activeMonster;
 
           for (let i = 0; i < ticksToProcess; i++) {
               const simTime = lastTickRef.current + ((i + 1) * tickDuration);
@@ -178,7 +146,8 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               
               tempPlayer = result.player;
               tempMonsterHp = result.monsterHp;
-              tempActiveMonster = result.activeMonster;
+              // Capture active monster from latest simulated tick
+              currentTickActiveMonster = result.activeMonster;
 
               if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
               if (result.newHits.length > 0) batchHits.push(...result.newHits);
@@ -187,7 +156,16 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
-              if (result.triggers.tutorial || result.triggers.oracle || result.triggers.death) triggerUpdate = result.triggers;
+              // Adiciona ao Batch de Kills para performance
+              result.killedMonsters.forEach(km => {
+                // Fixed line 157: MONSTERS is now imported from constants
+                const monster = MONSTERS.find(m => m.name === km.name) || BOSSES.find(b => b.name === km.name);
+                if (monster) {
+                    killBatchRef.current[monster.id] = (killBatchRef.current[monster.id] || 0) + km.count;
+                }
+              });
+
+              if (result.triggers.tutorial || result.triggers.death) triggerUpdate = result.triggers;
               if (result.stopHunt) { stopBatchHunt = true; break; }
           }
 
@@ -199,26 +177,30 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (batchStats.xp > 0 || batchStats.profit > 0) {
               setAnalyzerHistory(prev => {
                   const newEntry = { timestamp: now, xp: batchStats.xp, profit: batchStats.profit, waste: batchStats.waste };
-                  const newHistory = [...prev, newEntry];
-                  return newHistory.slice(-3600);
+                  return [...prev, newEntry].slice(-3600);
               });
           }
 
           if (triggerUpdate) {
               if (triggerUpdate.tutorial) { setIsPaused(true); setActiveTutorial(triggerUpdate.tutorial); }
-              else if (triggerUpdate.death) { setIsPaused(true); setDeathReport(triggerUpdate.death); }
+              else if (triggerUpdate.death) { 
+                  setIsPaused(true); 
+                  setDeathReport(triggerUpdate.death); 
+                  // LOG GLOBAL DE MORTE
+                  StorageService.logGlobalDeath(tempPlayer.name, tempPlayer.level, tempPlayer.vocation, triggerUpdate.death.killerName);
+              }
           }
 
           playerRef.current = tempPlayer; 
           setPlayer(tempPlayer);
           monsterHpRef.current = tempMonsterHp;
-          setActiveMonster(tempActiveMonster);
+          // Fixed line 192: Use the tracked monster from the last processed tick
+          setActiveMonster(triggerUpdate?.death ? undefined : currentTickActiveMonster);
           setCurrentMonsterHp(tempMonsterHp);
 
           if (stopBatchHunt) {
-              const resetPlayer = { ...tempPlayer, activeHuntId: null, activeHuntStartTime: 0 };
-              playerRef.current = resetPlayer;
-              setPlayer(resetPlayer);
+              playerRef.current = { ...tempPlayer, activeHuntId: null, activeHuntStartTime: 0 };
+              setPlayer(playerRef.current);
               monsterHpRef.current = 0;
           }
       };

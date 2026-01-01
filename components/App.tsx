@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -21,6 +20,8 @@ import { QuestPanel } from './QuestPanel';
 import { BotPanel } from './BotPanel';
 import { GmPanel } from './GmPanel';
 import { HighscoresModal } from './HighscoresModal';
+import { KillStatsModal } from './KillStatsModal';
+import { DeathLogModal } from './DeathLogModal';
 import { OracleModal } from './OracleModal';
 import { ReforgeModal } from './ReforgeModal';
 import { TutorialModal } from './TutorialModal';
@@ -40,7 +41,7 @@ import {
     Save, LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3
 } from 'lucide-react';
 
 const App = () => {
@@ -49,30 +50,27 @@ const App = () => {
   const { t } = useLanguage(); 
   const [activeTab, setActiveTab] = useState('hunt'); 
   const [showHighscores, setShowHighscores] = useState(false);
+  const [showKillStats, setShowKillStats] = useState(false);
+  const [showDeathLog, setShowDeathLog] = useState(false);
   const [showWiki, setShowWiki] = useState(false); 
   const [showAnalyzer, setShowAnalyzer] = useState(false); 
   const [showStats, setShowStats] = useState(false); 
   const [highscoresData, setHighscoresData] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
-  // --- VERSION CHECKER ---
   useEffect(() => {
     const checkVersion = async () => {
         const { data } = await supabase.from('system_config').select('value').eq('key', 'min_version').single();
-        if (data && data.value !== APP_VERSION) {
-            console.log("Nova versão detectada no servidor:", data.value);
-            setUpdateAvailable(true);
-        }
+        if (data && data.value !== APP_VERSION) setUpdateAvailable(true);
     };
     checkVersion();
-    const interval = setInterval(checkVersion, 600000); // Checa a cada 10 min
+    const interval = setInterval(checkVersion, 600000); 
     return () => clearInterval(interval);
   }, []);
 
-  // --- AUTO RANKING REFRESH ---
   useEffect(() => {
     if (showHighscores) {
-        const interval = setInterval(fetchHighscores, 300000); // 5 min
+        const interval = setInterval(fetchHighscores, 300000);
         return () => clearInterval(interval);
     }
   }, [showHighscores, currentAccount]);
@@ -81,6 +79,13 @@ const App = () => {
       const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data as any);
       setShowHighscores(true);
+  };
+
+  // Fixed line 173: Implementation for onChallengeBoss callback
+  const handleChallengeBoss = (id: string, name: string, cost: number) => {
+      actions.removeGold(cost);
+      actions.startHunt(id, name, true, 1);
+      setActiveTab('hunt');
   };
 
   if (isAuthLoading) {
@@ -97,9 +102,7 @@ const App = () => {
   }
 
   const handleLogout = async () => {
-      if (currentAccount && player) {
-          await StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
-      }
+      if (currentAccount && player) await StorageService.save(currentAccount, { ...player, lastSaveTime: Date.now() });
       logout();
   };
 
@@ -139,6 +142,8 @@ const App = () => {
           items: [
               { id: 'store', label: t('menu_store'), icon: ShoppingBag, color: 'text-green-500' },
               { id: 'highscores', label: t('menu_highscores'), icon: Trophy, color: 'text-yellow-500', action: fetchHighscores },
+              { id: 'killstats', label: 'Kill Statistics', icon: BarChart3, color: 'text-red-500', action: () => setShowKillStats(true) },
+              { id: 'deathlog', label: 'Deathlog', icon: Skull, color: 'text-orange-600', action: () => setShowDeathLog(true) },
               { id: 'wiki', label: t('menu_wiki'), icon: BookOpen, color: 'text-blue-300', action: () => setShowWiki(true) },
               { id: 'logout', label: t('menu_logout'), icon: LogOut, color: 'text-red-500', action: handleLogout },
           ]
@@ -148,152 +153,74 @@ const App = () => {
   return (
     <div className="flex h-screen w-screen bg-[#0d0d0d] text-gray-200 font-sans overflow-hidden select-none">
         
-        {/* UPDATE BANNER */}
         {updateAvailable && (
             <div className="fixed top-0 left-0 right-0 z-[1000] bg-blue-600 text-white p-2 text-center text-xs font-bold shadow-2xl animate-in slide-in-from-top duration-500 flex items-center justify-center gap-3">
-                <Sparkles size={16} />
-                UMA NOVA VERSÃO DO JOGO ESTÁ DISPONÍVEL!
-                <button 
-                    onClick={() => window.location.reload()}
-                    className="bg-white text-blue-600 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-blue-50"
-                >
+                <Sparkles size={16} /> UMA NOVA VERSÃO DO JOGO ESTÁ DISPONÍVEL!
+                <button onClick={() => window.location.reload()} className="bg-white text-blue-600 px-3 py-1 rounded-full flex items-center gap-1 hover:bg-blue-50">
                     <RefreshCw size={12}/> RECARREGAR AGORA
                 </button>
             </div>
         )}
 
-        <Sidebar 
-            activeTab={activeTab} 
-            onMenuClick={setActiveTab}
-            menuCategories={MENU_CATEGORIES}
-        />
+        <Sidebar activeTab={activeTab} onMenuClick={setActiveTab} menuCategories={MENU_CATEGORIES} />
 
         <div className="flex-1 flex flex-col min-w-0 h-full relative z-10 bg-[#121212]">
-            
             <div className="flex-1 overflow-hidden relative shadow-inner">
-                {activeTab === 'hunt' && (
-                    <HuntPanel 
-                        player={player} 
-                        activeHunt={player.activeHuntId} 
-                        activeMonster={activeMonster} 
-                        bossCooldowns={player.bossCooldowns}
-                        onStartHunt={(id, name, isBoss, count) => actions.startHunt(id, name, isBoss, count)}
-                        onStopHunt={actions.stopHunt}
-                        currentMonsterHp={currentMonsterHp}
-                        hits={hits}
-                    />
-                )}
+                {activeTab === 'hunt' && <HuntPanel player={player} activeHunt={player.activeHuntId} activeMonster={activeMonster} bossCooldowns={player.bossCooldowns} onStartHunt={actions.startHunt} onStopHunt={actions.stopHunt} currentMonsterHp={currentMonsterHp} hits={hits} />}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
-                
                 {activeTab === 'market' && (
                     <MarketPanel 
-                        player={player}
-                        userId={currentAccount!}
-                        onBuyMarket={(l) => actions.buyFromMarket(l)}
-                        onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)}
-                        onCancelMarket={(l) => actions.cancelListing(l)}
+                        player={player} 
+                        userId={currentAccount!} 
+                        onBuyMarket={actions.buyFromMarket} 
+                        /* Fixed line 165: Added closure to provide required hidden arguments (userId, userName) */
+                        onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)} 
+                        onCancelMarket={actions.cancelListing} 
                     />
                 )}
-
-                {activeTab === 'shop' && (
-                    <ShopPanel 
-                        playerGold={player.gold} 
-                        playerBankGold={player.bankGold}
-                        playerLevel={player.level} 
-                        playerEquipment={player.equipment} 
-                        playerInventory={player.inventory} 
-                        playerUniqueInventory={player.uniqueInventory} 
-                        playerQuests={player.quests} 
-                        skippedLoot={player.skippedLoot} 
-                        playerHasBlessing={player.hasBlessing} 
-                        isGm={player.isGm} 
-                        onBuyItem={actions.buyItem} 
-                        onSellItem={actions.sellItem} 
-                        onToggleSkippedLoot={actions.toggleSkippedLoot} 
-                        onBuyBlessing={actions.handleBuyBlessing}
-                    />
-                )}
-
+                {activeTab === 'shop' && <ShopPanel playerGold={player.gold} playerBankGold={player.bankGold} playerLevel={player.level} playerEquipment={player.equipment} playerInventory={player.inventory} playerUniqueInventory={player.uniqueInventory} playerQuests={player.quests} skippedLoot={player.skippedLoot} playerHasBlessing={player.hasBlessing} isGm={player.isGm} onBuyItem={actions.buyItem} onSellItem={actions.sellItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'castle' && <CastlePanel player={player} onPromote={actions.promotePlayer} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'store' && <StorePanel player={player} onBuyCoins={actions.buyCoins} onBuyPremium={actions.buyPremium} onBuyBoost={actions.buyBoost} />}
                 {activeTab === 'bank' && <BankPanel playerGold={player.gold} bankGold={player.bankGold} onDeposit={actions.depositGold} onWithdraw={actions.withdrawGold} />}
                 {activeTab === 'spells' && <SpellPanel player={player} onBuySpell={actions.buySpell} />}
-                
-                {activeTab === 'tasks' && (
-                    <TaskPanel 
-                        player={player} 
-                        onSelectTask={actions.selectTask} 
-                        onCancelTask={actions.cancelTask} 
-                        onRerollTasks={actions.rerollTasks} 
-                        onClaimReward={actions.claimTaskReward} 
-                        onRerollSpecific={actions.rerollSpecificTask}
-                    />
-                )}
-                
+                {activeTab === 'tasks' && <TaskPanel player={player} onSelectTask={actions.selectTask} onCancelTask={actions.cancelTask} onRerollTasks={actions.rerollTasks} onClaimReward={actions.claimTaskReward} onRerollSpecific={actions.rerollSpecificTask} />}
                 {activeTab === 'prey' && <PreyPanel player={player} onReroll={actions.rerollPrey} onRerollAll={actions.rerollAllPrey} onActivate={actions.activatePrey} onCancel={actions.cancelPrey} />}
-                {activeTab === 'hazard' && <HazardPanel player={player} onStartHunt={(id, name, isBoss) => actions.startHunt(id, name, isBoss, 1)} bossCooldowns={player.bossCooldowns} onSetActiveHazard={actions.setActiveHazardLevel} onChallengeBoss={(id, name, cost) => { actions.removeGold(cost); actions.startHunt(id, name, true, 1); setActiveTab('hunt'); }} />} 
+                {activeTab === 'hazard' && (
+                    <HazardPanel 
+                        player={player} 
+                        onStartHunt={actions.startHunt} 
+                        bossCooldowns={player.bossCooldowns} 
+                        onSetActiveHazard={actions.setActiveHazardLevel} 
+                        /* Fixed line 173: Using local handleChallengeBoss handler */
+                        onChallengeBoss={handleChallengeBoss} 
+                    />
+                )} 
                 {activeTab === 'ascension' && <AscensionPanel player={player} onAscend={actions.ascend} onUpgrade={actions.upgradeAscension} />}
                 {activeTab === 'imbuement' && <ImbuementPanel player={player} onImbu={actions.handleImbu} onToggleActive={actions.handleToggleImbuActive} />}
-
-                {activeTab === 'depot' && (
-                    <DepotPanel 
-                        playerDepot={player.depot} 
-                        playerUniqueDepot={player.uniqueDepot} 
-                        onWithdrawItem={actions.withdrawItem} 
-                    />
-                )}
-                
+                {activeTab === 'depot' && <DepotPanel playerDepot={player.depot} playerUniqueDepot={player.uniqueDepot} onWithdrawItem={actions.withdrawItem} />}
                 {activeTab === 'quests' && <QuestPanel playerQuests={player.quests} onClaimQuest={actions.claimQuest} playerLevel={player.level} />}
                 {activeTab === 'bot' && <BotPanel player={player} onUpdateSettings={actions.updateSettings} />}
             </div>
-
-            <div className="h-[180px] border-t-2 border-[#333] bg-black shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-20">
-                <LogPanel logs={logs} />
-            </div>
+            <div className="h-[180px] border-t-2 border-[#333] bg-black shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-20"><LogPanel logs={logs} /></div>
         </div>
 
         <div className="w-[300px] flex flex-col bg-[#222] border-l border-[#111] shadow-2xl shrink-0 z-20 h-full">
             <div className="flex-1 overflow-hidden relative text-center pt-2">
-                <span className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded border border-yellow-900/30">
-                   Logged as: {currentAccountName}
-                </span>
-                <CharacterPanel 
-                    player={player} 
-                    onUpdateSettings={actions.updateSettings} 
-                    onEquipItem={actions.equipItem} 
-                    onDepositItem={actions.depositItem}
-                    onDiscardItem={actions.discardItem}
-                    onToggleSkippedLoot={actions.toggleSkippedLoot}
-                    onUnequipItem={actions.unequipItem}
-                    onReforgeItem={actions.reforgeItem}
-                    onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)}
-                    onToggleStats={() => setShowStats(!showStats)}
-                />
+                <span className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded border border-yellow-900/30">Logged as: {currentAccountName}</span>
+                <CharacterPanel player={player} onUpdateSettings={actions.updateSettings} onEquipItem={actions.equipItem} onDepositItem={actions.depositItem} onDiscardItem={actions.discardItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onUnequipItem={actions.unequipItem} onReforgeItem={actions.reforgeItem} onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)} onToggleStats={() => setShowStats(!showStats)} />
             </div>
         </div>
 
         <HighscoresModal isOpen={showHighscores} onClose={() => setShowHighscores(false)} data={highscoresData} />
+        <KillStatsModal isOpen={showKillStats} onClose={() => setShowKillStats(false)} />
+        <DeathLogModal isOpen={showDeathLog} onClose={() => setShowDeathLog(false)} />
         <WikiModal isOpen={showWiki} onClose={() => setShowWiki(false)} />
         <HuntAnalyzer isOpen={showAnalyzer} onClose={() => setShowAnalyzer(false)} onReset={actions.resetAnalyzer} history={analyzerHistory} />
         <StatsPanel player={player} isOpen={showStats} onClose={() => setShowStats(false)} />
         {reforgeResult && <ReforgeModal oldItem={reforgeResult.oldItem} newItem={reforgeResult.newItem} onClose={actions.closeReforgeModal} />}
         {activeTutorial && <TutorialModal type={activeTutorial} onClose={actions.closeTutorial} />}
         <OracleModal player={player} onChooseName={actions.chooseName} onChooseVocation={actions.chooseVocation} />
-        {player.isGm && (
-            <GmPanel 
-                player={player} 
-                gameSpeed={gameSpeed} 
-                onLevelUp={actions.gmLevelUp} 
-                onSkillUp={actions.gmSkillUp} 
-                onAddGold={actions.gmAddGold} 
-                onAddGoldTokens={actions.gmAddGoldTokens} 
-                onAddSoulPoints={actions.gmAddSoulPoints} 
-                onAddBags={actions.gmAddBags} 
-                onSetRarity={actions.gmSetRarity} 
-                onSetSpeed={actions.setGameSpeed} 
-                onSetHazard={actions.gmSetHazardLevel} 
-            />
-        )}
+        {player.isGm && <GmPanel player={player} gameSpeed={gameSpeed} onLevelUp={actions.gmLevelUp} onSkillUp={actions.gmSkillUp} onAddGold={actions.gmAddGold} onAddGoldTokens={actions.gmAddGoldTokens} onAddSoulPoints={actions.gmAddSoulPoints} onAddBags={actions.gmAddBags} onSetRarity={actions.gmSetRarity} onSetSpeed={actions.setGameSpeed} onSetHazard={actions.gmSetHazardLevel} />}
         {offlineReport && <OfflineModal report={offlineReport} onClose={actions.closeOfflineModal} />}
         {deathReport && <DeathModal report={deathReport} onClose={actions.closeDeathModal} />}
     </div>

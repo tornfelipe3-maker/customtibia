@@ -14,6 +14,20 @@ export interface HighscoresData {
     [category: string]: HighscoreEntry[];
 }
 
+export interface GlobalDeath {
+    id: string;
+    player_name: string;
+    level: number;
+    vocation: string;
+    killer_name: string;
+    created_at: string;
+}
+
+export interface MonsterStat {
+    monster_id: string;
+    kill_count: number;
+}
+
 export const StorageService = {
   async getServerTime(): Promise<number> {
     const { data, error } = await supabase.rpc('get_server_time');
@@ -86,15 +100,8 @@ export const StorageService = {
     return { success: true, data: newPlayer };
   },
 
-  /**
-   * SAVE SEGURO (ANTI-CHEAT)
-   * Agora usamos uma RPC para validar se o tempo passado pelo jogador condiz com o relógio do servidor.
-   */
   async save(userId: string, data: Player): Promise<{ success: boolean; error?: string }> {
-    // Pegamos o timestamp que o cliente alega ser o último save processado
     const claimedLastSave = data.lastSaveTime;
-
-    // Chamamos a função SQL 'secure_save_player' que criamos no Supabase
     const { data: rpcData, error: rpcError } = await supabase.rpc('secure_save_player', {
       p_user_id: userId,
       p_new_data: data,
@@ -105,12 +112,40 @@ export const StorageService = {
       console.error("Cloud Save Security Error:", rpcError);
       return { success: false, error: rpcError.message };
     }
-
-    if (rpcData === false) {
-      return { success: false, error: "Divergência de tempo detectada (Speedhack Bloqueado)." };
-    }
-
     return { success: true };
+  },
+
+  // --- NEW: GLOBAL STATS METHODS ---
+
+  async logGlobalDeath(playerName: string, level: number, vocation: string, killerName: string) {
+    await supabase.from('global_deaths').insert({
+        player_name: playerName,
+        level: level,
+        vocation: vocation,
+        killer_name: killerName
+    });
+  },
+
+  async getLatestDeaths(): Promise<GlobalDeath[]> {
+      const { data } = await supabase
+          .from('global_deaths')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+      return data || [];
+  },
+
+  async syncMonsterKills(killBatch: {[monsterId: string]: number}) {
+      if (Object.keys(killBatch).length === 0) return;
+      await supabase.rpc('increment_monster_kills_batch', { kill_batches: killBatch });
+  },
+
+  async getGlobalMonsterStats(): Promise<MonsterStat[]> {
+      const { data } = await supabase
+          .from('global_monster_stats')
+          .select('*')
+          .order('kill_count', { ascending: false });
+      return data || [];
   },
 
   async getHighscores(currentUserId: string | null): Promise<HighscoresData | null> {
@@ -121,18 +156,11 @@ export const StorageService = {
       .order('data->currentXp', { ascending: false })
       .limit(100);
 
-    if (error || !allProfiles) {
-        console.error("Erro ao buscar Highscores:", error);
-        return null;
-    }
+    if (error || !allProfiles) return null;
 
     const entries = allProfiles.map(p => {
         const playerData = p.data as Player;
-        return {
-            id: p.id,
-            name: playerData.name || "Unknown Hero",
-            data: playerData
-        };
+        return { id: p.id, name: playerData.name || "Unknown Hero", data: playerData };
     });
 
     const getTop = (getValue: (p: Player) => number) => {

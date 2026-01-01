@@ -31,13 +31,14 @@ import { HazardPanel } from './components/HazardPanel';
 import { OfflineModal } from './components/OfflineModal'; 
 import { DeathModal } from './components/DeathModal'; 
 import { Sidebar } from './components/Sidebar'; 
+import { MarketPanel } from './components/MarketPanel';
 import { ImbuementPanel } from './components/ImbuementPanel';
 import { StorageService } from './services/storage';
 import { 
     LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store
 } from 'lucide-react';
 
 const App = () => {
@@ -52,7 +53,6 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState<any>(null);
 
   const fetchHighscores = async () => {
-      // Pass currentAccount (string | null) to getHighscores as required by its signature
       const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data);
       setShowHighscores(true);
@@ -92,6 +92,7 @@ const App = () => {
       {
           title: t('cat_city'),
           items: [
+              { id: 'market', label: 'Mercado Global', icon: Store, color: 'text-yellow-500' },
               { id: 'shop', label: t('menu_shop'), icon: CircleDollarSign, color: 'text-green-400' },
               { id: 'bank', label: t('menu_bank'), icon: Landmark, color: 'text-yellow-500' },
               { id: 'depot', label: t('menu_depot'), icon: Briefcase, color: 'text-amber-700' },
@@ -128,6 +129,17 @@ const App = () => {
                     <HuntPanel player={player} activeHunt={player.activeHuntId} activeMonster={activeMonster} bossCooldowns={player.bossCooldowns} onStartHunt={actions.startHunt} onStopHunt={actions.stopHunt} currentMonsterHp={currentMonsterHp} hits={hits} />
                 )}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
+                
+                {activeTab === 'market' && (
+                    <MarketPanel 
+                        player={player} 
+                        userId={currentAccount!} 
+                        onBuyMarket={actions.buyFromMarket} 
+                        onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)} 
+                        onCancelMarket={actions.cancelListing} 
+                    />
+                )}
+
                 {activeTab === 'shop' && <ShopPanel playerGold={player.gold} playerBankGold={player.bankGold} playerLevel={player.level} playerEquipment={player.equipment} playerInventory={player.inventory} playerUniqueInventory={player.uniqueInventory} playerQuests={player.quests} skippedLoot={player.skippedLoot} onBuyItem={actions.buyItem} onSellItem={actions.sellItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'castle' && <CastlePanel player={player} onPromote={actions.promotePlayer} onBuyBlessing={actions.handleBuyBlessing} />}
                 {activeTab === 'store' && <StorePanel player={player} onBuyCoins={actions.buyCoins} onBuyPremium={actions.buyPremium} onBuyBoost={actions.buyBoost} />}

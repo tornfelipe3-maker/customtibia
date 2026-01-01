@@ -4,7 +4,9 @@ import { MONSTERS, SHOP_ITEMS, getXpForLevel, REGEN_RATES } from '../constants';
 import { estimateHuntStats, getAscensionBonusValue, getEffectiveMaxHp, getEffectiveMaxMana } from './mechanics';
 import { processSkillTraining, checkForLevelUp } from './progression';
 
-const MAX_OFFLINE_SEC = 24 * 3600; // Aumentado para 24 Horas no modelo Server-Authoritative
+// Limites estritos conforme solicitado
+const MAX_HUNT_OFFLINE_SEC = 6 * 60 * 60; // 6 Horas
+const MAX_TRAIN_OFFLINE_SEC = 4 * 60 * 60; // 4 Horas
 
 export const calculateOfflineProgress = (
     player: Player, 
@@ -23,14 +25,19 @@ export const calculateOfflineProgress = (
     let stopHunt = false;
     let stopTrain = false;
 
-    // Apenas processa se passou mais de 10 segundos para evitar micro-updates
+    // Apenas processa se passou mais de 10 segundos
     if (diffSeconds > 10) {
-        const potentialTime = Math.min(diffSeconds, MAX_OFFLINE_SEC);
-        let effectiveTime = potentialTime; 
+        // Determinar o limite baseado na atividade
+        let limit = 0;
+        if (modifiedPlayer.activeHuntId) limit = MAX_HUNT_OFFLINE_SEC;
+        else if (modifiedPlayer.activeTrainingSkill) limit = MAX_TRAIN_OFFLINE_SEC;
+        else limit = 2 * 3600; // 2 horas de regen passiva se não estiver fazendo nada
+
+        let effectiveTime = Math.min(diffSeconds, limit);
         let diedOffline = false;
         
         report = {
-            secondsOffline: diffSeconds,
+            secondsOffline: effectiveTime, 
             xpGained: 0,
             goldGained: 0,
             killedMonsters: [],
@@ -61,7 +68,7 @@ export const calculateOfflineProgress = (
                     const potion = SHOP_ITEMS.find(i => i.id === modifiedPlayer.settings.selectedHealthPotionId);
                     if (potion && potion.restoreAmount) {
                         const boost = 1 + (getAscensionBonusValue(modifiedPlayer, 'potion_hp_boost') / 100);
-                        hpsPotion = (potion.restoreAmount * boost) / 1.5; // Consumo conservador offline
+                        hpsPotion = (potion.restoreAmount * boost) / 1.5; 
                     }
                 }
                 
@@ -79,7 +86,7 @@ export const calculateOfflineProgress = (
 
                 // --- SUPPLY LIMIT CHECK ---
                 const checkResource = (itemId: string | undefined, usagePerHour: number) => {
-                    if (!itemId || usagePerHour <= 0) return MAX_OFFLINE_SEC * 2;
+                    if (!itemId || usagePerHour <= 0) return effectiveTime + 1000;
                     const inventoryCount = modifiedPlayer.inventory[itemId] || 0;
                     const itemPrice = SHOP_ITEMS.find(i => i.id === itemId)?.price || 999999;
                     const totalGold = modifiedPlayer.gold + modifiedPlayer.bankGold;
@@ -103,7 +110,7 @@ export const calculateOfflineProgress = (
 
                 report.secondsOffline = effectiveTime; 
 
-                // Processa Morte se necessário
+                // Processa Morte
                 if (diedOffline) {
                     let penaltyRate = 0.10; 
                     if (modifiedPlayer.hasBlessing) { 
@@ -123,7 +130,7 @@ export const calculateOfflineProgress = (
                     };
                 }
 
-                // Aplica Ganhos
+                // Aplica Ganhos Capped
                 const hoursPassed = effectiveTime / 3600;
                 const xpGained = Math.floor(stats.xpPerHour * hoursPassed);
                 const goldGained = Math.floor(stats.rawGoldPerHour * hoursPassed);
@@ -134,23 +141,36 @@ export const calculateOfflineProgress = (
                 report.goldGained = goldGained;
                 report.killedMonsters.push({ name: monster.name, count: Math.floor(stats.cyclesPerHour * hoursPassed * huntCount) });
 
-                // Sobe de nível se necessário
                 const startLevel = modifiedPlayer.level;
                 const lvlResult = checkForLevelUp(modifiedPlayer);
                 modifiedPlayer = lvlResult.player;
                 report.leveledUp = modifiedPlayer.level - startLevel;
+                
+                if (effectiveTime >= MAX_HUNT_OFFLINE_SEC) stopHunt = true;
+
             }
         } else if (modifiedPlayer.activeTrainingSkill) {
-            const skill = modifiedPlayer.activeTrainingSkill;
+            const skillType = modifiedPlayer.activeTrainingSkill;
+            const startSkillLevel = modifiedPlayer.skills[skillType].level;
+
             let pointsGained = effectiveTime; 
-            if (skill === SkillType.MAGIC) pointsGained *= 25; 
-            const result = processSkillTraining(modifiedPlayer, skill, pointsGained);
+            if (skillType === SkillType.MAGIC) pointsGained *= 25; 
+            
+            const result = processSkillTraining(modifiedPlayer, skillType, pointsGained);
             modifiedPlayer = result.player;
-            report.skillTrained = skill;
-            report.skillGain = (effectiveTime / 3600) * 100; // Representação visual
+            
+            report.skillTrained = skillType;
+            report.skillLevelsGained = modifiedPlayer.skills[skillType].level - startSkillLevel;
+            report.skillFinalProgress = modifiedPlayer.skills[skillType].progress;
+            
+            if (effectiveTime >= MAX_TRAIN_OFFLINE_SEC) stopTrain = true;
         }
 
-        // Atualiza o timestamp para o tempo atual do servidor
+        if (diffSeconds > (modifiedPlayer.activeHuntId ? MAX_HUNT_OFFLINE_SEC : MAX_TRAIN_OFFLINE_SEC)) {
+            if (modifiedPlayer.activeHuntId) stopHunt = true;
+            if (modifiedPlayer.activeTrainingSkill) stopTrain = true;
+        }
+
         modifiedPlayer.lastSaveTime = currentTime;
     }
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useGameEngine } from '../hooks/useGameEngine';
@@ -31,13 +30,14 @@ import { HazardPanel } from './HazardPanel';
 import { OfflineModal } from './OfflineModal'; 
 import { DeathModal } from './DeathModal';
 import { Sidebar } from './Sidebar'; 
+import { MarketPanel } from './MarketPanel';
 import { StorageService } from '../services/storage';
 import { ImbuementPanel } from './ImbuementPanel';
 import { 
     Save, LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store
 } from 'lucide-react';
 
 const App = () => {
@@ -52,7 +52,6 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState(null);
 
   const fetchHighscores = async () => {
-      // Passamos o currentAccount (que é o ID do usuário no Supabase)
       const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data as any);
       setShowHighscores(true);
@@ -92,6 +91,7 @@ const App = () => {
       {
           title: t('cat_city'),
           items: [
+              { id: 'market', label: 'Mercado Global', icon: Store, color: 'text-yellow-500' },
               { id: 'shop', label: t('menu_shop'), icon: CircleDollarSign, color: 'text-green-400' },
               { id: 'bank', label: t('menu_bank'), icon: Landmark, color: 'text-yellow-500' },
               { id: 'depot', label: t('menu_depot'), icon: Briefcase, color: 'text-amber-700' },
@@ -145,6 +145,18 @@ const App = () => {
                 )}
                 {activeTab === 'train' && <TrainingPanel player={player} isTraining={!!player.activeTrainingSkill} trainingSkill={player.activeTrainingSkill} onStartTraining={actions.startTraining} onStopTraining={actions.stopTraining}/>}
                 
+                {activeTab === 'market' && (
+                    <MarketPanel 
+                        player={player}
+                        userId={currentAccount!}
+                        // Fixed: buyFromMarket expects 1 argument but was being passed 2. Removed currentAccount!.
+                        onBuyMarket={(l) => actions.buyFromMarket(l)}
+                        onListMarket={(item, price) => actions.listOnMarket(item, price, currentAccount!, currentAccountName!)}
+                        // Fixed: cancelListing expects 1 argument but was being passed 2. Removed currentAccount!.
+                        onCancelMarket={(l) => actions.cancelListing(l)}
+                    />
+                )}
+
                 {activeTab === 'shop' && (
                     <ShopPanel 
                         playerGold={player.gold} 

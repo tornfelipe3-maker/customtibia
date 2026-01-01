@@ -179,7 +179,8 @@ export interface OfflineReport {
     lootObtained: { [itemId: string]: number };
     leveledUp: number;
     skillTrained?: SkillType;
-    skillGain?: number;
+    skillLevelsGained?: number;
+    skillFinalProgress?: number;
     waste: number;
     deathReport?: DeathReport;
 }

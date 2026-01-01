@@ -2,7 +2,7 @@
 import React from 'react';
 import { OfflineReport } from '../types';
 import { SHOP_ITEMS } from '../constants';
-import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle, AlertOctagon, HeartCrack } from 'lucide-react';
+import { Clock, TrendingUp, Coins, Skull, Swords, Shield, Trophy, CheckCircle, AlertOctagon, HeartCrack, Zap } from 'lucide-react';
 
 interface OfflineModalProps {
   report: OfflineReport;
@@ -31,13 +31,13 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                 {died ? <Skull size={20} className="text-red-500 animate-pulse" /> : <Clock size={20} className="text-yellow-500" />}
                 <div>
                     <h2 className={`text-lg font-bold ${died ? 'text-red-400' : 'text-[#eee]'} font-serif tracking-wide leading-none`}>
-                        {died ? 'YOU DIED OFFLINE' : 'Welcome Back'}
+                        {died ? 'VOCÊ MORREU OFFLINE' : 'Bem-vindo de volta'}
                     </h2>
-                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">Offline Progress Report</span>
+                    <span className="text-[10px] text-gray-500 uppercase tracking-widest">Relatório de Progresso Offline</span>
                 </div>
             </div>
             <div className="text-xs font-mono text-gray-400 bg-black/40 px-2 py-1 rounded border border-[#333]">
-                {formatTime(report.secondsOffline)}
+                Aproveitado: {formatTime(report.secondsOffline)}
             </div>
         </div>
 
@@ -47,59 +47,86 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
             
             <div className="relative z-10 space-y-6">
                 
-                {/* 0. DEATH REPORT SECTION */}
+                {/* DEATH REPORT SECTION */}
                 {died && report.deathReport && (
                     <div className="bg-black/60 border-2 border-red-600 rounded-lg p-4 shadow-[0_0_15px_rgba(220,38,38,0.3)] animate-in shake duration-500">
                         <div className="flex items-center gap-2 mb-3 text-red-500 font-black uppercase text-xs border-b border-red-900/50 pb-2">
-                            <HeartCrack size={16}/> Alas! You were slain by {report.deathReport.killerName}
+                            <HeartCrack size={16}/> Oh não! Você foi derrotado por {report.deathReport.killerName}
                         </div>
                         <div className="grid grid-cols-2 gap-2 text-[10px]">
                             <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
-                                <div className="text-gray-500 font-bold uppercase">Experience Lost</div>
+                                <div className="text-gray-500 font-bold uppercase">XP Perdida</div>
                                 <div className="text-white font-mono font-bold">-{report.deathReport.xpLoss.toLocaleString()}</div>
                             </div>
                             <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
-                                <div className="text-gray-500 font-bold uppercase">Gold Lost</div>
+                                <div className="text-gray-500 font-bold uppercase">Ouro Perdido</div>
                                 <div className="text-white font-mono font-bold">-{report.deathReport.goldLoss.toLocaleString()} gp</div>
                             </div>
                         </div>
                         <div className="mt-2 text-[9px] text-red-300 italic text-center">
                             {report.deathReport.hasBlessing 
-                                ? "Blessings of the gods protected you, reducing your losses." 
-                                : "No blessings were active. Penalties were severe."}
+                                ? "As bênçãos dos deuses te protegeram, reduzindo as perdas." 
+                                : "Nenhuma bênção ativa. As penalidades foram severas."}
                         </div>
                     </div>
                 )}
 
-                {/* 1. Training Section */}
+                {/* Training Section - REFORMULADO */}
                 {report.skillTrained && (
                     <div className="bg-[#222]/90 border border-blue-900/50 rounded-lg p-4 shadow-lg">
                         <h3 className="text-blue-400 font-bold text-sm uppercase mb-3 flex items-center gap-2 border-b border-blue-900/30 pb-2">
-                            <Shield size={16}/> Skill Training
+                            <Shield size={16}/> Resultados do Treino
                         </h3>
-                        <div className="flex justify-between items-center">
-                            <div className="text-gray-200 text-sm font-bold capitalize">{report.skillTrained}</div>
-                            <div className="text-green-400 font-mono font-bold text-lg">+{report.skillGain?.toFixed(2)}%</div>
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-2">
+                                <Zap size={14} className="text-yellow-500"/>
+                                <div className="text-gray-200 text-sm font-bold capitalize">{report.skillTrained}</div>
+                            </div>
+                            <div className="text-right">
+                                {report.skillLevelsGained && report.skillLevelsGained > 0 ? (
+                                    <div className="text-green-400 font-mono font-black text-lg">
+                                        +{report.skillLevelsGained} Skills
+                                    </div>
+                                ) : (
+                                    <div className="text-blue-300 font-mono font-bold">
+                                        Progresso na barra
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        {/* Barra Visual de Progresso Final */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase">
+                                <span>Progresso da Barra</span>
+                                <span className="text-white">{report.skillFinalProgress?.toFixed(1)}%</span>
+                            </div>
+                            <div className="h-2 w-full bg-black border border-[#333] rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-blue-700 to-blue-400 transition-all duration-1000"
+                                    style={{ width: `${report.skillFinalProgress}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* 2. Hunting Section */}
+                {/* Hunting Section */}
                 {(report.xpGained > 0 || report.goldGained > 0) && (
                     <div className="bg-[#222]/90 border border-red-900/50 rounded-lg p-4 shadow-lg">
                         <h3 className="text-red-400 font-bold text-sm uppercase mb-3 flex items-center gap-2 border-b border-red-900/30 pb-2">
-                            <Swords size={16}/> Hunt Results {died && "(Before Death)"}
+                            <Swords size={16}/> Resultados da Caça {died && "(Antes da Morte)"}
                         </h3>
                         
                         <div className="grid grid-cols-2 gap-4 mb-4">
                             <div className="bg-black/40 p-2 rounded border border-[#333]">
-                                <div className="text-[10px] text-gray-500 uppercase font-bold">Experience</div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold">Experiência</div>
                                 <div className="text-white font-bold flex items-center gap-1">
                                     <TrendingUp size={14} className="text-green-500"/> {report.xpGained.toLocaleString()}
                                 </div>
                             </div>
                             <div className="bg-black/40 p-2 rounded border border-[#333]">
-                                <div className="text-[10px] text-gray-500 uppercase font-bold">Gold Looted</div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold">Ouro Total</div>
                                 <div className="text-white font-bold flex items-center gap-1">
                                     <Coins size={14} className="text-yellow-500"/> {report.goldGained.toLocaleString()}
                                 </div>
@@ -109,11 +136,11 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                         {report.waste > 0 && (
                             <div className="mb-4 bg-black/40 p-2 rounded border border-[#333] flex justify-between items-center">
                                 <div>
-                                    <div className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1"><AlertOctagon size={10}/> Supplies Used</div>
+                                    <div className="text-[10px] text-red-400 uppercase font-bold flex items-center gap-1"><AlertOctagon size={10}/> Suprimentos</div>
                                     <div className="text-red-400 font-mono font-bold">-{report.waste.toLocaleString()} gp</div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] text-gray-500 uppercase font-bold">Net Profit</div>
+                                    <div className="text-[10px] text-gray-500 uppercase font-bold">Lucro Líquido</div>
                                     <div className={`font-mono font-bold ${netProfit >= 0 ? 'text-green-400' : 'text-red-500'}`}>
                                         {netProfit > 0 ? '+' : ''}{netProfit.toLocaleString()} gp
                                     </div>
@@ -124,13 +151,13 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                         {report.leveledUp > 0 && (
                             <div className="bg-yellow-900/20 border border-yellow-700/50 p-2 rounded text-center mb-4 animate-pulse">
                                 <div className="text-yellow-500 font-bold flex items-center justify-center gap-2">
-                                    <Trophy size={16}/> LEVELED UP +{report.leveledUp}
+                                    <Trophy size={16}/> LEVEL UP +{report.leveledUp}
                                 </div>
                             </div>
                         )}
 
                         <div className="mb-4">
-                            <div className="text-[10px] text-gray-500 font-bold mb-1">Monsters Slain</div>
+                            <div className="text-[10px] text-gray-500 font-bold mb-1">Criaturas Mortas</div>
                             <div className="flex flex-wrap gap-2">
                                 {report.killedMonsters.map((mob, i) => (
                                     <span key={i} className="text-xs bg-[#333] px-2 py-1 rounded border border-[#444] text-gray-300 flex items-center gap-1">
@@ -142,7 +169,7 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
 
                         {hasLoot && (
                             <div>
-                                <div className="text-[10px] text-gray-500 font-bold mb-1">Loot Collected</div>
+                                <div className="text-[10px] text-gray-500 font-bold mb-1">Loot Coletado</div>
                                 <div className="grid grid-cols-6 gap-1 bg-black/40 p-2 rounded border border-[#333] max-h-32 overflow-y-auto custom-scrollbar">
                                     {Object.entries(report.lootObtained).map(([itemId, qty]) => {
                                         const item = SHOP_ITEMS.find(i => i.id === itemId);
@@ -160,10 +187,9 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                     </div>
                 )}
 
-                {/* If nothing happened */}
                 {report.xpGained === 0 && !report.skillTrained && !died && (
                     <div className="text-center text-gray-500 py-8 italic">
-                        No significant progress was made while offline.
+                        Nenhum progresso significativo foi feito enquanto offline.
                     </div>
                 )}
 
@@ -176,7 +202,7 @@ export const OfflineModal: React.FC<OfflineModalProps> = ({ report, onClose }) =
                 onClick={onClose}
                 className={`tibia-btn w-full py-3 font-bold text-sm shadow-lg flex items-center justify-center gap-2 border transition-all ${died ? 'bg-red-900 hover:bg-red-800 text-white border-red-700' : 'bg-gradient-to-r from-green-900 to-green-800 hover:from-green-800 hover:to-green-700 border-green-700 text-white'}`}
             >
-                <CheckCircle size={16}/> {died ? 'Respawn in Temple' : 'Claim Progress'}
+                <CheckCircle size={16}/> {died ? 'Renascer no Templo' : 'Resgatar Progresso'}
             </button>
         </div>
 

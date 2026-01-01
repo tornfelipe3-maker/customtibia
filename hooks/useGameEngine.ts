@@ -87,7 +87,8 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime, serverNow);
           
-          if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
+          // Fixed error: Property 'skillGain' does not exist on type 'OfflineReport'. Used 'skillTrained' instead.
+          if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillTrained)) {
               setOfflineReport(report); 
               setIsPaused(true); 
           }

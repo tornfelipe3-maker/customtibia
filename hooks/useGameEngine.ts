@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
-import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, generatePreyCard } from '../services';
+import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, validateProgressSanity } from '../services';
 import { BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
@@ -38,6 +38,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   const lastTickRef = useRef<number>(Date.now());
+  const lastSuccessfulSaveTimeRef = useRef<number>(Date.now());
   
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
       setLogs(prev => [...prev, { id: Math.random().toString(), message, type, timestamp: Date.now(), rarity }]);
@@ -60,17 +61,14 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
       setDeathReport
   );
 
-  // Efeito de Inicialização e Sincronização com o Servidor
   useEffect(() => {
     const syncAndStart = async () => {
       if (initialPlayer) {
           const migratedPlayer = { ...initialPlayer };
-          
-          // Sincroniza o relógio interno com o servidor imediatamente
           const serverNow = await StorageService.getServerTime();
           lastTickRef.current = serverNow;
+          lastSuccessfulSaveTimeRef.current = migratedPlayer.lastSaveTime || serverNow;
 
-          // Migrações de dados (Retrocompatibilidade)
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
                   [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
@@ -87,8 +85,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
           
-          // --- CÁLCULO DE PROGRESSO SERVER-AUTHORITATIVE ---
-          // Usamos o serverNow capturado para calcular quanto tempo passou desde o último save verificado
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime, serverNow);
           
           if (report && (report.xpGained > 0 || report.goldGained > 0 || report.skillGain)) {
@@ -98,7 +94,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (stopHunt) updatedPlayer.activeHuntId = null;
           if (stopTrain) updatedPlayer.activeTrainingSkill = null;
           
-          // Atualiza refs e estado
           updatedPlayer.lastSaveTime = serverNow;
           setPlayer(updatedPlayer);
           playerRef.current = updatedPlayer;
@@ -107,15 +102,21 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
     syncAndStart();
   }, [initialPlayer]);
 
-  // AUTO-SAVE EM NUVEM
+  // AUTO-SAVE EM NUVEM COM SEGURANÇA
   useEffect(() => {
       if (!userId) return;
       const timer = setInterval(async () => {
           if (playerRef.current && !isPaused) {
-              // O StorageService.save agora pega o tempo do servidor automaticamente
-              await StorageService.save(userId, playerRef.current);
+              const res = await StorageService.save(userId, playerRef.current);
+              if (res.success) {
+                  // Sincroniza o timestamp local com o sucesso do servidor
+                  lastSuccessfulSaveTimeRef.current = Date.now();
+              } else if (res.error?.includes("Speedhack")) {
+                  addLog("Erro de Sincronização: O servidor detectou manipulação de tempo.", "danger");
+                  setIsPaused(true);
+              }
           }
-      }, 60000); // Salva a cada 1 minuto para reduzir carga, mas com autoridade
+      }, 60000); 
       return () => clearInterval(timer);
   }, [userId, isPaused]);
 
@@ -140,8 +141,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
           
-          // Se o delta for muito grande (lag ou aba inativa), processamos como offline progress
-          const MAX_SIMULATION_MS = 30000; // 30 segundos de tolerância no browser
+          const MAX_SIMULATION_MS = 30000;
 
           if (delta > MAX_SIMULATION_MS) { 
               const { player: fastForwardedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(playerRef.current, lastTickRef.current, now);

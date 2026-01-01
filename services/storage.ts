@@ -86,23 +86,31 @@ export const StorageService = {
     return { success: true, data: newPlayer };
   },
 
-  async save(userId: string, data: Player): Promise<boolean> {
-    const serverTime = await this.getServerTime();
-    const dataWithTimestamp = { ...data, lastSaveTime: serverTime };
+  /**
+   * SAVE SEGURO (ANTI-CHEAT)
+   * Agora usamos uma RPC para validar se o tempo passado pelo jogador condiz com o relógio do servidor.
+   */
+  async save(userId: string, data: Player): Promise<{ success: boolean; error?: string }> {
+    // Pegamos o timestamp que o cliente alega ser o último save processado
+    const claimedLastSave = data.lastSaveTime;
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ 
-        data: dataWithTimestamp,
-        updated_at: new Date(serverTime).toISOString()
-      })
-      .eq('id', userId);
+    // Chamamos a função SQL 'secure_save_player' que criamos no Supabase
+    const { data: rpcData, error: rpcError } = await supabase.rpc('secure_save_player', {
+      p_user_id: userId,
+      p_new_data: data,
+      p_claimed_last_save: claimedLastSave
+    });
 
-    if (error) {
-      console.error("Cloud Save Error:", error);
-      return false;
+    if (rpcError) {
+      console.error("Cloud Save Security Error:", rpcError);
+      return { success: false, error: rpcError.message };
     }
-    return true;
+
+    if (rpcData === false) {
+      return { success: false, error: "Divergência de tempo detectada (Speedhack Bloqueado)." };
+    }
+
+    return { success: true };
   },
 
   async getHighscores(currentUserId: string | null): Promise<HighscoresData | null> {
@@ -118,12 +126,11 @@ export const StorageService = {
         return null;
     }
 
-    // Mapeamos os dados garantindo que 'name' venha de p.data.name (nome do personagem)
     const entries = allProfiles.map(p => {
         const playerData = p.data as Player;
         return {
             id: p.id,
-            name: playerData.name || "Unknown Hero", // Aqui pegamos o nome do personagem
+            name: playerData.name || "Unknown Hero",
             data: playerData
         };
     });

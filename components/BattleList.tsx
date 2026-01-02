@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Player, Monster } from '../types';
 import { MONSTERS, BOSSES } from '../constants';
-import { Search, X, Info, Swords, Footprints, Clock, CheckCircle2, Lock, Map as MapIcon, ChevronLeft, Navigation } from 'lucide-react';
+import { Search, X, Info, Swords, Footprints, Clock, CheckCircle2, Lock, Map as MapIcon, ChevronLeft } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Sprite } from './common/Sprite';
 
@@ -37,9 +37,9 @@ export const BattleList: React.FC<BattleListProps> = ({
   const { t } = useLanguage();
   const [tab, setTab] = useState<'monsters' | 'bosses'>('monsters');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [selectedTier, setSelectedTier] = useState<number | null>(null);
 
-  // Mapeamento interno de níveis para cidades (Tiers)
+  // Helper para determinar o Tier baseado no level
   const getMonsterTier = (level: number): number => {
     if (level <= 8) return 1;
     if (level <= 19) return 2;
@@ -53,169 +53,257 @@ export const BattleList: React.FC<BattleListProps> = ({
 
   const filteredMonsters = MONSTERS.filter(m => {
     const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCity = selectedCityId === null || getMonsterTier(m.level) === selectedCityId;
-    return matchesSearch && matchesCity;
+    const matchesTier = selectedTier === null || getMonsterTier(m.level) === selectedTier;
+    return matchesSearch && matchesTier;
   }).sort((a, b) => a.exp - b.exp);
   
   const filteredBosses = BOSSES.filter(b => 
     b.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedCity = CITIES.find(c => c.id === selectedCityId);
-
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d]">
-      {/* Tab Switcher */}
-      <div className="flex bg-[#1a1a1a] border-b border-[#333] shrink-0 p-1">
+    <div className="flex-1 flex flex-col min-h-0 bg-[#222]">
+      {/* Battle List Controls */}
+      <div className="flex bg-[#2d2d2d] border-b border-[#111] shrink-0">
          <button 
            onClick={() => setTab('monsters')}
-           className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-sm ${tab === 'monsters' ? 'text-yellow-500 bg-[#252525] shadow-md' : 'text-[#555] hover:text-[#888]'}`}
+           className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider border-r border-[#444] transition-colors ${tab === 'monsters' ? 'text-[#eee] bg-[#444]' : 'text-[#888] hover:bg-[#333]'}`}
          >
-           Hunting Grounds
+           {t('hunt_tab_battle')}
          </button>
          <button 
            onClick={() => setTab('bosses')}
-           className={`flex-1 py-2 text-[10px] font-black uppercase tracking-widest transition-all rounded-sm ${tab === 'bosses' ? 'text-purple-400 bg-[#252525] shadow-md' : 'text-[#555] hover:text-[#888]'}`}
+           className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider transition-colors ${tab === 'bosses' ? 'text-purple-300 bg-[#444]' : 'text-[#888] hover:bg-[#333]'}`}
          >
-           Daily Bosses
+           {t('hunt_tab_bosses')}
          </button>
       </div>
 
-      {/* Navigation & Search (Visible when list is open) */}
-      {(tab === 'bosses' || (tab === 'monsters' && selectedCityId !== null)) && (
-        <div className="bg-[#1a1a1a] border-b border-[#333] p-2 flex items-center gap-2 shrink-0 animate-in slide-in-from-top-2 duration-200">
-            {tab === 'monsters' && (
-              <button 
-                onClick={() => { setSelectedCityId(null); setSearchTerm(''); }}
-                className="p-1.5 tibia-btn bg-[#222] border-[#444] text-yellow-600 hover:text-yellow-400"
-              >
-                <ChevronLeft size={16} />
-              </button>
-            )}
-            <div className="relative flex-1">
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600" />
-                <input 
-                  type="text"
-                  placeholder={tab === 'bosses' ? "Search boss..." : "Search monster..."}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-black/40 border border-[#333] rounded px-8 py-1.5 text-[11px] text-gray-300 focus:outline-none focus:border-yellow-900/50"
-                />
-                {searchTerm && <X size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 cursor-pointer" onClick={() => setSearchTerm('')} />}
+      {/* SEARCH BAR (Only visible when list is open or bosses) */}
+      {(tab === 'bosses' || (tab === 'monsters' && selectedTier !== null)) && (
+        <div className="bg-[#2d2d2d] border-b border-[#111] p-2 flex flex-col gap-2 shadow-inner shrink-0 animate-in fade-in duration-300">
+            <div className="flex items-center gap-2">
+                {tab === 'monsters' && (
+                  <button 
+                    onClick={() => setSelectedTier(null)}
+                    className="p-1.5 tibia-btn bg-[#333] border-[#555] text-gray-300 hover:text-white"
+                    title="Back to Cities"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                )}
+                <div className="relative flex-1">
+                    <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500"><Search size={14}/></div>
+                    <input 
+                      type="text"
+                      placeholder={t('hunt_search')}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-[#111] border border-[#444] rounded pl-9 pr-8 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-[#666] shadow-inner"
+                    />
+                    {searchTerm && (
+                        <button 
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                        >
+                            <X size={14}/>
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
       )}
 
-      {/* Main Container */}
-      <div className="flex-1 overflow-hidden relative">
-        {tab === 'monsters' && selectedCityId === null ? (
-            /* COMPACT CITY GRID - 2x4 No Scroll Design */
-            <div className="absolute inset-0 grid grid-cols-2 gap-1.5 p-1.5 h-full animate-in fade-in duration-500">
+      {/* List Area */}
+      <div className="flex-1 overflow-y-auto tibia-inset custom-scrollbar bg-[#222]">
+        <div className="p-1">
+          {tab === 'monsters' && (
+            selectedTier === null ? (
+              /* CITY SELECTION GRID */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 animate-in fade-in zoom-in duration-300">
                 {CITIES.map((city) => (
-                    <button
-                        key={city.id}
-                        onClick={() => setSelectedCityId(city.id)}
-                        className="relative flex flex-col group overflow-hidden rounded border border-[#333] hover:border-yellow-600/50 transition-all shadow-lg active:scale-95"
+                  <button
+                    key={city.id}
+                    onClick={() => setSelectedTier(city.id)}
+                    className="flex flex-col tibia-panel overflow-hidden group hover:border-yellow-600 transition-all hover:-translate-y-1 shadow-lg bg-[#252525]"
+                  >
+                    <div className="h-28 w-full relative overflow-hidden bg-black">
+                       <img 
+                         src={city.map} 
+                         className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" 
+                         alt={city.name}
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-[#252525] via-transparent to-transparent"></div>
+                       <div className="absolute top-2 right-2 bg-black/60 border border-yellow-900/50 px-2 py-0.5 rounded text-[10px] font-black text-yellow-500">
+                         TIER {city.id}
+                       </div>
+                    </div>
+                    <div className="p-3 flex items-center justify-between">
+                       <div className="flex items-center gap-2">
+                          <MapIcon size={14} className="text-yellow-600" />
+                          <span className="font-bold text-[#eee] tracking-wide uppercase text-xs">{city.name}</span>
+                       </div>
+                       <div className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center border border-white/5 text-[10px] text-gray-500 group-hover:text-yellow-500 transition-colors">
+                          ›
+                       </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              /* MONSTER LIST FOR SELECTED TIER */
+              <div className="grid grid-cols-1 gap-1 animate-in slide-in-from-right-4 duration-300">
+                <div className="bg-[#1a1a1a] px-3 py-1.5 flex items-center justify-between border-b border-[#333] mb-1">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <MapIcon size={12}/> {CITIES.find(c => c.id === selectedTier)?.name} Region
+                    </span>
+                    <span className="text-[9px] text-yellow-600 font-bold bg-yellow-900/10 px-2 rounded border border-yellow-900/30">Tier {selectedTier}</span>
+                </div>
+                
+                {filteredMonsters.map((monster) => {
+                  const isActive = activeHunt === monster.id;
+                  return (
+                    <div
+                      key={monster.id}
+                      onClick={() => onStartHunt(monster.id, monster.name, false)}
+                      className={`
+                        flex items-center p-2 cursor-pointer transition-colors border-b border-black/30 group/row rounded-sm
+                        ${isActive ? 'bg-[#333] border-l-4 border-l-green-500' : 'hover:bg-[#2a2a2a] bg-[#252525]'}
+                      `}
                     >
-                        {/* Imagem do Mapa */}
-                        <div className="absolute inset-0 bg-black">
-                            <img 
-                                src={city.map} 
-                                className="w-full h-full object-cover opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" 
-                                alt={city.name}
-                            />
-                            {/* Gradiente Interno */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                        </div>
+                      <div className="w-12 h-12 bg-[#181818] border border-[#444] flex items-center justify-center shrink-0 mr-4 shadow-inner rounded-sm relative overflow-hidden">
+                         <div className="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.05)_0%,transparent_70%)]"></div>
+                         <Sprite 
+                           src={monster.image} 
+                           type="monster" 
+                           size={40} 
+                           className="max-w-[40px] max-h-[40px] z-10" 
+                         />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center">
+                              <span className={`text-sm font-bold ${isActive ? 'text-green-400' : 'text-[#ddd]'}`}>{monster.name}</span>
+                              {monster.level > player.level + 20 && <span className="text-[9px] text-red-500 font-bold bg-red-900/20 px-1.5 py-0.5 rounded border border-red-900/30">{t('hunt_danger')}</span>}
+                          </div>
+                      </div>
 
-                        {/* Label da Cidade */}
-                        <div className="mt-auto p-2 relative z-10 w-full text-left">
-                            <div className="flex items-center justify-between">
-                                <span className="font-black text-white text-[10px] uppercase tracking-widest drop-shadow-[0_2px_2px_rgba(0,0,0,1)] group-hover:text-yellow-500 transition-colors">
-                                    {city.name}
-                                </span>
-                                <Navigation size={10} className="text-gray-500 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                      <button 
+                        onClick={(e) => onInspectMonster(monster, e)}
+                        className="ml-2 h-[30px] px-3 flex items-center gap-1.5 tibia-btn bg-[#0d1b2a] border border-blue-900/40 hover:border-blue-500 hover:bg-[#162a40] group/info shadow-lg transition-all active:translate-y-[1px]"
+                      >
+                          <Info size={14} className="text-blue-500/80 group-hover/info:text-blue-300" />
+                          <span className="text-[10px] font-bold text-blue-500/80 group-hover/info:text-blue-300 tracking-wide">{t('hunt_info')}</span>
+                      </button>
+
+                      <button
+                          onClick={(e) => {
+                              e.stopPropagation();
+                              onStartHunt(monster.id, monster.name, false);
+                          }}
+                          className="ml-1 h-[30px] px-3 flex items-center gap-1.5 tibia-btn bg-[#2a0d0d] border border-red-900/60 hover:border-red-500 hover:bg-[#401010] group/hunt shadow-lg transition-all active:translate-y-[1px]"
+                      >
+                          <Swords size={14} className="text-red-500/80 group-hover/hunt:text-red-300" />
+                          <span className="text-[10px] font-bold text-red-500/80 group-hover/hunt:text-red-300 tracking-wide hidden sm:inline">{t('hunt_start')}</span>
+                      </button>
+
+                      <button 
+                          onClick={(e) => onAreaHunt(monster, e)}
+                          className="ml-1 px-3 py-1.5 tibia-btn bg-[#2a1111] border-[#500] hover:bg-[#3a1a1a] flex items-center gap-1.5 shadow-[0_0_5px_rgba(200,0,0,0.1)] group/btn opacity-80 hover:opacity-100"
+                      >
+                          <Footprints size={14} className="text-red-500 group-hover/btn:text-red-300" />
+                          <span className="text-[10px] font-bold text-red-500 group-hover/btn:text-red-300 hidden sm:inline">{t('hunt_lure')}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+                {filteredMonsters.length === 0 && (
+                   <div className="p-12 text-center text-gray-600 text-sm italic opacity-50">No creatures found in this region.</div>
+                )}
+              </div>
+            )
+          )}
+
+          {tab === 'bosses' && (
+            <div className="grid grid-cols-1 gap-1 p-1 animate-in slide-in-from-left-4 duration-300">
+              {filteredBosses.map((boss) => {
+                const isActive = activeHunt === boss.id;
+                const cooldownUntil = bossCooldowns[boss.id] || 0;
+                const now = Date.now();
+                const onCooldown = cooldownUntil > now;
+                
+                const remainingSeconds = onCooldown ? Math.ceil((cooldownUntil - now) / 1000) : 0;
+                const hours = Math.floor(remainingSeconds / 3600);
+                const minutes = Math.floor((remainingSeconds % 3600) / 60);
+
+                return (
+                  <div
+                    key={boss.id}
+                    className={`
+                      flex flex-col w-full text-left border border-black/40 rounded-sm mb-2 overflow-hidden transition-all
+                      ${isActive ? 'ring-1 ring-purple-500 bg-[#333]' : onCooldown ? 'opacity-60 grayscale-[0.5] bg-[#1a1a1a]' : 'bg-[#252525] hover:bg-[#2a2a2a]'}
+                    `}
+                  >
+                     <div className={`flex items-center p-3 ${!onCooldown && 'bg-gradient-to-r from-[#2a1a3a] to-transparent'}`}>
+                        <div className="w-14 h-14 bg-[#111] border border-purple-900/40 flex items-center justify-center shrink-0 mr-4 shadow-inner rounded relative overflow-hidden">
+                            <div className="absolute inset-0 bg-purple-600/5 animate-pulse"></div>
+                            <Sprite 
+                               src={boss.image} 
+                               type="monster" 
+                               size={48} 
+                               className="max-w-[48px] max-h-[48px] z-10" 
+                            />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                            <div className="text-[14px] font-bold text-purple-200 tracking-tight leading-none mb-1.5">{boss.name}</div>
+                            <div className="flex items-center gap-1.5">
+                               {onCooldown ? (
+                                   <div className="flex items-center gap-1 text-[10px] text-orange-500 font-mono font-bold bg-orange-950/20 px-1.5 py-0.5 rounded border border-orange-900/30">
+                                       <Clock size={11} className="animate-pulse" />
+                                       {hours}h {minutes}m
+                                   </div>
+                               ) : (
+                                   <div className="flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                                       <CheckCircle2 size={11} />
+                                       AVAILABLE
+                                   </div>
+                               )}
                             </div>
                         </div>
 
-                        {/* Overlay Glow no Hover */}
-                        <div className="absolute inset-0 pointer-events-none border-2 border-yellow-600/0 group-hover:border-yellow-600/10 transition-all"></div>
-                    </button>
-                ))}
-            </div>
-        ) : (
-            /* MONSTER LIST VIEW */
-            <div className="h-full overflow-y-auto custom-scrollbar p-1">
-                {tab === 'monsters' ? (
-                    <div className="flex flex-col gap-1 animate-in slide-in-from-right-4 duration-300">
-                        <div className="bg-[#111] p-2 flex items-center justify-between border-b border-yellow-900/10 mb-1">
-                            <span className="text-[9px] font-black text-yellow-700 uppercase tracking-[0.3em]">{selectedCity?.name} Grounds</span>
+                        <div className="flex gap-1.5 pl-2">
+                            <button 
+                                onClick={(e) => onInspectMonster(boss, e)}
+                                className="p-2.5 tibia-btn bg-purple-950/30 border-purple-900/40 hover:border-purple-400 text-purple-300 rounded shadow-md transition-all active:translate-y-0.5"
+                            >
+                                <Info size={16} />
+                            </button>
+                            
+                            <button 
+                                disabled={onCooldown}
+                                onClick={() => !onCooldown && onStartHunt(boss.id, boss.name, true)}
+                                className={`
+                                    px-4 py-2 tibia-btn font-bold text-[11px] uppercase tracking-tighter flex items-center gap-2 rounded shadow-lg transition-all
+                                    ${onCooldown 
+                                        ? 'bg-[#111] border-[#333] text-gray-600 cursor-not-allowed' 
+                                        : 'bg-purple-800 hover:bg-purple-700 border-purple-400 text-white active:translate-y-0.5'}
+                                `}
+                            >
+                                {onCooldown ? <Lock size={12}/> : <Swords size={14}/>}
+                                {onCooldown ? 'Locked' : 'Battle'}
+                            </button>
                         </div>
-                        {filteredMonsters.map(monster => {
-                            const isActive = activeHunt === monster.id;
-                            return (
-                                <div
-                                    key={monster.id}
-                                    onClick={() => onStartHunt(monster.id, monster.name, false)}
-                                    className={`flex items-center p-2 cursor-pointer transition-all border border-transparent rounded-sm mb-0.5 ${isActive ? 'bg-[#1a1a1a] border-green-900/30' : 'hover:bg-[#151515] bg-[#0d0d0d]'}`}
-                                >
-                                    <div className={`w-11 h-11 bg-black border ${isActive ? 'border-green-600/40' : 'border-[#333]'} flex items-center justify-center shrink-0 mr-3 rounded shadow-inner overflow-hidden`}>
-                                        <Sprite src={monster.image} type="monster" size={36} className="pixelated drop-shadow-md" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-xs font-bold ${isActive ? 'text-green-400' : 'text-gray-300'}`}>{monster.name}</span>
-                                            {monster.level > player.level + 20 && <span className="text-[8px] text-red-500 font-black animate-pulse">!</span>}
-                                        </div>
-                                        <div className="text-[9px] text-gray-600 font-mono">Lvl {monster.level}</div>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button onClick={(e) => onInspectMonster(monster, e)} className="p-1.5 tibia-btn bg-blue-950/20 border-blue-900/40 text-blue-500 hover:text-blue-300 rounded"><Info size={14}/></button>
-                                        <button onClick={(e) => onAreaHunt(monster, e)} className="p-1.5 tibia-btn bg-red-950/20 border-red-900/40 text-red-500 hover:text-red-300 rounded"><Footprints size={14}/></button>
-                                        <button 
-                                            onClick={(e) => { e.stopPropagation(); onStartHunt(monster.id, monster.name, false); }} 
-                                            className={`px-3 py-1.5 tibia-btn font-black text-[9px] uppercase rounded ${isActive ? 'bg-green-800 text-white' : 'bg-[#222] text-gray-400'}`}
-                                        >
-                                            <Swords size={12} className="mr-1 inline" /> {isActive ? 'Fighting' : 'Hunt'}
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    /* BOSS LIST VIEW */
-                    <div className="flex flex-col gap-2 p-1 animate-in slide-in-from-left-4 duration-300">
-                        {filteredBosses.map(boss => {
-                            const isActive = activeHunt === boss.id;
-                            const onCooldown = (bossCooldowns[boss.id] || 0) > Date.now();
-                            return (
-                                <div key={boss.id} className={`p-3 rounded border flex items-center justify-between transition-all ${isActive ? 'border-purple-600 bg-purple-950/10' : onCooldown ? 'opacity-40 border-[#222]' : 'border-[#333] bg-[#111] hover:border-purple-900/50'}`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-black border border-purple-900/20 rounded flex items-center justify-center">
-                                            <Sprite src={boss.image} type="monster" size={40} className="drop-shadow-md" />
-                                        </div>
-                                        <div>
-                                            <div className="text-xs font-black text-purple-200 uppercase">{boss.name}</div>
-                                            <div className="text-[9px] text-gray-500 flex items-center gap-1">
-                                                {onCooldown ? <><Clock size={10}/> Cooldown</> : <><CheckCircle2 size={10} className="text-green-500"/> Available</>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        disabled={onCooldown}
-                                        onClick={() => onStartHunt(boss.id, boss.name, true)}
-                                        className={`px-4 py-2 tibia-btn text-[10px] font-black uppercase rounded ${onCooldown ? 'bg-black text-gray-700 cursor-not-allowed' : 'bg-purple-900 text-white border-purple-500'}`}
-                                    >
-                                        Challenge
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                     </div>
+                  </div>
+                );
+              })}
+              {filteredBosses.length === 0 && (
+                  <div className="p-12 text-center text-gray-600 text-sm italic opacity-50">No bosses match your criteria.</div>
+              )}
             </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

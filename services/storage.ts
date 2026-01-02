@@ -115,9 +115,7 @@ export const StorageService = {
 
   async save(userId: string, data: Player): Promise<{ success: boolean; error?: string }> {
     const claimedLastSave = data.lastSaveTime;
-    
-    // CHAMADA PARA A RPC V2 COM ANTI-CHEAT
-    const { data: rpcData, error: rpcError } = await supabase.rpc('secure_save_player_v2', {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('secure_save_player', {
       p_user_id: userId,
       p_new_data: data,
       p_claimed_last_save: claimedLastSave
@@ -127,12 +125,6 @@ export const StorageService = {
       console.error("Cloud Save Security Error:", rpcError);
       return { success: false, error: rpcError.message };
     }
-    
-    // Se o servidor modificou os dados (detectou cheat), atualizamos o objeto local
-    if (rpcData) {
-        // Preservamos campos que não devem ser sobrescritos pelo anti-cheat básico se necessário
-    }
-    
     return { success: true };
   },
 

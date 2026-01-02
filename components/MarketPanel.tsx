@@ -22,7 +22,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
     const [hoverItem, setHoverItem] = useState<Item | null>(null);
     const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
 
-    // Controle de processamento para evitar duplo clique e duplicação
+    // Controle rigoroso de processamento por ID de listagem
     const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
     // Estados para o Modal de Venda
@@ -41,9 +41,12 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         }
     };
 
+    // ATUALIZAÇÃO AUTOMÁTICA AO TROCAR DE ABA
     useEffect(() => {
-        refreshMarket();
+        refreshMarket(true);
+    }, [activeTab]);
 
+    useEffect(() => {
         const subscription = MarketService.subscribeToListings(() => {
             refreshMarket(true);
         });
@@ -72,23 +75,24 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         }
     };
 
-    // Handler de cancelamento com proteção contra duplicação
+    // Handler de cancelamento com trava de segurança por ID
     const handleCancelAction = async (listing: MarketListing) => {
         if (processingIds.has(listing.id)) return;
 
-        // 1. Bloqueia o ID
+        // Bloqueia o ID imediatamente para evitar cliques múltiplos
         setProcessingIds(prev => new Set(prev).add(listing.id));
         
-        // 2. Atualização Otimista: Remove da lista local imediatamente
+        // Atualização Otimista: Remove da lista visual
         setListings(prev => prev.filter(l => l.id !== listing.id));
 
         try {
-            // 3. Executa a ação real
             await onCancelMarket(listing);
         } catch (e) {
-            // Se falhar, reverte a lista local e desbloqueia
+            // Em caso de erro real (ex: internet caiu), recarrega a lista para mostrar o item de volta
+            console.error("Falha ao cancelar anúncio:", e);
             await refreshMarket(true);
         } finally {
+            // O desbloqueio ocorre apenas após a resposta do servidor ou timeout
             setProcessingIds(prev => {
                 const next = new Set(prev);
                 next.delete(listing.id);
@@ -97,14 +101,18 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         }
     };
 
-    // Handler de compra com proteção
+    // Handler de compra com trava de segurança
     const handleBuyAction = async (listing: MarketListing) => {
         if (processingIds.has(listing.id)) return;
+        
         setProcessingIds(prev => new Set(prev).add(listing.id));
         
         try {
             await onBuyMarket(listing);
             setListings(prev => prev.filter(l => l.id !== listing.id));
+        } catch (e) {
+            console.error("Falha na compra:", e);
+            await refreshMarket(true);
         } finally {
             setProcessingIds(prev => {
                 const next = new Set(prev);
@@ -128,7 +136,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         <div className="flex flex-col h-full bg-[#1a1a1a] text-gray-200 overflow-hidden relative">
             <ItemTooltip item={hoverItem} position={hoverPos} />
 
-            {/* MODAL DE ANÚNCIO (CUSTOM) */}
+            {/* MODAL DE ANÚNCIO */}
             {selectedForSale && (
                 <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="tibia-panel w-full max-w-[320px] shadow-2xl p-0 flex flex-col overflow-hidden animate-in zoom-in duration-150">
@@ -145,6 +153,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                             <div className="text-center">
                                 <div className="font-bold text-gray-100">{selectedForSale.name}</div>
                                 <div className="text-[10px] text-gray-500 uppercase">{selectedForSale.rarity} Tier</div>
+                                <div className="text-[8px] text-gray-600 font-mono mt-1">ID: {selectedForSale.uniqueId}</div>
                             </div>
 
                             <div className="w-full">
@@ -159,7 +168,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                         autoFocus
                                     />
                                 </div>
-                                <p className="text-[9px] text-gray-600 mt-2 italic">* Uma taxa de 1.000 gold será cobrada.</p>
                             </div>
 
                             <button 
@@ -182,7 +190,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                     <div>
                         <h2 className="text-xl font-bold font-serif tracking-wide">Mercado Global</h2>
                         <div className="text-[10px] text-green-500 uppercase tracking-widest flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Tempo Real Ativo
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div> Auto-Sync Ativo
                         </div>
                     </div>
                 </div>
@@ -217,27 +225,27 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                 <Search size={14} className="absolute left-3 top-2.5 text-gray-500"/>
                                 <input 
                                     type="text" 
-                                    placeholder="Buscar item..." 
+                                    placeholder="Buscar item pelo nome..." 
                                     className="w-full bg-[#111] border border-[#444] rounded pl-9 pr-3 py-2 text-sm outline-none focus:border-yellow-600"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
                             </div>
                             <button onClick={() => refreshMarket()} className="tibia-btn px-4 py-2 text-xs font-bold flex items-center gap-2">
-                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''}/> Forçar Refresh
+                                <RefreshCw size={12} className={loading ? 'animate-spin' : ''}/> Atualizar Agora
                             </button>
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-20 opacity-30 uppercase font-bold tracking-widest">Sincronizando com o Quadro...</div>
+                            <div className="text-center py-20 opacity-30 uppercase font-bold tracking-widest">Sincronizando ofertas...</div>
                         ) : listings.length === 0 ? (
-                            <div className="text-center py-20 text-gray-500 italic">Nenhum item à venda no momento.</div>
+                            <div className="text-center py-20 text-gray-500 italic">Nenhum item anunciado no momento.</div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {listings.filter(l => l.item_data.name.toLowerCase().includes(searchTerm.toLowerCase())).map(listing => (
                                     <div key={listing.id} className={`p-3 rounded border flex items-center justify-between group hover:bg-black/40 transition-all ${getRarityClass(listing.item_data.rarity)}`}>
                                         <div className="flex items-center gap-4">
-                                            <div className="w-14 h-14 bg-black/60 border border-white/5 rounded flex items-center justify-center relative shadow-inner overflow-hidden"
+                                            <div className="w-14 h-14 bg-black/60 border border-white/5 rounded flex items-center justify-center relative shadow-inner"
                                                 onMouseEnter={(e) => handleHover(listing.item_data, e)}
                                                 onMouseLeave={(e) => handleHover(null, e)}
                                             >
@@ -277,8 +285,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                         <div className="bg-blue-900/10 border border-blue-800/30 p-4 rounded-lg mb-6 flex gap-3 items-start">
                             <AlertCircle size={20} className="text-blue-400 shrink-0 mt-0.5" />
                             <div className="text-xs text-blue-200 leading-relaxed">
-                                <strong>Anunciar Item:</strong> Apenas itens raros (Uncommon+) podem ser vendidos. 
-                                Taxa de anúncio: <span className="text-yellow-500 font-bold">1.000 gold</span>. O item sairá da sua mochila imediatamente.
+                                <strong>Segurança:</strong> Todos os itens raros possuem IDs únicos rastreáveis. Ao vender, o item é transferido de forma atômica para garantir a integridade da sua mochila.
                             </div>
                         </div>
 
@@ -300,11 +307,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                     </div>
                                 </button>
                             ))}
-                            {(!player.uniqueInventory || player.uniqueInventory.length === 0) && (
-                                <div className="col-span-full py-12 text-center text-gray-500 italic opacity-50 border-2 border-dashed border-[#333] rounded-lg">
-                                    Você não possui itens raros para vender.
-                                </div>
-                            )}
                         </div>
                     </div>
                 )}
@@ -323,6 +325,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                     <div>
                                         <div className="font-bold text-gray-200">{listing.item_data.name}</div>
                                         <div className="text-[10px] text-gray-500 uppercase">{listing.item_data.rarity} • {listing.price_tc} TC</div>
+                                        <div className="text-[8px] text-gray-600 font-mono">List ID: {listing.id}</div>
                                     </div>
                                 </div>
                                 <button 
@@ -331,13 +334,10 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                     className="p-2 text-red-500 hover:bg-red-950/30 rounded border border-transparent hover:border-red-900 transition-all flex items-center gap-2 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {processingIds.has(listing.id) ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16}/>}
-                                    CANCELAR
+                                    CANCELAR OFERTA
                                 </button>
                             </div>
                         ))}
-                        {listings.filter(l => l.seller_id === userId).length === 0 && (
-                            <div className="text-center py-20 text-gray-600 italic">Você não possui ofertas ativas.</div>
-                        )}
                     </div>
                 )}
             </div>

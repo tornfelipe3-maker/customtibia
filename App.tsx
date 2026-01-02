@@ -37,6 +37,7 @@ import { MarketPanel } from './components/MarketPanel';
 import { ChatPanel } from './components/ChatPanel';
 import { ImbuementPanel } from './components/ImbuementPanel';
 import { StorageService } from './services/storage';
+import { ChatService } from './services/chat';
 import { supabase } from './lib/supabase';
 import { APP_VERSION } from './constants/config';
 import { 
@@ -60,13 +61,72 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState<any>(null);
   const [isKicked, setIsKicked] = useState(false);
 
+  // Estados de Alerta (Unread)
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [hasTaskReady, setHasTaskReady] = useState(false);
+  const [hasPreyExpired, setHasPreyExpired] = useState(false);
+
   // Ref para ter acesso ao estado mais atual do player dentro do callback assíncrono do Realtime
   const playerRefForKick = useRef(player);
   useEffect(() => {
     playerRefForKick.current = player;
   }, [player]);
 
-  // --- LÓGICA DE ANTI-MULTI-LOGIN (REALTIME) COM SAVE DE EMERGÊNCIA ---
+  // --- MONITORAMENTO DE ALERTAS EM TEMPO REAL ---
+  useEffect(() => {
+    if (!player) return;
+
+    // Alerta de Task: Se houver qualquer task ativa concluída e você não estiver vendo a aba de tasks
+    const anyTaskComplete = player.taskOptions?.some(t => t.status === 'active' && t.isComplete);
+    if (anyTaskComplete && activeTab !== 'tasks') {
+        setHasTaskReady(true);
+    }
+
+    // Alerta de Prey: Se houver qualquer slot que já teve início mas agora está inativo (expirou)
+    // E você não está vendo a aba de preys
+    const anyPreyExpired = player.prey?.slots?.some(s => !s.active && s.startTime > 0);
+    if (anyPreyExpired && activeTab !== 'prey') {
+        setHasPreyExpired(true);
+    }
+
+  }, [player, activeTab]);
+
+  // Resetar alertas ao entrar nas abas (limpa o brilho visual)
+  useEffect(() => {
+      if (activeTab === 'chat') setHasUnreadChat(false);
+      if (activeTab === 'tasks') setHasTaskReady(false);
+      if (activeTab === 'prey') setHasPreyExpired(false);
+  }, [activeTab]);
+
+  // --- CHAT REALTIME GLOBAL ---
+  useEffect(() => {
+    if (!isAuthenticated || !currentAccount || isKicked) return;
+
+    const subGlobal = ChatService.subscribeGlobal((payload) => {
+        if (activeTab !== 'chat') {
+            const newMsg = payload.new;
+            if (newMsg.sender_name !== currentAccountName) {
+                setHasUnreadChat(true);
+            }
+        }
+    });
+
+    const subPrivate = ChatService.subscribePrivate(currentAccount, (payload) => {
+        if (activeTab !== 'chat') {
+            const newMsg = payload.new;
+            if (newMsg.sender_name !== currentAccountName) {
+                setHasUnreadChat(true);
+            }
+        }
+    });
+
+    return () => {
+        subGlobal.unsubscribe();
+        subPrivate.unsubscribe();
+    };
+  }, [isAuthenticated, currentAccount, activeTab, isKicked, currentAccountName]);
+
+  // --- LÓGICA DE ANTI-MULTI-LOGIN ---
   useEffect(() => {
     if (!isAuthenticated || !currentAccount || !player?.sessionId || isKicked) return;
 
@@ -83,12 +143,7 @@ const App = () => {
         async (payload) => {
           const remoteSessionId = payload.new?.data?.sessionId;
           
-          // Se o ID no banco mudou e não é o ID desta aba local
           if (remoteSessionId && remoteSessionId !== player.sessionId) {
-            console.warn("Multi-login detectado! Salvando progresso e encerrando...");
-            
-            // SAVE DE EMERGÊNCIA:
-            // Usamos o remoteSessionId no objeto de save para não dar "kick de volta" no novo login
             if (playerRefForKick.current) {
                 try {
                     await StorageService.save(currentAccount, { 
@@ -96,12 +151,10 @@ const App = () => {
                         sessionId: remoteSessionId, 
                         lastSaveTime: Date.now() 
                     });
-                    console.log("Progresso salvo com sucesso antes do encerramento.");
                 } catch (e) {
                     console.error("Falha no save de emergência:", e);
                 }
             }
-            
             setIsKicked(true);
           }
         }
@@ -119,7 +172,6 @@ const App = () => {
       setShowHighscores(true);
   };
 
-  // Tela de Kick (Sessão Encerrada)
   if (isKicked) {
       return (
           <div className="h-screen w-screen bg-[#0d0d0d] flex flex-col items-center justify-center p-6 text-center">
@@ -169,8 +221,8 @@ const App = () => {
           title: t('cat_caves'),
           items: [
               { id: 'hunt', label: t('menu_hunt'), icon: Swords, color: 'text-red-400' },
-              { id: 'tasks', label: t('menu_tasks'), icon: Skull, color: 'text-orange-400' },
-              { id: 'prey', label: t('menu_prey'), icon: Compass, color: 'text-blue-300' },
+              { id: 'tasks', label: t('menu_tasks'), icon: Skull, color: 'text-orange-400', unread: hasTaskReady },
+              { id: 'prey', label: t('menu_prey'), icon: Compass, color: 'text-blue-300', unread: hasPreyExpired },
               { id: 'hazard', label: 'Hazard System', icon: AlertTriangle, color: 'text-red-600' }, 
               { id: 'quests', label: t('menu_quests'), icon: Map, color: 'text-yellow-600' },
           ]
@@ -178,7 +230,7 @@ const App = () => {
       {
           title: t('cat_city'),
           items: [
-              { id: 'chat', label: 'Chat Global', icon: MessageSquare, color: 'text-cyan-400' },
+              { id: 'chat', label: 'Chat Global', icon: MessageSquare, color: 'text-cyan-400', unread: hasUnreadChat },
               { id: 'market', label: 'Mercado Global', icon: Store, color: 'text-yellow-500' },
               { id: 'shop', label: t('menu_shop'), icon: CircleDollarSign, color: 'text-green-400' },
               { id: 'bank', label: t('menu_bank'), icon: Landmark, color: 'text-yellow-500' },

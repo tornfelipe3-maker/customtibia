@@ -47,13 +47,27 @@ export const MarketService = {
     },
 
     async buyItem(listingId: string) {
-        const { error } = await supabase.from('market_listings').delete().eq('id', listingId);
+        // Usa select().single() para garantir que o item realmente existia e foi deletado
+        const { data, error } = await supabase
+            .from('market_listings')
+            .delete()
+            .eq('id', listingId)
+            .select();
+            
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error("Item já vendido ou não disponível.");
         return true;
     },
 
     async cancelListing(listingId: string) {
-        const { error } = await supabase.from('market_listings').delete().eq('id', listingId);
+        const { data, error } = await supabase
+            .from('market_listings')
+            .delete()
+            .eq('id', listingId)
+            .select();
+            
         if (error) throw error;
+        if (!data || data.length === 0) throw new Error("Anúncio não encontrado.");
+        return true;
     }
 };

@@ -8,6 +8,7 @@ interface MenuItem {
     label: string;
     icon: LucideIcon;
     color: string;
+    unread?: boolean; // Novo: Sinaliza mensagens não lidas
     action?: () => void;
 }
 
@@ -55,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             {cat.items.map(item => {
                                 const isActive = activeTab === item.id && !item.action;
                                 const isAction = !!item.action;
+                                const isUnread = item.unread && !isActive;
                                 
                                 return (
                                     <button
@@ -64,30 +66,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                             w-full flex items-center gap-4 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden
                                             ${isActive 
                                                 ? 'bg-gradient-to-r from-[#2a2a2a] to-transparent text-white shadow-md translate-x-1' 
-                                                : isAction
-                                                    ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/10'
-                                                    : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-200 hover:translate-x-1'
+                                                : isUnread
+                                                    ? 'bg-cyan-950/20 text-cyan-300 animate-pulse border border-cyan-900/50 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                                                    : isAction
+                                                        ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/10'
+                                                        : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-200 hover:translate-x-1'
                                             }
                                         `}
                                     >
                                         {/* Active Indicator Bar */}
                                         {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-600 shadow-[0_0_10px_#ca8a04]"></div>}
                                         
+                                        {/* Unread Notification Dot */}
+                                        {isUnread && (
+                                            <div className="absolute right-3 flex h-2 w-2">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_5px_red]"></span>
+                                            </div>
+                                        )}
+
                                         <item.icon 
                                             size={20} 
                                             className={`
                                                 shrink-0 transition-all duration-300
                                                 ${isActive 
                                                     ? `${item.color} drop-shadow-[0_0_5px_rgba(255,255,255,0.3)] scale-110` 
-                                                    : 'opacity-60 group-hover:opacity-100 group-hover:scale-105'
+                                                    : isUnread
+                                                        ? 'text-cyan-400 drop-shadow-[0_0_3px_rgba(34,211,238,0.5)] scale-105'
+                                                        : 'opacity-60 group-hover:opacity-100 group-hover:scale-105'
                                                 }
                                                 ${isAction ? 'group-hover:text-red-400' : ''}
                                             `} 
                                         />
-                                        <span className={`tracking-wide ${isActive ? 'font-bold' : ''}`}>{item.label}</span>
+                                        <span className={`tracking-wide ${isActive || isUnread ? 'font-bold' : ''}`}>{item.label}</span>
                                         
                                         {/* Action Arrow for non-active items */}
-                                        {!isActive && !isAction && (
+                                        {!isActive && !isAction && !isUnread && (
                                             <div className="absolute right-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-600 font-serif">
                                                 ›
                                             </div>

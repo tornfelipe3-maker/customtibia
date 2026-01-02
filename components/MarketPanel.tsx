@@ -79,20 +79,15 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
     const handleCancelAction = async (listing: MarketListing) => {
         if (processingIds.has(listing.id)) return;
 
-        // Bloqueia o ID imediatamente para evitar cliques múltiplos
         setProcessingIds(prev => new Set(prev).add(listing.id));
-        
-        // Atualização Otimista: Remove da lista visual
         setListings(prev => prev.filter(l => l.id !== listing.id));
 
         try {
             await onCancelMarket(listing);
         } catch (e) {
-            // Em caso de erro real (ex: internet caiu), recarrega a lista para mostrar o item de volta
             console.error("Falha ao cancelar anúncio:", e);
             await refreshMarket(true);
         } finally {
-            // O desbloqueio ocorre apenas após a resposta do servidor ou timeout
             setProcessingIds(prev => {
                 const next = new Set(prev);
                 next.delete(listing.id);
@@ -216,7 +211,7 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#0d0d0d_100%)]">
+            <div key={activeTab} className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#0d0d0d_100%)] animate-in fade-in duration-300">
                 
                 {activeTab === 'browse' && (
                     <div className="space-y-4 max-w-5xl mx-auto">

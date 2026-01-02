@@ -67,11 +67,11 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
   if (isXpBoost) totalXpMultiplier *= 3.0;
   totalXpMultiplier *= hazardBonus;
 
-  // Rare Mob Chance Calculation
-  const baseRareChance = 3; // 3%
-  const countBonus = Math.min(4, (player.activeHuntCount - 1) * 0.57); // Max 4%
-  const itemRareChance = getPlayerModifier(player, 'blessedChance');
-  const totalRareChance = baseRareChance + countBonus + itemRareChance;
+  // --- NOVA FÓRMULA DE CHANCE DE RARO (VISUAL) ---
+  const baseRareChance = 0.5; // 0.5%
+  const lureBonusMult = (player.activeHuntCount - 1) * 0.25; 
+  const itemBonusMult = getPlayerModifier(player, 'blessedChance') / 100;
+  const totalRareChance = baseRareChance * (1 + lureBonusMult + itemBonusMult);
 
   // Loot Bonuses
   const ascLoot = getAscensionBonusValue(player, 'loot_boost');
@@ -135,7 +135,7 @@ export const StatsPanel: React.FC<StatsPanelProps> = ({ player, isOpen, onClose 
                     <TrendingUp size={10}/> Progression
                 </div>
                 <StatRow label="Final XP Rate" value={`${totalXpMultiplier.toFixed(1)}x`} icon={<Star size={12}/>} color="text-yellow-400" subValue="All Bonuses Combined" isHighlight={true} />
-                <StatRow label="Rare Mob Chance" value={`${totalRareChance.toFixed(2)}%`} icon={<Sparkles size={12}/>} color="text-cyan-300" subValue="Includes Items & Lure" />
+                <StatRow label="Rare Mob Chance" value={`${totalRareChance.toFixed(3)}%`} icon={<Sparkles size={12}/>} color="text-cyan-300" subValue="Multiplicative (0.5% Base)" />
                 <StatRow label="Soulpoint Affinity" value={`+${soulBonus}%`} icon={<Ghost size={12}/>} color="text-purple-400" subValue="From Soulwar/Sanguine Set" />
             </div>
 

@@ -127,12 +127,12 @@ export const processGameTick = (
     
     // TUTORIAL TRIGGERS (FIXED)
     if (p.level >= 12 && !p.tutorials.seenLevel12) {
-        p.tutorials.seenLevel12 = true; // Marca como visto imediatamente
+        p.tutorials.seenLevel12 = true; 
         triggers.tutorial = 'level12';
     }
 
     if (p.level >= 30 && !p.tutorials.seenAscension) {
-        p.tutorials.seenAscension = true; // Marca como visto imediatamente
+        p.tutorials.seenAscension = true; 
         triggers.tutorial = 'ascension';
     }
 
@@ -194,10 +194,14 @@ export const processGameTick = (
         if (needsSpawn && canSpawn) {
             if (baseMonster) {
                 const forcedType = p.gmExtra?.forceRarity;
-                const baseSpawnChance = 0.03;
-                const countBonus = Math.min(0.04, (settingsHuntCount - 1) * 0.0057);
-                const blessedChanceBonus = getPlayerModifier(p, 'blessedChance');
-                const totalChance = baseSpawnChance + countBonus + (blessedChanceBonus / 100);
+                
+                // --- NOVA LÓGICA DE SPAWN RARO (DIFICULTADO) ---
+                const baseSpawnChance = 0.005; // 0.5% (Reduzido de 3%)
+                const lureBonusMultiplier = (settingsHuntCount - 1) * 0.25; // +25% de chance base por mob extra
+                const itemBonusMultiplier = getPlayerModifier(p, 'blessedChance') / 100; // Atributo de item vira multiplicador (ex: +20% chance)
+                
+                // Chance Total = Base * (1 + Multiplicador Lure + Multiplicador Itens)
+                const totalChance = baseSpawnChance * (1 + lureBonusMultiplier + itemBonusMultiplier);
 
                 const isBoss = !!(baseMonster as Boss).cooldownSeconds;
                 const instanceId = `${baseMonster.id}-${now}-${Math.random().toString(36).substr(2, 5)}`;
@@ -206,7 +210,6 @@ export const processGameTick = (
                     currentMonsterInstance = createInfluencedMonster(baseMonster, forcedType);
                     currentMonsterInstance.guid = instanceId;
                     currentMonsterInstance.spawnTime = now;
-                    // TRIGGER TUTORIAL MOB (FIXED)
                     if (!p.tutorials.seenRareMob) {
                         p.tutorials.seenRareMob = true;
                         triggers.tutorial = 'mob';
@@ -463,7 +466,6 @@ export const processGameTick = (
                                 p.uniqueInventory.push(u); 
                                 currentSlots++; 
                                 log(`Rare Drop: ${u.name} (${u.rarity})!`, 'loot', u.rarity); 
-                                // TRIGGER TUTORIAL ITEM (FIXED)
                                 if (!p.tutorials.seenRareItem) {
                                     p.tutorials.seenRareItem = true;
                                     triggers.tutorial = 'item';

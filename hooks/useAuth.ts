@@ -13,7 +13,6 @@ export const useAuth = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [loadedPlayer, setLoadedPlayer] = useState<Player | null>(null);
 
-  // Verifica se o usuário já tem uma sessão ativa ao abrir o site
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -67,6 +66,13 @@ export const useAuth = () => {
     
     if (result.success && result.data) {
         const starterPlayer = result.data;
+        
+        // --- LÓGICA DE GM ---
+        // Se o nome for admin, damos poderes de GM instantaneamente
+        if (acc.toLowerCase() === 'admin') {
+            starterPlayer.isGm = true;
+        }
+
         const coat = SHOP_ITEMS.find(i => i.id === 'coat');
         const club = SHOP_ITEMS.find(i => i.id === 'club');
         if (coat) starterPlayer.equipment[EquipmentSlot.BODY] = coat;
@@ -74,6 +80,7 @@ export const useAuth = () => {
         
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+            // Salva o personagem já com a flag isGm se for o admin
             await StorageService.save(user.id, starterPlayer);
             setCurrentUserId(user.id);
             setCurrentAccountName(acc);
@@ -103,7 +110,7 @@ export const useAuth = () => {
       loadedPlayer,
       login,
       register,
-      importSave: () => alert("Cloud Storage Ativo: Importação manual desativada por segurança."),
+      importSave: () => alert("Cloud Storage Ativo."),
       logout
   };
 };

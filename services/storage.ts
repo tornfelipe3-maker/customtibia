@@ -59,9 +59,21 @@ export const StorageService = {
       return { success: false, error: "Perfil não encontrado." };
     }
 
+    const playerData = profileRes.data.data as Player;
+    
+    // --- GERA NOVA SESSÃO ---
+    const newSessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    playerData.sessionId = newSessionId;
+
+    // Atualiza o banco com a nova sessão imediatamente para disparar o kick em outros clientes
+    await supabase
+      .from('profiles')
+      .update({ data: playerData })
+      .eq('id', authData.user.id);
+
     return { 
       success: true, 
-      data: profileRes.data.data as Player,
+      data: playerData,
       serverTime 
     };
   },
@@ -80,6 +92,7 @@ export const StorageService = {
     const newPlayer = JSON.parse(JSON.stringify(INITIAL_PLAYER_STATS));
     newPlayer.name = account;
     newPlayer.lastSaveTime = Date.now();
+    newPlayer.sessionId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
     
     if (account.toLowerCase() === 'admin') {
         newPlayer.isGm = true;
@@ -152,17 +165,16 @@ export const StorageService = {
       .select('id, data')
       .order('data->level', { ascending: false })
       .order('data->currentXp', { ascending: false })
-      .limit(200); // Pegamos mais para garantir que ao filtrar GMs ainda tenhamos o top 100
+      .limit(200); 
 
     if (error || !allProfiles) return null;
 
-    // Filtra jogadores que não são GM
     const entries = allProfiles
         .map(p => {
             const playerData = p.data as Player;
             return { id: p.id, name: playerData.name || "Unknown Hero", data: playerData };
         })
-        .filter(e => !e.data.isGm); // REMOVE GMS DO RANKING
+        .filter(e => !e.data.isGm); 
 
     const getTop = (getValue: (p: Player) => number) => {
         return entries

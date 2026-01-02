@@ -43,7 +43,7 @@ import {
     LogOut, Trophy, Compass, Map, 
     CircleDollarSign, Crown, Ghost, ShoppingBag, 
     Skull, Briefcase, Bot, Shield, 
-    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3, MessageSquare
+    Swords, Landmark, ScrollText, BookOpen, AlertTriangle, Sparkles, Store, RefreshCw, BarChart3, MessageSquare, MonitorOff
 } from 'lucide-react';
 
 const App = () => {
@@ -59,7 +59,9 @@ const App = () => {
   const [showStats, setShowStats] = useState(false); 
   const [highscoresData, setHighscoresData] = useState<any>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
 
+  // Monitorar versão do sistema
   useEffect(() => {
     const checkVersion = async () => {
         const { data } = await supabase.from('system_config').select('value').eq('key', 'min_version').single();
@@ -70,11 +72,62 @@ const App = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // --- LÓGICA DE ANTI-MULTI-LOGIN (REALTIME) ---
+  useEffect(() => {
+    if (!isAuthenticated || !currentAccount || !player || isKicked) return;
+
+    const channel = supabase
+      .channel(`session_check_${currentAccount}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${currentAccount}`,
+        },
+        (payload) => {
+          const remoteSessionId = payload.new?.data?.sessionId;
+          // Se o ID no banco mudou e não é o ID local, derruba a conta
+          if (remoteSessionId && remoteSessionId !== player.sessionId) {
+            setIsKicked(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, currentAccount, player?.sessionId, isKicked]);
+
   const fetchHighscores = async () => {
       const data = await StorageService.getHighscores(currentAccount);
       setHighscoresData(data);
       setShowHighscores(true);
   };
+
+  // Tela de Kick (Multi-login)
+  if (isKicked) {
+      return (
+          <div className="h-screen w-screen bg-[#0d0d0d] flex flex-col items-center justify-center p-6 text-center">
+              <div className="tibia-panel max-w-md p-8 border-red-900 shadow-[0_0_50px_rgba(220,38,38,0.2)]">
+                  <MonitorOff size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
+                  <h1 className="text-2xl font-bold text-red-400 font-serif mb-4 uppercase tracking-widest">Sessão Encerrada</h1>
+                  <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                      Sua conta foi conectada de outro local ou navegador. 
+                      Para garantir a segurança dos seus itens e experiência, apenas uma conexão ativa é permitida.
+                  </p>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="tibia-btn px-8 py-3 bg-red-950 hover:bg-red-900 text-white font-bold border-red-600 w-full"
+                  >
+                      VOLTAR PARA O LOGIN
+                  </button>
+              </div>
+          </div>
+      );
+  }
 
   if (isAuthLoading) {
       return (

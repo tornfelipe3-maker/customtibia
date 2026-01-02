@@ -200,6 +200,7 @@ export interface PlayerImbuement {
 }
 
 export interface Player {
+  sessionId?: string; // NOVO: Controle de multi-login
   name: string;
   isNameChosen?: boolean;
   isGm?: boolean;

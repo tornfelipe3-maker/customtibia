@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { Monster, Boss, Player, HitSplat } from '../types';
+import { Monster, Boss, Player, HitSplat, Item } from '../types';
 import { MONSTERS, BOSSES, SHOP_ITEMS } from '../constants';
 import { BattleScene } from './BattleScene';
 import { BattleList } from './BattleList';
-// Added Sparkles to the import list from lucide-react
 import { Info, X, Heart, Star, Swords, Coins, Shield, Flame, Snowflake, Zap, Mountain, Skull, AlertTriangle, Footprints, Sparkles } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Sprite } from './common/Sprite';
+import { ItemTooltip } from './ItemTooltip';
 
 interface HuntPanelProps {
   player: Player;
@@ -17,7 +17,6 @@ interface HuntPanelProps {
   onStartHunt: (monsterId: string, name: string, isBoss: boolean, count: number) => void;
   onStopHunt: () => void;
   currentMonsterHp?: number;
-  // Corrected 1-based line 19: changed hitsSplat to HitSplat
   hits: HitSplat[];
 }
 
@@ -36,6 +35,10 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
   const [confirmModal, setConfirmModal] = useState<{ id: string, name: string, isBoss: boolean } | null>(null);
   const [infoModal, setInfoModal] = useState<Monster | null>(null);
   const [areaHuntCount, setAreaHuntCount] = useState(2);
+  
+  // States for the global tooltip
+  const [hoverItem, setHoverItem] = useState<Item | null>(null);
+  const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
 
   const handleStartHuntRequest = (id: string, name: string, isBoss: boolean) => {
       if (activeHunt !== id) {
@@ -68,17 +71,60 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
       }
   };
 
+  const handleLootHover = (item: Item | undefined, e: React.MouseEvent) => {
+    if (item) {
+        setHoverItem(item);
+        setHoverPos({ x: e.clientX, y: e.clientY });
+    } else {
+        setHoverItem(null);
+        setHoverPos(null);
+    }
+  };
+
   const getLootRarityLabel = (chance: number) => {
-      if (chance >= 0.1) return { label: 'Common', color: 'text-gray-400', border: 'border-gray-700' };
-      if (chance >= 0.05) return { label: 'Uncommon', color: 'text-green-400', border: 'border-green-900/50' };
-      if (chance >= 0.01) return { label: 'Semi-Rare', color: 'text-blue-400', border: 'border-blue-900/50' };
-      if (chance >= 0.005) return { label: 'Rare', color: 'text-purple-400', border: 'border-purple-900/50' };
-      return { label: 'Very Rare', color: 'text-orange-400', border: 'border-orange-900/50' };
+      if (chance >= 0.1) return { 
+          label: 'Comum', 
+          color: 'text-gray-400', 
+          border: 'border-gray-600', 
+          bg: 'bg-black/20',
+          shadow: '' 
+      };
+      if (chance >= 0.05) return { 
+          label: 'Incomum', 
+          color: 'text-green-400', 
+          border: 'border-green-500', 
+          bg: 'bg-green-950/20',
+          shadow: 'shadow-[inset_0_0_10px_rgba(34,197,94,0.2)]' 
+      };
+      if (chance >= 0.01) return { 
+          label: 'Raro', 
+          color: 'text-blue-400', 
+          border: 'border-blue-500', 
+          bg: 'bg-blue-950/20',
+          shadow: 'shadow-[0_0_10px_rgba(59,130,246,0.4)]' 
+      };
+      if (chance >= 0.005) return { 
+          label: 'Super Raro', 
+          color: 'text-purple-400', 
+          border: 'border-purple-500', 
+          bg: 'bg-purple-950/30',
+          shadow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' 
+      };
+      return { 
+          label: 'Extremo', 
+          color: 'text-orange-500', 
+          border: 'border-orange-500', 
+          bg: 'bg-orange-950/40',
+          shadow: 'shadow-[0_0_20px_rgba(249,115,22,0.6)] animate-pulse' 
+      };
   };
 
   return (
     <div className="flex flex-col h-full bg-[#222]">
       
+      {/* Global Bound-Aware Tooltip */}
+      <ItemTooltip item={hoverItem} position={hoverPos} />
+
       {/* --- MODALS --- */}
 
       {confirmModal && (
@@ -139,7 +185,7 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
 
                         <div className="flex-1 grid grid-cols-2 gap-2">
                             <div className="bg-[#1a1a1a] p-2 rounded border border-[#333] flex flex-col justify-center">
-                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Heart size={10} className="text-red-500"/> Health</div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Heart size={10} className="text-red-500"/> Saúde</div>
                                 <div className="text-lg font-bold text-gray-200">{infoModal.maxHp.toLocaleString()}</div>
                             </div>
                             <div className="bg-[#1a1a1a] p-2 rounded border border-[#333] flex flex-col justify-center">
@@ -147,11 +193,11 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                                 <div className="text-lg font-bold text-gray-200">{infoModal.exp.toLocaleString()}</div>
                             </div>
                             <div className="bg-[#1a1a1a] p-2 rounded border border-[#333] flex flex-col justify-center">
-                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Swords size={10} className="text-gray-400"/> Attack</div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Swords size={10} className="text-gray-400"/> Ataque</div>
                                 <div className="text-sm font-bold text-gray-300">{infoModal.damageMin} - {infoModal.damageMax}</div>
                             </div>
                             <div className="bg-[#1a1a1a] p-2 rounded border border-[#333] flex flex-col justify-center">
-                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Coins size={10} className="text-yellow-600"/> Gold</div>
+                                <div className="text-[10px] text-gray-500 uppercase font-bold flex items-center gap-1"><Coins size={10} className="text-yellow-600"/> Ouro</div>
                                 <div className="text-sm font-bold text-yellow-500">{infoModal.minGold} - {infoModal.maxGold}</div>
                             </div>
                         </div>
@@ -160,7 +206,7 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                     {/* Elemental Resistances Grid */}
                     {infoModal.elements && (
                        <div className="mb-6">
-                          <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-2 border-b border-[#333] pb-1">Elemental Sensitivity</h4>
+                          <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-2 border-b border-[#333] pb-1">Sensibilidade Elemental</h4>
                           <div className="grid grid-cols-4 gap-2">
                              {[
                                  { key: 'physical', icon: <Shield size={12}/>, color: 'text-gray-400' },
@@ -192,8 +238,8 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                     {/* Visual Loot Table (Grid) */}
                     <div>
                         <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-2 border-b border-[#333] pb-1 flex justify-between">
-                            <span>Loot Table</span>
-                            <span className="text-[9px] normal-case opacity-50 italic">Sorted by drop frequency</span>
+                            <span>Tabela de Loot</span>
+                            <span className="text-[9px] normal-case opacity-50 italic">Passe o mouse p/ detalhes</span>
                         </h4>
                         
                         <div className="grid grid-cols-5 gap-2">
@@ -202,39 +248,27 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                                 const rarity = getLootRarityLabel(loot.chance);
 
                                 return (
-                                    <div key={idx} className={`aspect-square relative border rounded flex items-center justify-center group bg-[#1a1a1a] hover:bg-[#252525] transition-colors cursor-help ${rarity.border}`}>
+                                    <div 
+                                        key={idx} 
+                                        onMouseEnter={(e) => handleLootHover(item, e)}
+                                        onMouseLeave={(e) => handleLootHover(undefined, e)}
+                                        className={`aspect-square relative border-2 rounded-md flex items-center justify-center group transition-all duration-300 ${rarity.bg} ${rarity.border} ${rarity.shadow} hover:scale-110 cursor-help active:scale-95`}
+                                    >
                                         <Sprite 
                                             src={item?.image} 
                                             alt={item?.name || loot.itemId} 
                                             size={32} 
-                                            className="max-w-[32px] max-h-[32px]" 
+                                            className="max-w-[32px] max-h-[32px] drop-shadow-md" 
                                         />
                                         
-                                        <div className={`absolute bottom-0 right-0 bg-black/80 text-[8px] px-1 rounded-tl leading-none font-mono ${rarity.color}`}>
-                                            {loot.chance < 0.01 ? '<1%' : `${Math.round(loot.chance*100)}%`}
-                                        </div>
-
-                                        {/* Loot Tooltip */}
-                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-40 bg-black border border-gray-600 text-[10px] p-2 rounded shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none z-50 text-center animate-in fade-in duration-200">
-                                            <div className={`font-bold mb-0.5 ${rarity.color}`}>{item?.name || loot.itemId}</div>
-                                            <div className="text-gray-500 uppercase text-[8px] font-bold mb-1">{rarity.label}</div>
-                                            <div className="w-full h-[1px] bg-gray-800 my-1"></div>
-                                            <div className="flex justify-between items-center text-[9px]">
-                                                <span className="text-gray-400">Chance:</span>
-                                                <span className="text-yellow-500 font-mono">{(loot.chance * 100).toFixed(2)}%</span>
-                                            </div>
-                                            {item?.sellPrice && (
-                                                <div className="flex justify-between items-center text-[9px] mt-0.5">
-                                                    <span className="text-gray-400">Value:</span>
-                                                    <span className="text-green-500 font-mono">{item.sellPrice.toLocaleString()} gp</span>
-                                                </div>
-                                            )}
+                                        <div className={`absolute -bottom-1 inset-x-0 mx-auto w-[90%] bg-black/80 text-[7px] py-0.5 rounded border ${rarity.border} leading-none font-black uppercase text-center ${rarity.color} z-10`}>
+                                            {rarity.label}
                                         </div>
                                     </div>
                                 );
                             })}
                             {(!infoModal.lootTable || infoModal.lootTable.length === 0) && (
-                                <div className="col-span-5 text-xs text-gray-600 italic p-4 text-center">No known loot in bestiary.</div>
+                                <div className="col-span-5 text-xs text-gray-600 italic p-4 text-center">Nenhum loot registrado no bestiário.</div>
                             )}
                         </div>
                     </div>
@@ -242,7 +276,7 @@ export const HuntPanel: React.FC<HuntPanelProps> = ({
                 
                 {/* Footer Tip */}
                 <div className="bg-[#1a1a1a] p-2 border-t border-[#333] text-center">
-                    <p className="text-[9px] text-gray-600 italic">Rare items on influenced mobs have special rarity tiers.</p>
+                    <p className="text-[9px] text-gray-600 italic">Dica: Tooltips agora se ajustam automaticamente à tela.</p>
                 </div>
             </div>
         </div>

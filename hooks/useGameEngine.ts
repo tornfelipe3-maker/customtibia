@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
-import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, validateProgressSanity } from '../services';
+import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport } from '../types';
+import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState } from '../services';
 import { MONSTERS, BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
@@ -38,6 +38,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   const lastTickRef = useRef<number>(Date.now());
+  const lastCriticalSaveRef = useRef<number>(0); // Throttle para saves críticos
   const killBatchRef = useRef<{[id: string]: number}>({}); 
   
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
@@ -56,7 +57,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const serverNow = await StorageService.getServerTime();
           lastTickRef.current = serverNow;
 
-          // Inicialização de campos obrigatórios ausentes
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
                   [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
@@ -70,7 +70,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.tutorials) migratedPlayer.tutorials = { ...INITIAL_PLAYER_STATS.tutorials };
           
-          // Geração de Tasks Iniciais se não houver nenhuma (CORREÇÃO DO BUG)
           if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length === 0) {
               migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
           }
@@ -92,6 +91,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
     syncAndStart();
   }, [initialPlayer]);
 
+  // Save Periódico (30s)
   useEffect(() => {
       if (!userId) return;
       const timer = setInterval(async () => {
@@ -101,12 +101,13 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
                   killBatchRef.current = {};
                   await StorageService.syncMonsterKills(batch);
               }
-              await StorageService.save(userId, playerRef.current);
+              await StorageService.save(userId, { ...playerRef.current, lastSaveTime: Date.now() });
           }
       }, 30000); 
       return () => clearInterval(timer);
   }, [userId, isPaused]);
 
+  // Loop de Jogo Principal
   useEffect(() => {
       if (!player) return;
       if (isPaused) {
@@ -127,7 +128,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const now = Date.now();
           const tickDuration = 1000 / gameSpeed;
           let delta = now - lastTickRef.current;
-          
           let ticksToProcess = Math.floor(delta / tickDuration);
           if (ticksToProcess <= 0) return;
 
@@ -141,6 +141,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           let stopBatchHunt = false;
           let triggerUpdate = null;
           let currentTickActiveMonster = activeMonster;
+          let isCriticalEvent = false;
 
           for (let i = 0; i < ticksToProcess; i++) {
               const simTime = lastTickRef.current + ((i + 1) * tickDuration);
@@ -149,6 +150,11 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               tempPlayer = result.player;
               tempMonsterHp = result.monsterHp;
               currentTickActiveMonster = result.activeMonster;
+
+              // Detecção de evento crítico para salvamento imediato
+              if (result.leveledUp || result.skillLeveledUp || result.triggers.death) {
+                  isCriticalEvent = true;
+              }
 
               if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
               if (result.newHits.length > 0) batchHits.push(...result.newHits);
@@ -187,6 +193,13 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
                   setDeathReport(triggerUpdate.death); 
                   StorageService.logGlobalDeath(tempPlayer.name, tempPlayer.level, tempPlayer.vocation, triggerUpdate.death.killerName);
               }
+          }
+
+          // --- SALVAMENTO CRÍTICO IMEDIATO ---
+          // Salvamos imediatamente se algo importante aconteceu, mas com um throttle de 2 segundos para não sobrecarregar
+          if (isCriticalEvent && userId && (now - lastCriticalSaveRef.current > 2000)) {
+              lastCriticalSaveRef.current = now;
+              StorageService.save(userId, { ...tempPlayer, lastSaveTime: now });
           }
 
           playerRef.current = tempPlayer; 

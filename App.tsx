@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useGameEngine } from './hooks/useGameEngine';
 import { useLanguage } from './contexts/LanguageContext'; 
@@ -60,9 +60,15 @@ const App = () => {
   const [highscoresData, setHighscoresData] = useState<any>(null);
   const [isKicked, setIsKicked] = useState(false);
 
-  // --- LÓGICA DE ANTI-MULTI-LOGIN (REALTIME) ---
+  // Ref para ter acesso ao estado mais atual do player dentro do callback assíncrono do Realtime
+  const playerRefForKick = useRef(player);
   useEffect(() => {
-    if (!isAuthenticated || !currentAccount || !player || isKicked) return;
+    playerRefForKick.current = player;
+  }, [player]);
+
+  // --- LÓGICA DE ANTI-MULTI-LOGIN (REALTIME) COM SAVE DE EMERGÊNCIA ---
+  useEffect(() => {
+    if (!isAuthenticated || !currentAccount || !player?.sessionId || isKicked) return;
 
     const channel = supabase
       .channel(`session_check_${currentAccount}`)
@@ -74,10 +80,28 @@ const App = () => {
           table: 'profiles',
           filter: `id=eq.${currentAccount}`,
         },
-        (payload) => {
+        async (payload) => {
           const remoteSessionId = payload.new?.data?.sessionId;
-          // Se o ID no banco mudou e não é o ID local, derruba a conta
+          
+          // Se o ID no banco mudou e não é o ID desta aba local
           if (remoteSessionId && remoteSessionId !== player.sessionId) {
+            console.warn("Multi-login detectado! Salvando progresso e encerrando...");
+            
+            // SAVE DE EMERGÊNCIA:
+            // Usamos o remoteSessionId no objeto de save para não dar "kick de volta" no novo login
+            if (playerRefForKick.current) {
+                try {
+                    await StorageService.save(currentAccount, { 
+                        ...playerRefForKick.current, 
+                        sessionId: remoteSessionId, 
+                        lastSaveTime: Date.now() 
+                    });
+                    console.log("Progresso salvo com sucesso antes do encerramento.");
+                } catch (e) {
+                    console.error("Falha no save de emergência:", e);
+                }
+            }
+            
             setIsKicked(true);
           }
         }
@@ -95,16 +119,19 @@ const App = () => {
       setShowHighscores(true);
   };
 
-  // Tela de Kick (Multi-login)
+  // Tela de Kick (Sessão Encerrada)
   if (isKicked) {
       return (
           <div className="h-screen w-screen bg-[#0d0d0d] flex flex-col items-center justify-center p-6 text-center">
               <div className="tibia-panel max-w-md p-8 border-red-900 shadow-[0_0_50px_rgba(220,38,38,0.2)]">
                   <MonitorOff size={64} className="text-red-500 mx-auto mb-6 animate-pulse" />
-                  <h1 className="text-2xl font-bold text-red-400 font-serif mb-4 uppercase tracking-widest">Sessão Encerrada</h1>
+                  <h1 className="text-2xl font-bold text-red-400 font-serif mb-4 uppercase tracking-widest">Conexão Encerrada</h1>
                   <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                      Sua conta foi conectada de outro local ou navegador. 
-                      Apenas uma conexão ativa é permitida por segurança.
+                      Sua conta foi conectada de outro navegador ou dispositivo. 
+                      <br/><br/>
+                      <span className="text-green-400 font-bold">Seu progresso foi salvo com sucesso.</span>
+                      <br/>
+                      Apenas uma sessão ativa é permitida por vez.
                   </p>
                   <button 
                     onClick={() => window.location.reload()} 
@@ -121,7 +148,7 @@ const App = () => {
       return (
           <div className="h-screen w-screen bg-black flex flex-col items-center justify-center text-gray-500">
               <div className="w-12 h-12 border-4 border-t-yellow-500 border-gray-800 rounded-full animate-spin mb-4"></div>
-              <span className="text-xs uppercase tracking-widest font-bold">Conectando ao Servidor...</span>
+              <span className="text-xs uppercase tracking-widest font-bold">Conectando ao Mundo...</span>
           </div>
       );
   }
@@ -225,7 +252,7 @@ const App = () => {
         <div className="w-[300px] flex flex-col bg-[#222] border-l border-[#111] shadow-2xl shrink-0 z-20 h-full">
             <div className="flex-1 overflow-hidden relative text-center pt-2">
                 <div className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest bg-black/40 px-3 py-1 rounded mx-4 border border-yellow-900/30 truncate">
-                   Conta: {currentAccountName}
+                   Hero: {currentAccountName}
                 </div>
                 <CharacterPanel player={player} onUpdateSettings={actions.updateSettings} onEquipItem={actions.equipItem} onDepositItem={actions.depositItem} onDiscardItem={actions.discardItem} onToggleSkippedLoot={actions.toggleSkippedLoot} onUnequipItem={actions.unequipItem} onReforgeItem={actions.reforgeItem} onToggleAnalyzer={() => setShowAnalyzer(!showAnalyzer)} onToggleStats={() => setShowStats(!showStats)} />
             </div>

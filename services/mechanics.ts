@@ -148,7 +148,6 @@ export const getAscensionBonusValue = (player: Player, perk: AscensionPerk): num
     return level * 5; 
 };
 
-/** Helper to identify monster tier by level range */
 const getTierByLevel = (level: number): number => {
     if (level <= 8) return 1;
     if (level <= 19) return 2;
@@ -228,6 +227,9 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
         monster = finalPool[Math.floor(Math.random() * finalPool.length)];
     }
 
+    // Fallback absoluto para evitar erros de compilação ou runtime se o pool estiver vazio
+    if (!monster) monster = MONSTERS[0];
+
     let targetId = monster.id;
     let targetName = monster.name;
     let amount = 0;
@@ -279,7 +281,7 @@ export const generateSingleTask = (playerLevel: number, forcedType?: 'kill' | 'c
     const xpNeededForNextLevel = getXpForLevel(playerLevel + 1) - getXpForLevel(playerLevel);
     const minXpLevels = taskType === 'collect' ? 3.0 : 2.0;
     const minSafeXp = Math.floor(xpNeededForNextLevel * minXpLevels);
-    xpReward = Math.max(xpReward, minXpLevels);
+    xpReward = Math.max(xpReward, minSafeXp);
 
     const avgGoldPerKill = (monster.minGold + monster.maxGold) / 2;
     const goldReward = Math.floor(avgGoldPerKill * effortMetric * 25.0) + (playerLevel * 25000); 

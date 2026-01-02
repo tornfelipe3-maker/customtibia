@@ -11,7 +11,7 @@ interface TaskPanelProps {
   onCancelTask: (taskUuid: string) => void;
   onRerollTasks: () => void;
   onClaimReward: (taskUuid: string) => void;
-  onRerollSpecific?: (index: number) => void; // New prop
+  onRerollSpecific?: (index: number) => void; 
 }
 
 const getDroppers = (itemId: string) => {
@@ -28,10 +28,9 @@ const BountyCard: React.FC<{
     playerGold: number;
     rerollCost: number;
 }> = ({ task, playerInventory, onClick, onCancel, onClaim, onReroll, playerGold, rerollCost }) => {
-    const { t } = useLanguage(); // Translation Hook added
+    const { t } = useLanguage(); 
     const [showInfo, setShowInfo] = useState(false);
     
-    // Determine Image and Logic based on Type
     let imageSrc: string | undefined;
     let progress = 0;
     let currentAmount = 0;
@@ -45,15 +44,13 @@ const BountyCard: React.FC<{
         progress = Math.min(100, (currentAmount / task.amountRequired) * 100);
         isComplete = isActive && currentAmount >= task.amountRequired;
     } else {
-        // Kill Task
-        const monster = MONSTERS.find(m => m.id === task.targetId); // Use targetId which maps to monsterId
+        const monster = MONSTERS.find(m => m.id === task.targetId); 
         imageSrc = monster?.image;
         currentAmount = task.killsCurrent || 0;
         progress = Math.min(100, (currentAmount / task.amountRequired) * 100);
         isComplete = task.isComplete || false;
     }
     
-    // Theme: Bounty Hunter (Orange) vs Collector (Blue/Cyan)
     const isCollect = task.type === 'collect';
     const baseColor = isCollect ? 'text-cyan-400' : 'text-orange-400';
     const borderColor = isActive 
@@ -76,10 +73,8 @@ const BountyCard: React.FC<{
                 ${borderColor} ${isActive ? 'h-auto p-2 scale-100' : 'h-[240px] cursor-pointer hover:scale-[1.02]'}
             `}
         >
-            {/* Background Gradient */}
             <div className={`absolute inset-0 bg-gradient-to-b ${bgGradient} opacity-60 pointer-events-none`}></div>
             
-            {/* DROP INFO OVERLAY */}
             {showInfo && (
                 <div 
                     className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-2 text-center animate-in fade-in"
@@ -95,7 +90,6 @@ const BountyCard: React.FC<{
                 </div>
             )}
 
-            {/* Header */}
             <div className="w-full py-1 bg-black/40 border-b border-white/10 flex flex-col items-center justify-center relative z-10">
                 <div className={`flex items-center gap-1 font-black uppercase text-[10px] tracking-wider ${isActive && isComplete ? 'text-green-400' : baseColor} drop-shadow-md`}>
                     {isCollect ? <PackageSearch size={12} /> : <Crosshair size={12} />}
@@ -103,7 +97,6 @@ const BountyCard: React.FC<{
                 </div>
             </div>
 
-            {/* Icon Circle */}
             <div className={`flex-1 flex flex-col items-center justify-center w-full relative z-10 ${isActive ? 'py-3' : ''}`}>
                 <div className={`
                     w-16 h-16 bg-black/60 rounded-full border flex items-center justify-center shadow-[0_0_10px_rgba(0,0,0,0.5)] relative overflow-hidden transition-shadow
@@ -117,7 +110,6 @@ const BountyCard: React.FC<{
                     )}
                 </div>
                 
-                {/* Item Name & Info Button */}
                 <div className="mt-2 w-full flex items-center justify-center gap-1.5 px-1 relative z-20">
                     <div className="text-xs font-bold text-gray-100 drop-shadow-md bg-black/40 px-2 py-0.5 rounded border border-white/10 truncate max-w-[75%] text-center">
                         {task.targetName}
@@ -135,10 +127,8 @@ const BountyCard: React.FC<{
                 </div>
             </div>
 
-            {/* Stats Area */}
             <div className="w-full bg-[#111] p-2 border-t border-white/10 relative z-10 flex flex-col items-center space-y-2">
                 
-                {/* Count */}
                 <div className="text-center w-full">
                     <div className="flex justify-between items-end mb-1 px-1">
                         <span className="text-[9px] uppercase text-gray-500 font-bold">{isCollect ? t('task_collected') : t('task_slain')}</span>
@@ -156,7 +146,6 @@ const BountyCard: React.FC<{
                     )}
                 </div>
 
-                {/* Rewards Grid */}
                 <div className="grid grid-cols-2 gap-1 w-full">
                     <div className="bg-[#1a1a1a] border border-[#333] rounded px-1 py-0.5 flex items-center gap-1 justify-center">
                         <Star size={10} className="text-blue-400" />
@@ -168,7 +157,6 @@ const BountyCard: React.FC<{
                     </div>
                 </div>
 
-                {/* Buttons (Active State) */}
                 {isActive && (
                     <div className="w-full pt-1">
                         {isComplete ? (
@@ -189,7 +177,6 @@ const BountyCard: React.FC<{
                     </div>
                 )}
 
-                {/* Accept Prompt with Reroll (Inactive State) */}
                 {!isActive && (
                     <div className="w-full grid grid-cols-2 gap-1">
                         <div className="col-span-1">
@@ -232,8 +219,8 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
   onRerollSpecific 
 }) => {
   const { t } = useLanguage();
-  const rerollCost = player.level * 800; // Global Reroll Cost (8x individual)
-  const individualRerollCost = player.level * 100; // New Individual Cost
+  const rerollCost = player.level * 800; 
+  const individualRerollCost = player.level * 100; 
   const isFreeReroll = (player.taskNextFreeReroll || 0) <= Date.now();
   const totalFunds = player.gold + player.bankGold;
   
@@ -255,13 +242,13 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
       return () => clearInterval(timer);
   }, [player.taskNextFreeReroll, t]);
 
-  // Separate tasks
-  const killTasks = player.taskOptions.slice(0, 4);
-  const collectTasks = player.taskOptions.slice(4, 8);
+  // Ajuste defensivo: Garante que o array existe antes de dar slice
+  const safeTasks = player.taskOptions || [];
+  const killTasks = safeTasks.slice(0, 4);
+  const collectTasks = safeTasks.slice(4, 8);
 
   return (
     <div className="flex flex-col h-full bg-[#121212]">
-       {/* Header */}
        <div className="p-4 bg-[#1e1e1e] border-b border-[#333] flex items-center justify-between shadow-md shrink-0">
           <div className="flex items-center gap-3">
               <div className="p-2.5 bg-gradient-to-br from-orange-900 to-orange-950 border border-orange-700/50 rounded-lg text-orange-400 shadow-lg">
@@ -282,24 +269,22 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
           </div>
        </div>
 
-       {/* Banner */}
        <div className="bg-gradient-to-r from-orange-950/20 via-orange-900/10 to-orange-950/20 border-b border-orange-900/20 p-2 text-center">
             <p className="text-[10px] text-orange-300/60 uppercase tracking-widest font-bold">
                 {t('task_banner_hint')}
             </p>
        </div>
 
-       {/* Grid Content */}
        <div className="flex-1 p-6 overflow-y-auto custom-scrollbar bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#000_100%)]">
           <div className="max-w-7xl mx-auto flex flex-col gap-8">
              
-             {/* KILL SECTION */}
              <div>
                  <div className="flex items-center gap-2 mb-3 border-b border-[#333] pb-1">
                      <Crosshair size={16} className="text-orange-500"/>
                      <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider">{t('task_kill_header')}</h3>
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {killTasks.length === 0 && <div className="text-gray-600 text-xs italic">Nenhuma tarefa disponível...</div>}
                     {killTasks.map((task, idx) => (
                         <BountyCard 
                             key={task.uuid} 
@@ -310,19 +295,19 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
                             onClick={() => onSelectTask(task)}
                             onCancel={() => onCancelTask(task.uuid)}
                             onClaim={() => onClaimReward(task.uuid)}
-                            onReroll={() => onRerollSpecific && onRerollSpecific(idx)} // 0-3
+                            onReroll={() => onRerollSpecific && onRerollSpecific(idx)} 
                         />
                     ))}
                  </div>
              </div>
 
-             {/* COLLECT SECTION */}
              <div>
                  <div className="flex items-center gap-2 mb-3 border-b border-[#333] pb-1">
                      <PackageSearch size={16} className="text-cyan-500"/>
                      <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider">{t('task_collect_header')}</h3>
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {collectTasks.length === 0 && <div className="text-gray-600 text-xs italic">Nenhuma tarefa disponível...</div>}
                     {collectTasks.map((task, idx) => (
                         <BountyCard 
                             key={task.uuid} 
@@ -333,7 +318,7 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
                             onClick={() => onSelectTask(task)}
                             onCancel={() => onCancelTask(task.uuid)}
                             onClaim={() => onClaimReward(task.uuid)}
-                            onReroll={() => onRerollSpecific && onRerollSpecific(idx + 4)} // 4-7
+                            onReroll={() => onRerollSpecific && onRerollSpecific(idx + 4)} 
                         />
                     ))}
                  </div>
@@ -342,7 +327,6 @@ export const TaskPanel: React.FC<TaskPanelProps> = ({
           </div>
        </div>
 
-       {/* Footer Reroll */}
        <div className="p-4 border-t border-[#333] bg-[#1a1a1a] flex justify-center shadow-[0_-5px_20px_rgba(0,0,0,0.5)] relative z-20">
           <button 
              onClick={onRerollTasks}

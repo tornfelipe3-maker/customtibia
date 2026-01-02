@@ -4,6 +4,7 @@ import { Player, Item, EquipmentSlot, SkillType, Spell, PlayerSettings, Vocation
 import { calculateSoulPointsToGain, generatePreyCard, generateTaskOptions, generateSingleTask, reforgeItemStats, getReforgeCost, getAscensionUpgradeCost, resetCombatState, checkForLevelUp, getEffectiveMaxHp, getEffectiveMaxMana, GENERATE_MODIFIERS } from '../services';
 import { SHOP_ITEMS, BOSSES, QUESTS, INITIAL_PLAYER_STATS, getXpForLevel, MAX_BACKPACK_SLOTS, MAX_DEPOT_SLOTS, SOULWAR_SET, SANGUINE_SET } from '../constants';
 import { MarketService, MarketListing } from '../services/market';
+import { supabase } from '../lib/supabase';
 
 export const useGameActions = (
     playerRef: React.MutableRefObject<Player | null>,
@@ -22,7 +23,6 @@ export const useGameActions = (
     setDeathReport: React.Dispatch<React.SetStateAction<DeathReport | null>>
 ) => {
 
-    // Trava de segurança persistente para ações de mercado
     const activeMarketOps = useRef<Set<string>>(new Set());
 
     const updatePlayerState = (fn: (p: Player) => Player | null) => {
@@ -37,7 +37,6 @@ export const useGameActions = (
     };
 
     return {
-        // --- MARKET LOGIC REFORÇADA ---
         listOnMarket: async (item: Item, priceTc: number, userId: string, userName: string) => {
             if (!item.uniqueId || activeMarketOps.current.has(item.uniqueId)) return;
             
@@ -76,16 +75,39 @@ export const useGameActions = (
 
             activeMarketOps.current.add(listing.id);
             try {
+                // 1. Tenta remover do mercado
                 await MarketService.buyItem(listing.id);
+
+                // 2. Transfere o valor para o vendedor (Lógica de Servidor emulada no cliente)
+                // Desconto de 1 TC conforme solicitado
+                const netGain = listing.price_tc - 1;
+                const sellerId = listing.seller_id;
+
+                try {
+                    // Busca perfil do vendedor
+                    const { data: profile } = await supabase.from('profiles').select('data').eq('id', sellerId).single();
+                    if (profile) {
+                        const sellerData = profile.data as Player;
+                        sellerData.tibiaCoins = (sellerData.tibiaCoins || 0) + netGain;
+                        // Atualiza o vendedor no banco
+                        await supabase.from('profiles').update({ data: sellerData }).eq('id', sellerId);
+                    }
+                } catch (transferError) {
+                    console.error("Falha ao creditar vendedor:", transferError);
+                    // Em produção isso deveria ser atômico no DB (RPC)
+                }
+
+                // 3. Atualiza o comprador localmente
                 updatePlayerState(prev => ({
                     ...prev,
                     tibiaCoins: prev.tibiaCoins - listing.price_tc,
                     uniqueInventory: [...(prev.uniqueInventory || []), listing.item_data]
                 }));
-                addLog(`Você comprou ${listing.item_data.name} por ${listing.price_tc} TC!`, "gain");
+
+                addLog(`Você comprou ${listing.item_data.name} por ${listing.price_tc} TC! (1 TC de taxa foi retido pelo Reino)`, "gain");
             } catch (e) {
                 addLog("Item não disponível ou erro na transação.", "danger");
-                throw e; // Lança para o componente UI tratar o erro
+                throw e;
             } finally {
                 activeMarketOps.current.delete(listing.id);
             }
@@ -110,7 +132,7 @@ export const useGameActions = (
             }
         },
 
-        // --- RESTO DAS AÇÕES (Mantidas) ---
+        // --- RESTO DAS AÇÕES ---
         setGameSpeed: (speed: number) => setGameSpeed(speed),
         resetAnalyzer: () => {
             setAnalyzerHistory([]);

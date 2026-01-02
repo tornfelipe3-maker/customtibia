@@ -22,10 +22,8 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
     const [hoverItem, setHoverItem] = useState<Item | null>(null);
     const [hoverPos, setHoverPos] = useState<{x: number, y: number} | null>(null);
 
-    // Controle rigoroso de processamento por ID de listagem
     const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-    // Estados para o Modal de Venda
     const [selectedForSale, setSelectedForSale] = useState<Item | null>(null);
     const [salePrice, setSalePrice] = useState<string>("25");
 
@@ -41,7 +39,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         }
     };
 
-    // ATUALIZAÇÃO AUTOMÁTICA AO TROCAR DE ABA
     useEffect(() => {
         refreshMarket(true);
     }, [activeTab]);
@@ -68,24 +65,23 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
 
     const handleConfirmSale = () => {
         const price = parseInt(salePrice);
-        if (selectedForSale && price > 0) {
+        // Preço mínimo de 2 TC para cobrir a taxa de 1 TC
+        if (selectedForSale && price >= 2) {
             onListMarket(selectedForSale, price);
             setSelectedForSale(null);
             setSalePrice("25");
+        } else {
+            alert("O preço mínimo de venda é 2 TC (devido à taxa de intermediação).");
         }
     };
 
-    // Handler de cancelamento com trava de segurança por ID
     const handleCancelAction = async (listing: MarketListing) => {
         if (processingIds.has(listing.id)) return;
-
         setProcessingIds(prev => new Set(prev).add(listing.id));
         setListings(prev => prev.filter(l => l.id !== listing.id));
-
         try {
             await onCancelMarket(listing);
         } catch (e) {
-            console.error("Falha ao cancelar anúncio:", e);
             await refreshMarket(true);
         } finally {
             setProcessingIds(prev => {
@@ -96,17 +92,13 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         }
     };
 
-    // Handler de compra com trava de segurança
     const handleBuyAction = async (listing: MarketListing) => {
         if (processingIds.has(listing.id)) return;
-        
         setProcessingIds(prev => new Set(prev).add(listing.id));
-        
         try {
             await onBuyMarket(listing);
             setListings(prev => prev.filter(l => l.id !== listing.id));
         } catch (e) {
-            console.error("Falha na compra:", e);
             await refreshMarket(true);
         } finally {
             setProcessingIds(prev => {
@@ -131,7 +123,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
         <div className="flex flex-col h-full bg-[#1a1a1a] text-gray-200 overflow-hidden relative">
             <ItemTooltip item={hoverItem} position={hoverPos} />
 
-            {/* MODAL DE ANÚNCIO */}
             {selectedForSale && (
                 <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="tibia-panel w-full max-w-[320px] shadow-2xl p-0 flex flex-col overflow-hidden animate-in zoom-in duration-150">
@@ -158,10 +149,17 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                                     <input 
                                         type="number" 
                                         value={salePrice}
+                                        min="2"
                                         onChange={(e) => setSalePrice(e.target.value)}
                                         className="bg-transparent border-none outline-none text-white w-full font-mono font-bold"
                                         autoFocus
                                     />
+                                </div>
+                                <div className="mt-3 bg-red-900/10 border border-red-900/30 p-2 rounded">
+                                    <p className="text-[9px] text-red-300 leading-tight">
+                                        * Taxa de anúncio: 1.000 gold (imediato)<br/>
+                                        * Taxa de venda: <span className="font-bold text-yellow-500">1 TC</span> (descontado do valor recebido)
+                                    </p>
                                 </div>
                             </div>
 
@@ -176,7 +174,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                 </div>
             )}
 
-            {/* Header */}
             <div className="p-4 bg-[#2d2d2d] border-b border-[#111] flex items-center justify-between shadow-lg shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-yellow-500">
@@ -197,7 +194,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                 </div>
             </div>
 
-            {/* Tabs */}
             <div className="flex bg-[#222] border-b border-[#111] shrink-0">
                 <button onClick={() => setActiveTab('browse')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors ${activeTab === 'browse' ? 'bg-[#333] text-yellow-500 border-b-2 border-yellow-500' : 'text-gray-500 hover:text-gray-300'}`}>
                     <Search size={14}/> Explorar
@@ -210,7 +206,6 @@ export const MarketPanel: React.FC<MarketPanelProps> = ({ player, userId, onBuyM
                 </button>
             </div>
 
-            {/* Content Area */}
             <div key={activeTab} className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#0d0d0d_100%)] animate-in fade-in duration-300">
                 
                 {activeTab === 'browse' && (

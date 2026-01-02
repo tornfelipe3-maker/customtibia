@@ -1,7 +1,7 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Player, LogEntry, HitSplat, Item, Monster, OfflineReport, ImbuType, DeathReport, AscensionPerk } from '../types';
 import { processGameTick, calculateOfflineProgress, StorageService, generateTaskOptions, resetCombatState, validateProgressSanity } from '../services';
-// Added MONSTERS to the imports from constants
 import { MONSTERS, BOSSES, INITIAL_PLAYER_STATS } from '../constants';
 import { useGameActions } from './useGameActions';
 
@@ -38,7 +38,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
   const playerRef = useRef<Player | null>(initialPlayer);
   const monsterHpRef = useRef<number>(0);
   const lastTickRef = useRef<number>(Date.now());
-  const killBatchRef = useRef<{[id: string]: number}>({}); // BATCH DE KILLS PARA PERFORMANCE
+  const killBatchRef = useRef<{[id: string]: number}>({}); 
   
   const addLog = (message: string, type: LogEntry['type'] = 'info', rarity?: any) => {
       setLogs(prev => [...prev, { id: Math.random().toString(), message, type, timestamp: Date.now(), rarity }]);
@@ -56,6 +56,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           const serverNow = await StorageService.getServerTime();
           lastTickRef.current = serverNow;
 
+          // Inicialização de campos obrigatórios ausentes
           if (!migratedPlayer.imbuements) {
               migratedPlayer.imbuements = {
                   [ImbuType.LIFE_STEAL]: { tier: 0, timeRemaining: 0 },
@@ -68,6 +69,11 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           if (!migratedPlayer.uniqueInventory) migratedPlayer.uniqueInventory = [];
           if (!migratedPlayer.uniqueDepot) migratedPlayer.uniqueDepot = []; 
           if (!migratedPlayer.tutorials) migratedPlayer.tutorials = { ...INITIAL_PLAYER_STATS.tutorials };
+          
+          // Geração de Tasks Iniciais se não houver nenhuma (CORREÇÃO DO BUG)
+          if (!migratedPlayer.taskOptions || migratedPlayer.taskOptions.length === 0) {
+              migratedPlayer.taskOptions = generateTaskOptions(migratedPlayer.level);
+          }
           
           const { player: updatedPlayer, report, stopHunt, stopTrain } = calculateOfflineProgress(migratedPlayer, migratedPlayer.lastSaveTime, serverNow);
           
@@ -86,21 +92,18 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
     syncAndStart();
   }, [initialPlayer]);
 
-  // --- PERF: BATCH SYNC DE KILLS E SAVE ---
   useEffect(() => {
       if (!userId) return;
       const timer = setInterval(async () => {
           if (playerRef.current && !isPaused) {
-              // Envia Batch de Kills para o Global Stats
               if (Object.keys(killBatchRef.current).length > 0) {
                   const batch = { ...killBatchRef.current };
                   killBatchRef.current = {};
                   await StorageService.syncMonsterKills(batch);
               }
-              // Salva Personagem
               await StorageService.save(userId, playerRef.current);
           }
-      }, 30000); // A cada 30 segundos
+      }, 30000); 
       return () => clearInterval(timer);
   }, [userId, isPaused]);
 
@@ -137,7 +140,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           
           let stopBatchHunt = false;
           let triggerUpdate = null;
-          // Track the active monster throughout simulated ticks
           let currentTickActiveMonster = activeMonster;
 
           for (let i = 0; i < ticksToProcess; i++) {
@@ -146,7 +148,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               
               tempPlayer = result.player;
               tempMonsterHp = result.monsterHp;
-              // Capture active monster from latest simulated tick
               currentTickActiveMonster = result.activeMonster;
 
               if (result.newLogs.length > 0) batchLogs.push(...result.newLogs);
@@ -156,9 +157,7 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               batchStats.profit += result.stats.profitGained;
               batchStats.waste += result.stats.waste;
 
-              // Adiciona ao Batch de Kills para performance
               result.killedMonsters.forEach(km => {
-                // Fixed line 157: MONSTERS is now imported from constants
                 const monster = MONSTERS.find(m => m.name === km.name) || BOSSES.find(b => b.name === km.name);
                 if (monster) {
                     killBatchRef.current[monster.id] = (killBatchRef.current[monster.id] || 0) + km.count;
@@ -186,7 +185,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
               else if (triggerUpdate.death) { 
                   setIsPaused(true); 
                   setDeathReport(triggerUpdate.death); 
-                  // LOG GLOBAL DE MORTE
                   StorageService.logGlobalDeath(tempPlayer.name, tempPlayer.level, tempPlayer.vocation, triggerUpdate.death.killerName);
               }
           }
@@ -194,7 +192,6 @@ export const useGameEngine = (initialPlayer: Player | null, userId: string | nul
           playerRef.current = tempPlayer; 
           setPlayer(tempPlayer);
           monsterHpRef.current = tempMonsterHp;
-          // Fixed line 192: Use the tracked monster from the last processed tick
           setActiveMonster(triggerUpdate?.death ? undefined : currentTickActiveMonster);
           setCurrentMonsterHp(tempMonsterHp);
 

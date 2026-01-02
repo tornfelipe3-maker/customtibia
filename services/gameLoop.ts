@@ -76,6 +76,15 @@ export const processGameTick = (
     const effMaxHp = getEffectiveMaxHp(p);
     const effMaxMana = getEffectiveMaxMana(p);
 
+    // --- TURN DAMAGE ACCUMULATORS ---
+    let turnBasicDmg = 0;
+    let turnSpellDmg = 0;
+    let turnRuneDmg = 0;
+
+    // --- ACCUMULATORS FOR CONSOLIDATED VISUALS ---
+    let totalHealValue = 0;
+    let totalManaValue = 0;
+
     // --- IMBUEMENT TIMER TICK ---
     if (p.imbuActive && p.imbuements) {
         Object.keys(p.imbuements).forEach(key => {
@@ -99,6 +108,7 @@ export const processGameTick = (
             const heal = Math.ceil(dmg * (ls.tier * 0.05)); 
             if (heal > 0) {
                 p.hp = Math.min(effMaxHp, p.hp + heal);
+                totalHealValue += heal;
             }
         }
 
@@ -107,6 +117,7 @@ export const processGameTick = (
             const manaGain = Math.ceil(dmg * (ml.tier * 0.05));
             if (manaGain > 0) {
                 p.mana = Math.min(effMaxMana, p.mana + manaGain);
+                totalManaValue += manaGain;
             }
         }
     };
@@ -114,14 +125,14 @@ export const processGameTick = (
     const huntId = activeHuntId;
     const settingsHuntCount = p.activeHuntCount || 1;
     
-    // --- TUTORIAL TRIGGERS (FIXED) ---
+    // TUTORIAL TRIGGERS (FIXED)
     if (p.level >= 12 && !p.tutorials.seenLevel12) {
-        p.tutorials.seenLevel12 = true; // Marcar como visto imediatamente
+        p.tutorials.seenLevel12 = true; // Marca como visto imediatamente
         triggers.tutorial = 'level12';
     }
 
     if (p.level >= 30 && !p.tutorials.seenAscension) {
-        p.tutorials.seenAscension = true; // Marcar como visto imediatamente
+        p.tutorials.seenAscension = true; // Marca como visto imediatamente
         triggers.tutorial = 'ascension';
     }
 
@@ -168,6 +179,8 @@ export const processGameTick = (
     const autoRes = processAutomation(p, now, log, hit);
     p = autoRes.player;
     stats.waste += autoRes.waste;
+    totalHealValue += autoRes.totalHeal;
+    totalManaValue += autoRes.totalMana;
 
     if (activeTrainingSkill) {
         p = processTraining(p, activeTrainingSkill, log, hit);
@@ -193,9 +206,9 @@ export const processGameTick = (
                     currentMonsterInstance = createInfluencedMonster(baseMonster, forcedType);
                     currentMonsterInstance.guid = instanceId;
                     currentMonsterInstance.spawnTime = now;
-                    // --- TRIGGER TUTORIAL MOB (FIXED) ---
+                    // TRIGGER TUTORIAL MOB (FIXED)
                     if (!p.tutorials.seenRareMob) {
-                        p.tutorials.seenRareMob = true; // Marcar como visto imediatamente
+                        p.tutorials.seenRareMob = true;
                         triggers.tutorial = 'mob';
                     }
                     log(`Warning! A ${currentMonsterInstance.name} appeared!`, 'danger');
@@ -345,6 +358,7 @@ export const processGameTick = (
 
             if (autoAttackDamage > 0) {
                 monsterHp -= autoAttackDamage;
+                turnBasicDmg += autoAttackDamage;
                 hit(autoAttackDamage, 'damage', 'monster', 'basic');
                 applyLeech(autoAttackDamage);
             }
@@ -364,6 +378,7 @@ export const processGameTick = (
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) { hit('DODGED', 'speech', 'monster'); } else {
                             monsterHp -= finalSpellDmg;
+                            turnSpellDmg += finalSpellDmg;
                             hit(finalSpellDmg, 'damage', 'monster', 'spell');
                             hit(spellName, 'speech', 'player');
                             applyLeech(finalSpellDmg);
@@ -388,6 +403,7 @@ export const processGameTick = (
                         
                         if (hazardDodgeChance > 0 && Math.random() < hazardDodgeChance) { hit('DODGED', 'speech', 'monster'); } else {
                             monsterHp -= finalRuneDmg;
+                            turnRuneDmg += finalRuneDmg;
                             hit(finalRuneDmg, 'damage', 'monster', 'rune');
                             applyLeech(finalRuneDmg);
                         }
@@ -397,7 +413,15 @@ export const processGameTick = (
                 }
             }
 
-            // Death and Rewards
+            const totalTurnDmg = turnBasicDmg + turnSpellDmg + turnRuneDmg;
+            if (totalTurnDmg > 0) {
+                const breakdown = [];
+                if (turnBasicDmg > 0) breakdown.push(`${turnBasicDmg} basic`);
+                if (turnSpellDmg > 0) breakdown.push(`${turnSpellDmg} spell`);
+                if (turnRuneDmg > 0) breakdown.push(`${turnRuneDmg} rune`);
+                log(`You deal ${totalTurnDmg} damage to ${monster.name} (${breakdown.join(', ')}).`, 'combat');
+            }
+
             if (monsterHp <= 0) {
                 killedMonsters.push({ name: monster.name, count: effectiveHuntCount });
                 const goldDrop = (Math.floor(Math.random() * (monster.maxGold - monster.minGold + 1)) + monster.minGold) * effectiveHuntCount;
@@ -439,9 +463,9 @@ export const processGameTick = (
                                 p.uniqueInventory.push(u); 
                                 currentSlots++; 
                                 log(`Rare Drop: ${u.name} (${u.rarity})!`, 'loot', u.rarity); 
-                                // --- TRIGGER TUTORIAL ITEM (FIXED) ---
+                                // TRIGGER TUTORIAL ITEM (FIXED)
                                 if (!p.tutorials.seenRareItem) {
-                                    p.tutorials.seenRareItem = true; // Marcar como visto imediatamente
+                                    p.tutorials.seenRareItem = true;
                                     triggers.tutorial = 'item';
                                 }
                             } else if (!bpFull) { 
@@ -472,6 +496,9 @@ export const processGameTick = (
             }
         }
     }
+
+    if (totalHealValue > 0) hit(`+${totalHealValue}`, 'heal', 'player');
+    if (totalManaValue > 0) hit(`+${totalManaValue}`, 'mana', 'player');
 
     return { player: p, monsterHp, newLogs: logs, newHits: hits, stopHunt, stopTrain, bossDefeatedId, activeMonster: (monsterHp > 0 || (currentMonsterInstance && now <= respawnUnlockTime)) ? currentMonsterInstance : undefined, killedMonsters, triggers, stats };
 };

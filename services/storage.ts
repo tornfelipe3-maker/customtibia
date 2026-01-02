@@ -115,8 +115,6 @@ export const StorageService = {
     return { success: true };
   },
 
-  // --- NEW: GLOBAL STATS METHODS ---
-
   async logGlobalDeath(playerName: string, level: number, vocation: string, killerName: string) {
     await supabase.from('global_deaths').insert({
         player_name: playerName,
@@ -154,14 +152,17 @@ export const StorageService = {
       .select('id, data')
       .order('data->level', { ascending: false })
       .order('data->currentXp', { ascending: false })
-      .limit(100);
+      .limit(200); // Pegamos mais para garantir que ao filtrar GMs ainda tenhamos o top 100
 
     if (error || !allProfiles) return null;
 
-    const entries = allProfiles.map(p => {
-        const playerData = p.data as Player;
-        return { id: p.id, name: playerData.name || "Unknown Hero", data: playerData };
-    });
+    // Filtra jogadores que não são GM
+    const entries = allProfiles
+        .map(p => {
+            const playerData = p.data as Player;
+            return { id: p.id, name: playerData.name || "Unknown Hero", data: playerData };
+        })
+        .filter(e => !e.data.isGm); // REMOVE GMS DO RANKING
 
     const getTop = (getValue: (p: Player) => number) => {
         return entries
